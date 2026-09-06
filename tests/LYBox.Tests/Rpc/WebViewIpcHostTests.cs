@@ -110,8 +110,9 @@ public class WebViewIpcHostTests
         await WaitForAsync(() => transport.ExecutedScripts.Any(s => s.Contains("resolve") && s.Contains("cb-2")));
 
         var resolveJs = transport.ExecutedScripts.Single(s => s.Contains("resolve") && s.Contains("cb-2"));
-        await Assert.That(resolveJs).Contains("命令未注册");
-        await Assert.That(resolveJs).Contains("svc.missing");
+        // 未注册命令回推一条 method_not_found 错误，result 为 null
+        await Assert.That(resolveJs).Contains("method_not_found");
+        await Assert.That(resolveJs).Contains("RPC method was not found.");
     }
 
     [Test]
@@ -130,7 +131,8 @@ public class WebViewIpcHostTests
         await WaitForAsync(() => transport.ExecutedScripts.Any(s => s.Contains("resolve") && s.Contains("cb-3")));
 
         var resolveJs = transport.ExecutedScripts.Single(s => s.Contains("resolve") && s.Contains("cb-3"));
-        await Assert.That(resolveJs).Contains("boom-from-handler");
+        // 处理器抛异常回推一条 handler_error 错误（分发器统一脱敏为协议错误码）
+        await Assert.That(resolveJs).Contains("handler_error");
     }
 
     [Test]

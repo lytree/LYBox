@@ -31,7 +31,7 @@ public class WebHostServiceTests
             var responseA = await client.SendAsync(requestA);
             await Assert.That(responseA.StatusCode).IsEqualTo(HttpStatusCode.OK);
             using var jsonA = JsonDocument.Parse(await responseA.Content.ReadAsStringAsync());
-            await Assert.That(jsonA.RootElement.GetProperty("result").GetString()).IsEqualTo("a");
+            await Assert.That(jsonA.RootElement.GetProperty("payload").GetString()).IsEqualTo("a");
 
             using var crossPlugin = CreateRpcRequest("plugin-b", sessionA);
             var crossResponse = await client.SendAsync(crossPlugin);

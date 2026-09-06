@@ -29,6 +29,7 @@ public sealed class WebViewIpcHost : IRpcHost, ICanonicalRpcHost, IDisposable
     private readonly IRpcTransport _transport;
     private readonly IEventPusher? _eventPusher;
     private readonly string? _pluginId;
+    private readonly bool _usesSharedDispatcher;
     private readonly PluginRpcDispatcher _dispatcher;
     private readonly ConcurrentDictionary<string, Channel> _channels = new();
     private readonly ConcurrentDictionary<string, List<Action<JsonElement?>>> _eventListeners = new();
@@ -40,6 +41,7 @@ public sealed class WebViewIpcHost : IRpcHost, ICanonicalRpcHost, IDisposable
     private bool _disposed;
 
     private const string ReadyEvent = "__lybox:ready";
+    private const string StandalonePluginId = "local";
 
     /// <param name="transport">底层双向传输。</param>
     /// <param name="eventPusher">可选 SSE 推送器。注入后事件分发 / 通道数据优先走 SSE，避免 InvokeScript 队列堆积。</param>
@@ -50,6 +52,7 @@ public sealed class WebViewIpcHost : IRpcHost, ICanonicalRpcHost, IDisposable
         _transport = transport;
         _eventPusher = eventPusher;
         _pluginId = pluginId;
+        _usesSharedDispatcher = webHost is not null;
         _dispatcher = webHost?.RpcDispatcher ?? new PluginRpcDispatcher();
         _transport.MessageReceived += OnMessage;
         _bootstrapJs = LoadBootstrap();
@@ -276,10 +279,19 @@ public sealed class WebViewIpcHost : IRpcHost, ICanonicalRpcHost, IDisposable
         catch { /* 页面已销毁等，忽略 */ }
     }
 
-    private string RequirePluginId() =>
-        !string.IsNullOrWhiteSpace(_pluginId)
-            ? _pluginId
-            : throw new InvalidOperationException("A pluginId is required for RPC registration.");
+    /// <summary>
+    /// 返回用于命令注册 / 分派的插件 ID。优先使用显式注入的 <see cref="_pluginId"/>；
+    /// 独立模式（未注入共享分发器的 <see cref="WebHostService"/>）时回退到本地占位 ID，
+    /// 保证 standalone WebView IPC 无需 pluginId 也能正常注册与分发（向后兼容）。
+    /// 注入共享分发器时 pluginId 是命令隔离所必需，缺失则抛错。
+    /// </summary>
+    private string RequirePluginId()
+    {
+        if (!string.IsNullOrWhiteSpace(_pluginId)) return _pluginId;
+        if (_usesSharedDispatcher)
+            throw new InvalidOperationException("A pluginId is required for RPC registration.");
+        return StandalonePluginId;
+    }
 
     private static string LoadBootstrap()
     {

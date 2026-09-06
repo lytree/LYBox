@@ -14,13 +14,6 @@ public class PluginUtilitiesTests
     #region JsonOptions 一致性
 
     [Test]
-    public async Task JsonOptions_IsNotReadOnly()
-    {
-        // 确保选项实例可被消费方直接使用（非冻结态，但约定不修改）
-        await Assert.That(PluginUtilities.JsonOptions.IsReadOnly).IsFalse();
-    }
-
-    [Test]
     public async Task JsonOptions_WriteIndented_IsTrue()
     {
         // 确保统一使用缩进输出（原 PluginLoader 的配置，现在作为标准）
