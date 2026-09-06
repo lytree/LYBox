@@ -42,10 +42,10 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Build all (host + SDK + plugin)
+      - name: Build all (host + SDK)
         run: |
           dotnet build/build.cs \
-            --build=all \
+            --build=bin \
             --configuration=Release
 
       - name: Test core
@@ -58,8 +58,6 @@ jobs:
         run: |
           echo "=== SDK NuGet packages ==="
           ls -lh artifacts/packages/sdk/*.nupkg 2>/dev/null || echo "(none)"
-          echo "=== Plugin zips ==="
-          ls -lh artifacts/packages/plugins/*.zip 2>/dev/null || echo "(none)"
           echo "=== Launcher publish ==="
           find artifacts/publish/launcher -maxdepth 3 -type f | sort | head -50
 
@@ -69,15 +67,6 @@ jobs:
         with:
           name: ci-sdk-nuget
           path: artifacts/packages/sdk/*.nupkg
-          if-no-files-found: warn
-          retention-days: 3
-
-      - name: Upload plugin zip artifacts
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: ci-plugin-zips
-          path: artifacts/packages/plugins/*.zip
           if-no-files-found: warn
           retention-days: 3
 
