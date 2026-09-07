@@ -29,7 +29,7 @@
 
 | 优先级 | 来源 | 命名空间 | 适用场景 |
 |--------|------|----------|---------|
-| 1 | **Irihi.Ursa** | `xmlns:u="using:Irihi.Ursa.Controls"` | 默认首选。所有通用控件优先用 Ursa。 |
+| 1 | **Irihi.Ursa** | `xmlns:u="https://irihi.tech/ursa"` | 默认首选。所有通用控件优先用 Ursa。 |
 | 2 | **Avalonia 内置控件** | `xmlns="https://github.com/avaloniaui"` | Ursa 未覆盖或场景不适合时使用。 |
 | 3 | **项目自定义 Fluent 补充样式** | `Classes="Fluent..."` | Ursa 未提供的 WinUI 风格控件。 |
 | 4 | **CommunityToolkit.Mvvm** | `using CommunityToolkit.Mvvm.ComponentModel;` | ViewModel 基础设施（VM 必须用此库）。 |
@@ -42,7 +42,7 @@
 
 插件通过 `LYBox.Plugin.Shared` 的程序集转发机制可访问所有 Ursa 控件。在 XAML 顶部添加：
 ```xml
-xmlns:u="using:Irihi.Ursa.Controls"
+xmlns:u="https://irihi.tech/ursa"
 ```
 
 ### 通用控件
@@ -481,7 +481,7 @@ Host 注册的全局 `IDataTemplate`，自动按 ViewModel 类型名解析 View�
 ```xml
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:u="using:Irihi.Ursa.Controls"
+             xmlns:u="https://irihi.tech/ursa"
              xmlns:vm="clr-namespace:MyPlugin.ViewModels"
              x:Class="MyPlugin.Pages.SettingsPage"
              x:DataType="vm:SettingsPageViewModel">

@@ -130,12 +130,12 @@ LYBox.Launcher.Desktop/         桌面入口（Program.cs → App.axaml.cs）。
 <PluginAuthor>...</PluginAuthor>
 <PluginDescription>...</PluginDescription>
 <PluginVersion>1.0.0</PluginVersion>  <!-- 可选，缺省回退到 <Version> -->
-<MinPluginSdkVersion>2.1.0</MinPluginSdkVersion>  <!-- 可选，缺省 "0.0.0" 无约束 -->
+<MinPluginSdkVersion>2.3.0-preview.3</MinPluginSdkVersion>  <!-- 可选，缺省 "0.0.0" 无约束 -->
 ```
 
 提供 CLI 命令的新插件应额外直接引用 `LYBox.Plugin.CommandLine`。契约 namespace 仍为 `LYBox.Plugin.Shared.CommandLine`；既有源码无需修改。`LYBox.Plugin.Shared` 保留同版本 NuGet 依赖与 `TypeForwardedTo`，因此只引用旧 Shared 包编译出的插件二进制仍可由新宿主加载。
 
-12 个内置示例插件：ButtonsInputs、DateTime、DialogFeedbacks、Downloader、LayoutDisplay、NavigationMenus、ProDataGrid、ScottPlot、TDLSharp、Template、WebTemplate。
+12 个内置示例插件：BTSou、ButtonsInputs、DateTime、DialogFeedbacks、Downloader、LayoutDisplay、NavigationMenus、ProDataGrid、ScottPlot、TDLSharp、Template、WebTemplate。
 
 
 ### WebView 插件与嵌入式 SDK
@@ -145,7 +145,7 @@ LYBox.Launcher.Desktop/         桌面入口（Program.cs → App.axaml.cs）。
 ```js
 import { invoke, on } from "/sdk/lybox-plugin-sdk.js";
 
-const sum = await invoke("AddAsync", 3, 5);
+var sum = await invoke("AddAsync", { Left: 3, Right: 5 });
 const off = on("tick", data => console.log(data));
 ```
 
@@ -230,7 +230,7 @@ Program.cs → App.Initialize()
     <PluginVersion>1.0.0</PluginVersion>
 
     <!-- 声明本插件所需的最低 Plugin SDK 契约版本 -->
-    <MinPluginSdkVersion>2.1.0</MinPluginSdkVersion>
+    <MinPluginSdkVersion>2.3.0-preview.3</MinPluginSdkVersion>
   </PropertyGroup>
 
   <ItemGroup>
