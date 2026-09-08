@@ -10,7 +10,7 @@
           2. 环境变量 LYBOX_HOST_VERSION        （CI/脚本注入）
           3. 下方 VersionFallback（本文件，唯一真相源，本地/IDE 构建兜底）
 
-        发版流程：修改此文件中的 <LyboxVersion> → 提交 → 打标签 V<version> → push 触发 release-host.yml。
+        发版流程：修改此文件中的 LyboxVersion → 提交 → 打标签 V<version> → push 触发 release-host.yml。
     -->
     <PropertyGroup>
         <LyboxVersion>2.3.0-preview.4</LyboxVersion>
