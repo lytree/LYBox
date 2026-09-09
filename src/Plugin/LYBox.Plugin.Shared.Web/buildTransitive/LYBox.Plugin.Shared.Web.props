@@ -12,10 +12,9 @@
       覆盖核心包 props 中的默认空值。MSBuild props 按包引用顺序导入，
       Web 包在核心包之后引用，故此处覆盖生效（非 Web 插件不引用本包，保持核心默认空）。
       注意：不能清空核心包已追加到该属性的内容，因此这里用"追加"而非"赋值"。
-      核心包 targets 的 GenerateSharedAssembliesList 写入
-        $(_SharedAssembliesPatterns) + $(AdditionalSharedAssemblyPatterns)，
-      本文件把 ASP.NET Core 相关共享条目追加到扩展点，仅 Web 插件（额外引用本包）生效。
-      对应 copy-local / publish 剔除见同级 .targets 文件。
+      本扩展点同时驱动：核心包 targets 的 copy-local / publish 剔除
+      （ExcludeSharedAssembliesFromCopyLocal / CleanPublishedPluginOutput，单源派生）
+      与 shared-assemblies.txt 的运行时转发清单。
     -->
     <_WebSharedAssembliesPatterns>Microsoft.AspNetCore
 Microsoft.AspNetCore.*

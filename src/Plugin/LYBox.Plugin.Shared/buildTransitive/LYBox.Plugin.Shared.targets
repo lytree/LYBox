@@ -1,46 +1,108 @@
 <Project>
   <!--
-    Filter ReferenceCopyLocalPaths and published output using the shared-assembly
-    patterns defined in LYBox.Plugin.Shared.props (_SharedAssembliesPatterns).
+    Single-source shared-assembly filtering.
 
-    Only must-share assemblies (contract/framework) are stripped from plugin output.
-    All other dependencies remain plugin-local so each plugin can use its own versions.
+    LYBox.Plugin.Shared.props defines _SharedAssembliesPatterns (the runtime contract, written
+    to shared-assemblies.txt and consumed by PluginLoadContext at runtime). Other packages may
+    extend the list via AdditionalSharedAssemblyPatterns (e.g. LYBox.Plugin.Shared.Web appends
+    ASP.NET Core entries).
+
+    All build-time stripping (copy-local and publish cleanup) below is DERIVED from those two
+    properties, so build-time exclusions and runtime forwarding can never drift apart.
+
+    Pattern syntax: an exact assembly name, or a prefix pattern ending with '*'.
+
+    NOTE: the classification is done by the ParseSharedAssemblyPatterns inline task instead of
+    ItemGroup transforms, because property-function results escape ';' as %3B (breaking
+    Include-based splitting) and '*' in Include specs is treated as a filename glob. The task
+    receives the raw multiline string and does the splitting/regex-escaping deterministically.
   -->
-  <Target Name="ExcludeSharedAssembliesFromCopyLocal" AfterTargets="ResolveAssemblyReferences" Condition="'$(LYBoxPluginSharedExclusionsEnabled)' == 'true'">
-    <ItemGroup>
-      <!-- Prefix patterns: remove all assemblies starting with these prefixes -->
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('System.'))" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('Avalonia.')) And '%(Filename)' != '$(AssemblyName)' And !$([System.String]::Copy('%(Filename)').EndsWith('.resources'))" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('SkiaSharp.'))" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('HarfBuzzSharp.'))" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('CommunityToolkit.'))" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('Irihi.'))" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('Microsoft.EntityFrameworkCore.'))" />
 
-      <!-- Exact matches: remove these specific assemblies -->
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'Avalonia'" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'SkiaSharp'" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'HarfBuzzSharp'" />
-      
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'Microsoft.Bcl.AsyncInterfaces'" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'LYBox.Plugin.Shared'" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'Microsoft.Extensions.DependencyInjection'" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'Microsoft.Extensions.DependencyInjection.Abstractions'" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'Microsoft.Extensions.Options'" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'Microsoft.Extensions.Primitives'" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'Microsoft.Extensions.Logging.Abstractions'" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'Ursa'" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'Semi.Avalonia'" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'Microsoft.EntityFrameworkCore'" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'ProDataGrid'" />
+  <UsingTask TaskName="ParseSharedAssemblyPatterns" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Patterns ParameterType="System.String" Required="true" />
+      <PrefixRegexBody ParameterType="System.String" Output="true" />
+      <ExactRegexBody ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.Collections.Generic" />
+      <Using Namespace="System.Linq" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var prefixes = new List<string>();
+        var exacts = new List<string>();
+        foreach (var entry in Patterns.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var pattern = entry.Trim();
+            if (pattern.Length == 0) continue;
+            // Regex.Escape handles '.' and '*'; a prefix pattern drops its trailing "\*"
+            // so it stays an unanchored match, exact names are anchored by the caller ("^(...)$").
+            var escaped = Regex.Escape(pattern);
+            if (pattern.EndsWith("*", StringComparison.Ordinal))
+            {
+                var body = escaped.Substring(0, escaped.Length - 2);
+                if (body.Length > 0) prefixes.Add(body);
+            }
+            else
+            {
+                exacts.Add(escaped);
+            }
+        }
+        PrefixRegexBody = string.Join("|", prefixes);
+        ExactRegexBody = string.Join("|", exacts);
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <!--
+    Derive matching regexes from $(_SharedAssembliesPatterns)$(AdditionalSharedAssemblyPatterns).
+    Runs once per project; the targets below depend on it. When the pattern list is empty
+    (exclusions disabled) the regexes degrade to ^$ which never matches an assembly name.
+  -->
+  <Target Name="_ComputeSharedAssemblyFilters">
+    <PropertyGroup>
+      <_SharedPatternsRaw>$(_SharedAssembliesPatterns)$(AdditionalSharedAssemblyPatterns)</_SharedPatternsRaw>
+      <_SharedPrefixRegex>^$</_SharedPrefixRegex>
+      <_SharedExactRegex>^$</_SharedExactRegex>
+    </PropertyGroup>
+    <ParseSharedAssemblyPatterns Condition="'$(_SharedPatternsRaw.Trim())' != ''" Patterns="$(_SharedPatternsRaw)">
+      <Output TaskParameter="PrefixRegexBody" PropertyName="_SharedPrefixBody" />
+      <Output TaskParameter="ExactRegexBody" PropertyName="_SharedExactBody" />
+    </ParseSharedAssemblyPatterns>
+    <PropertyGroup>
+      <_SharedPrefixRegex Condition="'$(_SharedPrefixBody)' != ''">^($(_SharedPrefixBody))</_SharedPrefixRegex>
+      <_SharedExactRegex Condition="'$(_SharedExactBody)' != ''">^($(_SharedExactBody))$</_SharedExactRegex>
+    </PropertyGroup>
+  </Target>
+
+  <!--
+    Filter ReferenceCopyLocalPaths: only must-share assemblies (contract/framework) are stripped
+    from plugin output. Everything else stays plugin-local. The plugin's own assembly is never
+    removed, regardless of its name.
+  -->
+  <Target Name="ExcludeSharedAssembliesFromCopyLocal"
+          AfterTargets="ResolveAssemblyReferences"
+          DependsOnTargets="_ComputeSharedAssemblyFilters"
+          Condition="'$(LYBoxPluginSharedExclusionsEnabled)' == 'true'">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)"
+          Condition="'%(Filename)' != '$(AssemblyName)'
+                     And $([System.Text.RegularExpressions.Regex]::IsMatch('%(Filename)', '$(_SharedPrefixRegex)'))" />
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)"
+          Condition="'%(Filename)' != '$(AssemblyName)'
+                     And $([System.Text.RegularExpressions.Regex]::IsMatch('%(Filename)', '$(_SharedExactRegex)'))" />
     </ItemGroup>
   </Target>
 
   <!--
-    Clean must-share assemblies from the published plugin output directory.
-    This runs after Publish and removes the same set of assemblies excluded from copy-local.
+    Clean must-share assemblies from the published plugin output directory (same set as
+    copy-local, plus process-wide native libraries that the host already ships).
   -->
-  <Target Name="CleanPublishedPluginOutput" AfterTargets="Publish" Condition="'$(IsPluginProject)' == 'true' And '$(LYBoxPluginSharedExclusionsEnabled)' == 'true'">
+  <Target Name="CleanPublishedPluginOutput"
+          AfterTargets="Publish"
+          DependsOnTargets="_ComputeSharedAssemblyFilters"
+          Condition="'$(IsPluginProject)' == 'true' And '$(LYBoxPluginSharedExclusionsEnabled)' == 'true'">
     <ItemGroup>
       <_PublishedFiles Include="$(PublishDir)**\*.dll" />
       <_PublishedFiles Include="$(PublishDir)**\*.pdb" />
@@ -48,33 +110,15 @@
       <_PublishedNativeFiles Include="$(PublishDir)runtimes\**\*.*" />
     </ItemGroup>
     <ItemGroup>
-      <!-- Prefix patterns -->
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('System.'))" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('Avalonia.')) And '%(Filename)' != '$(AssemblyName)' And !$([System.String]::Copy('%(Filename)').EndsWith('.resources'))" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('SkiaSharp.'))" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('HarfBuzzSharp.'))" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('CommunityToolkit.'))" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('Irihi.'))" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('Microsoft.EntityFrameworkCore.'))" />
+      <_ExcludedPublished Include="@(_PublishedFiles)"
+          Condition="'%(Filename)' != '$(AssemblyName)'
+                     And $([System.Text.RegularExpressions.Regex]::IsMatch('%(Filename)', '$(_SharedPrefixRegex)'))" />
+      <_ExcludedPublished Include="@(_PublishedFiles)"
+          Condition="'%(Filename)' != '$(AssemblyName)'
+                     And $([System.Text.RegularExpressions.Regex]::IsMatch('%(Filename)', '$(_SharedExactRegex)'))" />
 
-      <!-- Exact matches -->
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="'%(Filename)' == 'Avalonia'" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="'%(Filename)' == 'SkiaSharp'" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="'%(Filename)' == 'HarfBuzzSharp'" />
-      
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="'%(Filename)' == 'Microsoft.Bcl.AsyncInterfaces'" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="'%(Filename)' == 'LYBox.Plugin.Shared'" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="'%(Filename)' == 'Microsoft.Extensions.DependencyInjection'" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="'%(Filename)' == 'Microsoft.Extensions.DependencyInjection.Abstractions'" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="'%(Filename)' == 'Microsoft.Extensions.Options'" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="'%(Filename)' == 'Microsoft.Extensions.Primitives'" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="'%(Filename)' == 'Microsoft.Extensions.Logging.Abstractions'" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="'%(Filename)' == 'Ursa'" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="'%(Filename)' == 'Semi.Avalonia'" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="'%(Filename)' == 'Microsoft.EntityFrameworkCore'" />
-      <_ExcludedPublished Include="@(_PublishedFiles)" Condition="'%(Filename)' == 'ProDataGrid'" />
-
-      <!-- Native libraries shared process-wide -->
+      <!-- Native libraries shared process-wide (host provides them; not part of the managed
+           pattern list, hence still enumerated here). -->
       <_ExcludedNativePublished Include="@(_PublishedNativeFiles)" Condition="'%(Filename)' == 'e_sqlite3'" />
       <_ExcludedNativePublished Include="@(_PublishedNativeFiles)" Condition="'%(Filename)' == 'libe_sqlite3'" />
       <_ExcludedNativePublished Include="@(_PublishedNativeFiles)" Condition="'%(Filename)' == 'libSkiaSharp'" />
@@ -88,24 +132,21 @@
   </Target>
 
   <!--
-    Generate shared-assemblies.txt: a plain-text list of assembly name patterns that
-    the runtime PluginLoadContext should forward to the host's default AssemblyLoadContext.
+    Generate shared-assemblies.txt: a plain-text list of assembly name patterns that the
+    runtime PluginLoadContext should forward to the host's default AssemblyLoadContext.
     Each line is either an exact assembly name or a prefix pattern ending with '*'.
 
-    This file is the single source of truth consumed by PluginLoadContext at runtime,
-    keeping build-time and runtime exclusion lists in sync.
-
-    The content comes from the _SharedAssembliesPatterns property defined in .props,
-    which avoids MSBuild glob expansion of '*' characters.
+    This file is the runtime twin of the build-time exclusions above — both derive from the
+    same properties, keeping build-time and runtime lists in sync by construction.
   -->
-  <Target Name="GenerateSharedAssembliesList" AfterTargets="Build" Condition="'$(IsPluginProject)' == 'true' And '$(LYBoxPluginSharedExclusionsEnabled)' == 'true'">
-    <WriteLinesToFile File="$(OutDir)shared-assemblies.txt" Lines="$(_SharedAssembliesPatterns)$(AdditionalSharedAssemblyPatterns)" Overwrite="true" Encoding="UTF-8" />
+  <Target Name="GenerateSharedAssembliesList"
+          AfterTargets="Build;Publish"
+          DependsOnTargets="_ComputeSharedAssemblyFilters"
+          Condition="'$(IsPluginProject)' == 'true' And '$(LYBoxPluginSharedExclusionsEnabled)' == 'true'">
+    <WriteLinesToFile File="$(OutDir)shared-assemblies.txt" Lines="$(_SharedPatternsRaw)" Overwrite="true" Encoding="UTF-8" />
+    <WriteLinesToFile File="$(PublishDir)shared-assemblies.txt" Condition="'$(PublishDir)' != '' And '$(PublishDir)' != '$(OutDir)'"
+                      Lines="$(_SharedPatternsRaw)" Overwrite="true" Encoding="UTF-8" />
     <Message Text="Generated shared-assemblies.txt at: $(OutDir)shared-assemblies.txt" Importance="high" />
-  </Target>
-
-  <Target Name="GenerateSharedAssembliesListOnPublish" AfterTargets="Publish" Condition="'$(IsPluginProject)' == 'true' And '$(LYBoxPluginSharedExclusionsEnabled)' == 'true'">
-    <WriteLinesToFile File="$(PublishDir)shared-assemblies.txt" Lines="$(_SharedAssembliesPatterns)$(AdditionalSharedAssemblyPatterns)" Overwrite="true" Encoding="UTF-8" />
-    <Message Text="Generated shared-assemblies.txt at: $(PublishDir)shared-assemblies.txt" Importance="high" />
   </Target>
 
   <!--

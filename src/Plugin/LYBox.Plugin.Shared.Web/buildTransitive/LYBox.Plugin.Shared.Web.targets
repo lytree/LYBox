@@ -14,36 +14,10 @@
   </Target>
 
   <!--
-    S3：Web 插件专属的共享程序集剔除。
-    非 Web 插件不引用本包，不触发本文件任何目标；Web 插件引用本包后，
-    ASP.NET Core 相关程序集由宿主（LYBox.Launcher.Desktop 的 FrameworkReference）提供，
-    故从插件 copy-local 与发布输出中剔除，避免体积膨胀与版本冲突。
-
-    共享清单（shared-assemblies.txt）中 ASP.NET Core 条目由同目录 .props 经
-    AdditionalSharedAssemblyPatterns 扩展点追加，与核心包 _SharedAssembliesPatterns 合并。
+    S3：Web 插件专属的共享程序集剔除已收敛到核心包的单源派生逻辑。
+    本包 .props 通过 AdditionalSharedAssemblyPatterns 追加的 ASP.NET Core 条目，
+    会与核心 _SharedAssembliesPatterns 一起由 LYBox.Plugin.Shared.targets 的
+    ExcludeSharedAssembliesFromCopyLocal / CleanPublishedPluginOutput 统一剔除，
+    并写入 shared-assemblies.txt —— 此处不再维护第二份硬编码清单。
   -->
-  <Target Name="ExcludeWebSharedAssembliesFromCopyLocal"
-          AfterTargets="ResolveAssemblyReferences"
-          Condition="'$(LYBoxPluginSharedExclusionsEnabled)' == 'true'">
-    <ItemGroup>
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('Microsoft.AspNetCore'))" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('Microsoft.Extensions.FileProviders'))" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('Microsoft.Extensions.Hosting.Abstractions'))" />
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'Microsoft.Extensions.Features'" />
-    </ItemGroup>
-  </Target>
-
-  <Target Name="CleanWebSharedAssembliesFromPublishedPluginOutput"
-          AfterTargets="Publish"
-          Condition="'$(IsPluginProject)' == 'true' And '$(LYBoxPluginSharedExclusionsEnabled)' == 'true'">
-    <ItemGroup>
-      <_WebPublishedFiles Include="$(PublishDir)**\*.dll" />
-      <_WebExcludedPublished Include="@(_WebPublishedFiles)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('Microsoft.AspNetCore'))" />
-      <_WebExcludedPublished Include="@(_WebPublishedFiles)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('Microsoft.Extensions.FileProviders'))" />
-      <_WebExcludedPublished Include="@(_WebPublishedFiles)" Condition="$([System.String]::Copy('%(Filename)').StartsWith('Microsoft.Extensions.Hosting.Abstractions'))" />
-      <_WebExcludedPublished Include="@(_WebPublishedFiles)" Condition="'%(Filename)' == 'Microsoft.Extensions.Features'" />
-    </ItemGroup>
-    <Delete Files="@(_WebExcludedPublished)" />
-    <Message Text="Cleaned ASP.NET Core shared assemblies from Web plugin publish output: $(PublishDir)" Importance="high" />
-  </Target>
 </Project>
