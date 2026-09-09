@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
+using LYBox.Plugin.Shared.Generated;
 
 namespace LYBox.Plugin.Shared;
 
@@ -17,22 +18,15 @@ public class ViewLocator : IDataTemplate
         _viewRegistry[typeof(TViewModel)] = () => new TView();
     }
 
-    public static void RegisterRange(IEnumerable<KeyValuePair<Type, ViewFactory>> definitions)
+    /// <summary>
+    /// 注册源生成器模块描述的全部视图（唯一 UI 注册轨道：IGeneratedPluginModule.Ui）。
+    /// 视图创建经 DI（GetService 优先，缺失时回退 new），services 须为宿主根容器。
+    /// </summary>
+    public static void RegisterModule(IGeneratedPluginModule module, IServiceProvider services)
     {
-        foreach (var def in definitions)
+        foreach (var view in module.Ui.Views)
         {
-            _viewRegistry[def.Key] = def.Value;
-        }
-    }
-
-    public static void RegisterPlugin(IPlugin plugin)
-    {
-        var definitions = plugin.GetViewDefinitions();
-        if (definitions == null) return;
-
-        foreach (var def in definitions)
-        {
-            _viewRegistry[def.Key] = def.Value;
+            _viewRegistry[view.ViewModelType] = () => view.CreateView(services);
         }
     }
 
@@ -64,7 +58,7 @@ public class ViewLocator : IDataTemplate
 
         return new TextBlock
         {
-            Text = $"View not found for: {type.FullName}. \nPlease ensure it is registered in IPlugin.GetViewDefinitions().",
+            Text = $"View not found for: {type.FullName}. \nPlease ensure it is registered via [ViewMap] (IGeneratedPluginModule.Ui).",
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
         };

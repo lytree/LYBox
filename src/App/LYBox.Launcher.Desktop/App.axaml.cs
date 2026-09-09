@@ -4,6 +4,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
 using LYBox.Plugin.Shared;
+using LYBox.Plugin.Shared.Generated;
 using LYBox.Plugin.Shared.Models;
 using LYBox.Plugin.Shared.Services;
 using LYBox.Plugin.Shared.Web;
@@ -231,16 +232,17 @@ public partial class App : Application
                     app.Resources.MergedDictionaries.Add(iconResources);
                 }
 
-                // O-12 校验前置：先获取该插件全部定义（纯数据，无副作用），
-                // 获取通过后再统一写入导航、菜单、视图。避免单插件在写入中途抛异常
-                // 导致导航/菜单/视图部分注册、状态不一致时才 MarkPluginError。
-                var navigationItems = plugin.GetNavigationItems();
-                var menuItems = plugin.GetMenuItems();
+                // 双轨收敛：UI（视图/导航/菜单）唯一注册轨道为 IGeneratedPluginModule.Ui 描述符。
+                // 模块缺失 = 插件未走 [GenerateMetadata] 源生成器轨道，无生成 UI 可注册。
+                var module = pluginLoader.GetGeneratedModule(pluginInfo.PluginId);
+                if (module is null) continue;
+                var ui = module.Ui;
+                var services = ServiceProvider!;
 
-                navigationService.RegisterNavigations(navigationItems, pluginInfo.PluginId);
-                menuConfigurationService.RegisterMenuItems(menuItems);
+                navigationService.RegisterNavigations(ui.ToNavigationFactories(services), pluginInfo.PluginId);
+                menuConfigurationService.RegisterMenuItems(ui.ToMenuItems());
 
-                ViewLocator.RegisterPlugin(plugin);
+                ViewLocator.RegisterModule(module, services);
             }
             catch (Exception ex)
             {

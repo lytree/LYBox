@@ -1,9 +1,7 @@
 
 using Avalonia.Controls;
-using LYBox.Plugin.Shared.ViewModels;
 using Avalonia.Styling;
 using Microsoft.Extensions.DependencyInjection;
-using System.Collections.ObjectModel;
 
 namespace LYBox.Plugin.Shared;
 
@@ -21,9 +19,6 @@ public interface IPlugin
     Task RegisterAsync(IServiceProvider serviceProvider) => Task.CompletedTask;
 
     Task ShutdownAsync() => Task.CompletedTask;
-    IEnumerable<KeyValuePair<Type, ViewFactory>> GetViewDefinitions();
-    Dictionary<string, ViewModelFactory> GetNavigationItems();
-    List<KeyValuePair<string?, MenuItemViewModel>> GetMenuItems();
 
     /// <summary>
     /// 返回插件自定义的资源字典（如图标 StreamGeometry、Brush 等），启动期会被宿主
@@ -33,18 +28,18 @@ public interface IPlugin
     /// </summary>
     /// <remarks>
     /// 当前由 <c>LYBox.Plugin.Generators.MetadataGenerator</c> 对走 [GenerateMetadata] 的插件
-    /// 硬编码 emit <c>=> null;</c>。若插件需要提供资源，必须手动实现 <see cref="IPlugin"/>
-    /// （不走源生成器），或后续扩展生成器以支持资源声明。
+    /// 硬编码 emit <c>=> null;</c>（除非 csproj 声明 <c>PluginIconResources</c>）。若插件需要
+    /// 提供资源，可在 csproj 声明资源文件，或手动实现 <see cref="IPlugin"/>（不走源生成器）。
     /// </remarks>
     IResourceDictionary? GetIconResources() => null;
 }
 
 
 /// <summary>
-/// ViewModel 工厂委托
+/// ViewModel 工厂委托。宿主导航注册（<c>INavigationService</c>）使用。
 /// </summary>
 public delegate object ViewModelFactory();
 /// <summary>
-/// 视图工厂委托
+/// 视图工厂委托。<see cref="ViewLocator"/> 视图注册表使用。
 /// </summary>
 public delegate Control ViewFactory();
