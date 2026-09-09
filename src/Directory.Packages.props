@@ -10,13 +10,13 @@
         运行时通过 SDK buildTransitive 的 _SharedAssembliesPatterns 由宿主提供共享程序集。
     -->
     <PropertyGroup>
-        <AvaloniaVersion>12.1.1</AvaloniaVersion>
+        <AvaloniaVersion>12.1.2</AvaloniaVersion>
         <IrihiUrsaVersion>2.2.0</IrihiUrsaVersion>
         <CommunityToolkit>8.4.2</CommunityToolkit>
-        <MicrosoftExtensionsDI>10.0.10</MicrosoftExtensionsDI>
+        <MicrosoftExtensionsDI>10.0.12</MicrosoftExtensionsDI>
         <AvaloniaDiagnosticsSupport>2.2.3</AvaloniaDiagnosticsSupport>
-        <EfCoreVersion>10.0.10</EfCoreVersion>
-        <MicrosoftExtensionsLocalization>10.0.10</MicrosoftExtensionsLocalization>
+        <EfCoreVersion>10.0.12</EfCoreVersion>
+        <MicrosoftExtensionsLocalization>10.0.12</MicrosoftExtensionsLocalization>
         <ProDataGridVersion>12.0.4</ProDataGridVersion>
         <ScottPlotVersion>5.1.59</ScottPlotVersion>
         <ZLoggerVersion>2.5.10</ZLoggerVersion>

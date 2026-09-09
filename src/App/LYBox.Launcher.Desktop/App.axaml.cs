@@ -222,6 +222,15 @@ public partial class App : Application
                 var plugin = pluginLoader.GetLoadedPlugin(pluginInfo.PluginId);
                 if (plugin == null) continue;
 
+                // 合并插件自定义图标资源到 Application.Resources。
+                // 必须在 RegisterNavigations / RegisterMenuItems 之前执行，
+                // 以保证后续 XAML 通过 {DynamicResource} 引用插件图标时能命中。
+                var iconResources = plugin.GetIconResources();
+                if (iconResources is not null && Application.Current is { } app)
+                {
+                    app.Resources.MergedDictionaries.Add(iconResources);
+                }
+
                 // O-12 校验前置：先获取该插件全部定义（纯数据，无副作用），
                 // 获取通过后再统一写入导航、菜单、视图。避免单插件在写入中途抛异常
                 // 导致导航/菜单/视图部分注册、状态不一致时才 MarkPluginError。

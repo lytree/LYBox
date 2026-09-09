@@ -17,7 +17,7 @@
     WindowStartupLocation="CenterScreen"
     MinWidth="640"
     MinHeight="480"
-    Icon="/Assets/lybox.ico"
+    Icon="{DynamicResource LYBoxWindowIcon}"
     IsFullScreenButtonVisible="{OnPlatform {x:False}, Linux={x:True}}"
     IsManagedResizerVisible="{OnPlatform {x:False}, Linux={x:True}}"
     TransparencyLevelHint="Mica"

@@ -1,6 +1,13 @@
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:media="using:Avalonia.Media.Imaging">
+
+    <!-- 品牌 Logo 与窗口图标：跟随主题字典自动切换。
+         LYBoxLogoSource 用于 Splash 屏的 Image.Source，
+         LYBoxWindowIcon 用于 Window.Icon（Avalonia 原生支持 PNG 作为 WindowIcon）。 -->
+    <media:Bitmap x:Key="LYBoxLogoSource">avares://LYBox.Layout.Ursa/Assets/lybox-logo-256.png</media:Bitmap>
+    <WindowIcon x:Key="LYBoxWindowIcon">avares://LYBox.Layout.Ursa/Assets/lybox-logo-256.png</WindowIcon>
 
     <!-- Fluent Design System - Light Theme Color Overrides -->
 

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using LYBox.Plugin.Shared.Services;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 
@@ -13,7 +14,7 @@ public enum ControlStatus
     Stable,
 }
 
-public class MenuItemViewModel : ViewModelBase
+public partial class MenuItemViewModel : ViewModelBase
 {
     private string? _menuHeader;
     private string? _displayHeader;
@@ -31,7 +32,8 @@ public class MenuItemViewModel : ViewModelBase
 
     public string? RawHeader => _menuHeader;
 
-    public string? MenuIconName { get; set; }
+    [ObservableProperty]
+    private string? _menuIconName;
     public string? Key { get; set; }
     public string? Status { get; set; }
     public string? Group { get; set; }

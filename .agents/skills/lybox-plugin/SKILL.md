@@ -110,6 +110,114 @@ public partial class MyPageViewModel : ViewModelBase { }
 
 ---
 
+## 🖼️ 插件图标资源（自带的 StreamGeometry）
+
+`IPlugin` 提供了一个可选钩子 `IResourceDictionary? GetIconResources()`：返回的字典会在启动期由宿主 `App.RegisterPluginNavigationAndMenus` 合并进 `Application.Current.Resources.MergedDictionaries`（参照 [windit `App.axaml.cs:140`](file:///F:/Code/Dotnet/LYBox/windit-toolbox-main/src/App/Avalonia.Launcher.Desktop/App.axaml.cs#L140)）。之后 XAML 端通过 `{DynamicResource YourKey}` 引用即可（`IconNameToPathConverter` 也会递归查找，见下文）。
+
+### 何时需要
+
+- 插件菜单/导航需要**宿主内置图标库没有的**专有图标（品牌 logo、自研控件的图形、第三方图标的版权清理版等）。
+- 插件希望用同一个 `StreamGeometry` 在多个 XAML 位置（菜单、设置页、工具栏、ViewBox）共享，避免每处 `Geometry.Parse(...)`。
+- **不需要**自带图标资源的插件（绝大多数）保持 `GetIconResources()` 默认返回 `null` 即可。
+
+### 写法 A：csproj 声明（**推荐**——保留 `[GenerateMetadata]`）
+
+在插件 csproj 声明 `PluginIconResources` 指向一个 `<AvaloniaResource>` 嵌入的 XAML 文件：
+
+```xml
+<PropertyGroup>
+  <!-- XAML 路径相对 csproj。生成器会用 avares://{AssemblyName}/PluginIcons.axaml 加载。 -->
+  <PluginIconResources>PluginIcons.axaml</PluginIconResources>
+</PropertyGroup>
+<ItemGroup>
+  <!-- 必须显式声明 AvaloniaResource，否则 XAML 不会嵌入 dll，avares:// 找不到。 -->
+  <AvaloniaResource Include="PluginIcons.axaml" />
+</ItemGroup>
+```
+
+`PluginIcons.axaml` 内容形如：
+
+```xml
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- 任何宿主内嵌 XAML 资源字典支持的元素都可放：StreamGeometry、Brush、SolidColorBrush 等 -->
+    <StreamGeometry x:Key="MyPlugin.Gear">M9 2.39a1.5 1.5 0 0 1 2 0 ...</StreamGeometry>
+    <StreamGeometry x:Key="MyPlugin.GearFilled">M11 2.39a1.5 1.5 0 0 0-2 0 ...</StreamGeometry>
+    <SolidColorBrush x:Key="MyPlugin.BrandBrush" Color="#0078D4" />
+</ResourceDictionary>
+```
+
+生成器会自动 emit `GetIconResources()` + `LoadIconResources()`，按 `avares://{AssemblyName}/PluginIcons.axaml` 加载。失败（资源缺失/解析抛错）一律返回 `null`，不影响宿主启动。
+
+### 写法 B：手动实现 `IPlugin`
+
+`LYBox.Plugin.Generators.MetadataGenerator` 不接管 `GetIconResources` 以外的元数据时**仍可**走生成器（用 `[GenerateMetadata]`），但只要插件想自定义 `GetIconResources` 的加载逻辑（比如多文件、运行时拼接），就必须**放弃 `[GenerateMetadata]`、手动实现 `IPlugin`**。同时仍可在伴生 VM 类上标注 `[Menu]/[NavigationItem]/[ViewMap]`，源生成器只接管入口类本身。
+
+```csharp
+using Avalonia.Controls;
+using Avalonia.Media;
+using LYBox.Plugin.Shared;
+using LYBox.Plugin.Shared.ViewModels;
+
+public sealed class MyPlugin : IPlugin
+{
+    // 元数据：手动实现时仍然要在 csproj 声明，并由代码（或 [PluginMetadata] 工具方法）提供。
+    public string Name        => "My Plugin";
+    public string Version     => "1.0.0";
+    public string Author      => "...";
+    public string Description => "...";
+    public string PluginId    => "固定UUID";
+
+    public Task InitializeAsync(IServiceCollection services) => Task.CompletedTask;
+    public Task RegisterAsync(IServiceProvider serviceProvider) => Task.CompletedTask;
+    public Task ShutdownAsync() => Task.CompletedTask;
+
+    public IEnumerable<KeyValuePair<Type, ViewFactory>> GetViewDefinitions() => [];
+    public Dictionary<string, ViewModelFactory> GetNavigationItems() => [];
+    public List<KeyValuePair<string?, MenuItemViewModel>> GetMenuItems() => [];
+
+    public IResourceDictionary? GetIconResources()
+    {
+        var dict = new ResourceDictionary();
+
+        // 1. 直接 StreamGeometry（菜单/导航图标最常见）。
+        dict["MyPlugin.Gear"]     = StreamGeometry.Parse("M...");
+        dict["MyPlugin.GearFilled"] = StreamGeometry.Parse("M...");
+
+        // 2. 也可放 Brush / 颜色 / 自定义画刷。
+        dict["MyPlugin.BrandBrush"] = new SolidColorBrush(Color.FromRgb(0x00, 0x78, 0xD4));
+
+        return dict;
+    }
+}
+```
+
+### 键名空间隔离（强烈建议）
+
+宿主内置资源键形如 `FluentHome24Regular`，如果插件直接注册同名 key 会**覆盖宿主资源**。建议给插件资源统一加插件前缀（如 `MyPlugin.Gear`），避免冲突。
+
+### XAML 端引用
+
+```xml
+<!-- NavMenu / 设置按钮 -->
+<PathIcon Data="{DynamicResource MyPlugin.Gear}" Width="20" Height="20" />
+
+<!-- 或经 MenuIconName 走 IconNameToPathConverter（递归 Application.Resources + Styles.Resources） -->
+<!-- [Menu(IconName = "MyPlugin.Gear")] -->
+```
+
+### 查找路径（`IconNameToPathConverter`）
+
+converter 当前在以下位置查找 `iconName` 对应的 `StreamGeometry`（参照 [windit 实现](file:///F:/Code/Dotnet/LYBox/windit-toolbox-main/src/Plugin/Avalonia.Plugin.Shared/Converters/IconNameToPathConverter.cs)）：
+
+1. `Application.Current.Resources` 及其所有 `MergedDictionaries`（**插件图标资源就挂在这里**）；
+2. `Application.Current.Styles` 中每个 `Styles.Resources` 与 `IResourceProvider`（如 `UrsaFluentTheme`、`UrsaSemiTheme` 的图标）；
+3. 键名容错：`FluentIcon*` / `Fluent*` 开头原样；其他自动补 `FluentIcon` 前缀。
+
+> 因此 `[Menu(IconName = "FluentHome24Regular")]` 走 converter 也能找到宿主内置的 Fluent 图标，不必走 `GetIconResources()`。
+
+---
+
 ## ⚙️ 设置注册（参考 Downloader 插件）
 
 `RegisterAsync` 中经 `ISettingsService` 注册 `SettingDefinition`（路径、代理等），参考 `DownloaderPlugin.cs:32-53`。设置值由宿主设置页渲染与持久化，插件不要自建设置 UI。
@@ -140,7 +248,7 @@ public partial class MyPageViewModel : ViewModelBase { }
 组件选型与样式**必须**遵守根目录 `AGENTS.md` 的「UI 组件与样式规范」章节：
 - 控件优先级：Irihi.Ursa（`u:`）→ Avalonia 内置 → 项目 Fluent 补充样式（`FluentDesignStyles.axaml`）；
 - 唯一视觉风格：Fluent Design；禁止 Semi 硬编码色值与 `Avalonia-Fluent-UI` 包；
-- 图标只用 `Theme/Icons/` 下的 `FluentIcon{Size}{Variant}{Name}` StreamGeometry 资源，禁止 `Geometry.Parse` 字面量；
+- 图标只用 `Theme/Icons/` 下的 `Fluent{Name}{Size}{Variant}`（如 `FluentHome24Regular`）或 `FluentIcon{Name}`（如 `FluentIconAdd`）StreamGeometry 资源，禁止 `Geometry.Parse` 字面量；
 - VM 一律 `ObservableObject` + `[ObservableProperty]` + `[RelayCommand]`，绑定走 CompiledBindings（需正确 `x:DataType`）。
 
 ---
@@ -153,6 +261,7 @@ public partial class MyPageViewModel : ViewModelBase { }
 - [ ] 页面 VM：`[ViewMap]` + `[NavigationItem]` + `[Menu]` 三件套齐全
 - [ ] resx 本地化已注册；设置经 `ISettingsService`
 - [ ] 无空 override；有后台资源时实现 `ShutdownAsync`
+- [ ] 插件自带图标（仅当走 `GetIconResources()` 手动实现 `IPlugin`）：资源键加插件前缀避免与宿主冲突
 - [ ] `dotnet build` 通过且输出目录生成 `plugin.json`
 - [ ] 完整验证：`.\build.ps1 --build=plugin`（需先 `--build=bin` 打 SDK 包）
 

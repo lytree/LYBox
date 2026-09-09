@@ -24,6 +24,19 @@ public interface IPlugin
     IEnumerable<KeyValuePair<Type, ViewFactory>> GetViewDefinitions();
     Dictionary<string, ViewModelFactory> GetNavigationItems();
     List<KeyValuePair<string?, MenuItemViewModel>> GetMenuItems();
+
+    /// <summary>
+    /// 返回插件自定义的资源字典（如图标 StreamGeometry、Brush 等），启动期会被宿主
+    /// 合并到 <see cref="Avalonia.Application.Resources"/> 的 MergedDictionaries，
+    /// 之后 XAML 端可通过 {DynamicResource ...} 引用这些资源。
+    /// 返回 null 表示该插件没有自定义资源（默认实现）。
+    /// </summary>
+    /// <remarks>
+    /// 当前由 <c>LYBox.Plugin.Generators.MetadataGenerator</c> 对走 [GenerateMetadata] 的插件
+    /// 硬编码 emit <c>=> null;</c>。若插件需要提供资源，必须手动实现 <see cref="IPlugin"/>
+    /// （不走源生成器），或后续扩展生成器以支持资源声明。
+    /// </remarks>
+    IResourceDictionary? GetIconResources() => null;
 }
 
 

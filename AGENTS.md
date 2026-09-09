@@ -231,6 +231,7 @@ Program.cs → App.Initialize()
 | **菜单层级**           | 扁平菜单项 + 可选 `parentKey`。`MenuItemTreeBuilder.BuildTree()` 解析为树。`MenuConfigurationService` 管理增删。                                                                                                                                                                |
 | **源生成器**           | 在插件入口类上标注 `[GenerateMetadata]` → 自动生成 `IPlugin` + `IPluginMetadata` 实现。`IPluginMetadata` 属性（Name/Version/Author/Description/PluginId/MinPluginSdkVersion）由生成器从 csproj 元数据属性注入（单一事实来源，见 O-1/O-8），入口类无需手写。同时扫描伴生类上的 `[ViewMap]`、`[NavigationItem]`、`[Menu]` 特性。 |
 | **本地化**            | `ILocalizationService` 堆叠 `.resx` `ResourceManager` 实例。插件在 `Initialize()` 中注册自己的 ResourceManager。                                                                                                                                                             |
+| **插件图标资源**        | `IPlugin.GetIconResources()` 返回的 `IResourceDictionary` 会在启动期合并进 `Application.Current.Resources.MergedDictionaries`（参照 [windit App.axaml.cs:140](file:///F:/Code/Dotnet/LYBox/windit-toolbox-main/src/App/Avalonia.Launcher.Desktop/App.axaml.cs#L140)）。源生成器支持两种声明方式：①插件 csproj 声明 `<PluginIconResources>File.axaml</PluginIconResources>` + `<AvaloniaResource Include="File.axaml" />`（生成器自动 emit `avares://` 加载逻辑）；②手动实现 `IPlugin.GetIconResources()` 返回 `new ResourceDictionary { ... }`。完整规范见 [`.agents/skills/lybox-plugin/SKILL.md` §🖼️ 插件图标资源](file:///F:/Code/Dotnet/LYBox/LYBox/.agents/skills/lybox-plugin/SKILL.md)。 |
 | **插件生命周期**         | `NotInstalled → Installed → Loaded → Disabled → PendingUninstall`（另有 `PendingUpgrade`、`Error`，共 7 个状态）。状态变更触发事件通知 UI。                                                                                                                                         |
 
 ## UI 组件与样式规范（强制）
@@ -336,36 +337,40 @@ Program.cs → App.Initialize()
 
 ### 4. 图标使用规则（优先 Fluent-UI icon）
 
-- **首选图标集**：Fluent Icons（Microsoft Fluent UI System Icons）。资源位于 `src/Layout/LYBox.Layout.Ursa/Theme/Icons/Fluent/`，按 `Regular/Filled` × `16/20/24/28/32/48` 切分。
+- **首选图标集**：Fluent Icons（Microsoft Fluent UI System Icons）。资源位于 `src/Layout/LYBox.Layout.Ursa/Theme/Icons/`，按两套命名分文件存放：
 
-- **图标资源键命名规范**：`FluentIcon{Size}{Variant}{Name}`，例如：
+  - `Theme/Icons/Fluent/{Regular|Filled}{16|20|24|28|32|48}.axaml` —— **多尺寸多风格资源**，key 形如 `Fluent{Name}{Size}{Variant}`（例：`FluentHome24Regular`、`FluentSettings20Regular`、`FluentHome20Filled`）。这是项目里 90% 的场景，**优先用这套**。
+  - `Theme/Icons/FluentIcons.axaml` —— **16px 占位清单**，key 形如 `FluentIcon{Name}`（例：`FluentIconAdd`、`FluentIconAccessibility`），**不包含 Size/Variant 段**。仅当 `Fluent/*` 找不到对应图标时使用。
 
-  - `FluentIcon24RegularSettings`
+  > 命名规则：Fluent/* 套是 `{Name}{Size}{Variant}`（Fluent UI System Icons 官方惯例），FluentIcons.axaml 套是 `{FluentIcon}{Name}`。**两套并存**，新代码请按"先查 Fluent/{Variant}{Size}.axaml → 没有时回退到 FluentIcons.axaml"的顺序选。
 
-  - `FluentIcon20FilledWarning`
+- **图标资源键示例**：
 
-  - `FluentIcon16RegularChevronDown`
+  - `FluentHome24Regular`（24px Regular Home，nav menu、工具栏常用）
+  - `FluentSettings20Regular`（20px Regular Settings，侧栏设置按钮）
+  - `FluentHome20Filled`（20px Filled Home，NavMenu 选中态的替代选择）
+  - `FluentIconAdd`（16px Add 占位，来自 FluentIcons.axaml）
 
 - **图标引用方式**（按控件类型选择）：
 
   1. **`PathIcon`** **/** **`Image`**（首选，矢量）：
 
      ```xml
-     <PathIcon Data="{DynamicResource FluentIcon24RegularSettings}" Width="20" Height="20" />
+     <PathIcon Data="{DynamicResource FluentSettings20Regular}" Width="20" Height="20" />
      <!-- 或 -->
-     <Image Source="{DynamicResource FluentIcon24RegularSettings}" Width="20" Height="20" />
+     <Image Source="{DynamicResource FluentSettings20Regular}" Width="20" Height="20" />
      ```
   2. **`Button.Content`**（按钮内图标）：
 
      ```xml
      <Button Classes="FluentSettingsCard">
-         <PathIcon Data="{DynamicResource FluentIcon24RegularSettings}" />
+         <PathIcon Data="{DynamicResource FluentSettings20Regular}" />
      </Button>
      ```
   3. **Ursa** **`IconButton`**（推荐用于纯图标按钮）：
 
      ```xml
-     <u:IconButton Icon="{DynamicResource FluentIcon24RegularSettings}" />
+     <u:IconButton Icon="{DynamicResource FluentSettings20Regular}" />
      ```
 
 - **次选图标集**：项目自定义 `Semi` 风格图标（`src/Layout/LYBox.Layout.Ursa/Theme/Icons/_index.axaml` 中以 `SemiIcon` 开头的资源键，如 `SemiIconChevronDown`）。仅当 Fluent Icons 中找不到对应图标时使用，且需在代码注释中说明原因。
@@ -375,9 +380,9 @@ Program.cs → App.Initialize()
 - **新增 Fluent 图标流程**：
 
   1. 从 [Fluent UI System Icons](https://github.com/microsoft/fluentui-system-icons) 获取 SVG path
-  2. 转换为 `<StreamGeometry x:Key="FluentIcon{Size}{Variant}{Name}">path data</StreamGeometry>`
-  3. 追加到对应尺寸的 `Theme/Icons/Fluent/{Variant}{Size}.axaml`
-  4. 在 XAML 中以 `{DynamicResource FluentIcon...}` 引用
+  2. 转换为 `<StreamGeometry x:Key="Fluent{Name}{Size}{Variant}">path data</StreamGeometry>`（如 `FluentSettings20Regular`）
+  3. 追加到对应尺寸/风格的 `Theme/Icons/Fluent/{Variant}{Size}.axaml`（如 `Regular20.axaml`）
+  4. 在 XAML 中以 `{DynamicResource Fluent...}` 引用
 
 ### 5. ViewModel 与数据绑定
 
@@ -405,29 +410,31 @@ Program.cs → App.Initialize()
 
 ## 包与框架版本
 
-所有版本以 MSBuild 属性形式集中管理于 `src/Directory.Packages.props`：
+所有版本以 MSBuild 属性形式集中管理于 `src/Directory.Packages.props`（**单一真相源**；升级版本只动该文件，csproj 端用 `Version="$(XxxVersion)"` 引用）：
 
-- Avalonia: `12.1.0` (`$(AvaloniaVersion)`)
+- Avalonia: `12.1.2` (`$(AvaloniaVersion)`) — `Avalonia` / `Avalonia.Themes.Fluent` / `Avalonia.Desktop` / `Avalonia.Fonts.Inter` 共用此版本
 
-- Irihi.Ursa: `2.1.*` (`$(IrihiUrsaVersion)`)
+- Irihi.Ursa: `2.2.0` (`$(IrihiUrsaVersion)`) — 已与上游 2.x 最新稳定版对齐
 
 - CommunityToolkit.Mvvm: `8.4.2` (`$(CommunityToolkit)`)
 
-- EF Core: `10.0.9` (`$(EfCoreVersion)`)
+- EF Core: `10.0.12` (`$(EfCoreVersion)`) — `Sqlite` / `Design` 共用此版本
 
-- Microsoft.Extensions.DI: `10.0.9` (`$(MicrosoftExtensionsDI)`)
+- Microsoft.Extensions.DI: `10.0.12` (`$(MicrosoftExtensionsDI)`)
 
-- Microsoft.Extensions.Localization: `10.0.9`
+- Microsoft.Extensions.Localization: `10.0.12` (`$(MicrosoftExtensionsLocalization)`)
 
-- AvaloniaUI.DiagnosticsSupport: `2.2.3`
+- AvaloniaUI.DiagnosticsSupport: `2.2.3` (`$(AvaloniaDiagnosticsSupport)`)
 
-- ProDataGrid: `12.0.4`
+- ProDataGrid: `12.0.4` (`$(ProDataGridVersion)`) — 暂未跟随 Avalonia 12.1 升 12.1.0.4，跨 minor 需单独回归
 
-- ScottPlot: `5.1.59`
+- ScottPlot: `5.1.59` (`$(ScottPlotVersion)`)
 
-- ZLogger: `2.5.10`
+- ZLogger: `2.5.10` (`$(ZLoggerVersion)`)
 
-- SkiaSharp: `3.119.4`（锁定 3.x，Avalonia 12.x 与 ScottPlot 5.1.x 均依赖）
+- SkiaSharp: `3.119.4` (`$(SkiaSharpVersion)`) — **锁定 3.x**，Avalonia 12.x 与 ScottPlot 5.1.x 均依赖；4.x 是主版本，待上游生态兼容后再评估
+
+- 嵌入式依赖：`HarfBuzzSharp 14.2.1.1` / `IrihiAvaloniaShared 0.5.0` / `Avalonia.Controls.WebView 12.0.1` / `Tmds.DBus.Protocol 0.94.2` + `Tmds.DBus.Generator 0.94.2` / `Microsoft.CodeAnalysis 5.6.0`（源生成器 SDK） / `System.CommandLine 2.0.11` / `Spectre.Console 0.57.2`
 
 - 插件 NuGet 包：`LYBox.Plugin.Generators` + `LYBox.Plugin.CommandLine` + `LYBox.Plugin.Shared` + `LYBox.Plugin.Shared.Web`，版本与宿主一致（唯一真相源 `version.props` 的 `<LyboxVersion>`），本地构建到 `artifacts/packages/sdk/`
 
