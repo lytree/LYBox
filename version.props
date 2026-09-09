@@ -13,6 +13,6 @@
         发版流程：修改此文件中的 LyboxVersion → 提交 → 打标签 V<version> → push 触发 release-host.yml。
     -->
     <PropertyGroup>
-        <LyboxVersion>2.3.0-preview.4</LyboxVersion>
+        <LyboxVersion>2.3.0-preview.5</LyboxVersion>
     </PropertyGroup>
 </Project>
