@@ -288,7 +288,7 @@ public partial class MyDemoViewModel : ViewModelBase
 }
 ```
 
-源生成器会自动把这些特性转换为 `IPlugin.GetViewDefinitions()`、`GetNavigationItems()`、`GetMenuItems()` 的实现，无需手写。
+源生成器会自动把这些特性转换为 `IGeneratedPluginModule.Ui` 描述符（`{Plugin}.Module.g.cs`），宿主启动时统一注册视图/导航/菜单。`IPlugin` 已无实例注册方法（`GetViewDefinitions` 等已移除），UI 注册为单轨设计，无需手写。
 
 ### `MinPluginSdkVersion` 声明规则
 

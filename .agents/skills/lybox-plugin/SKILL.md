@@ -76,7 +76,7 @@ public partial class MyPlugin : IPluginMetadata
 ```
 
 要点：
-- 不直接实现 `IPlugin`——`[GenerateMetadata]` 源生成器自动补全 `GetViewDefinitions/GetNavigationItems/GetMenuItems`；
+- 不直接实现 `IPlugin`——`[GenerateMetadata]` 源生成器生成入口类 partial 与模块描述符（`IGeneratedPluginModule.Ui` 单轨承载视图/导航/菜单，`IPlugin` 实例注册方法已移除）；带 UI 的插件**必须**走 `[GenerateMetadata]`；
 - `InitializeAsync`/`RegisterAsync`/`ShutdownAsync` 均有接口默认实现，**空逻辑不要 override**（曾存在 10/12 插件的多余空 override，已清理，O-7）；
 - 本地化批量注册由宿主 `PluginLoader` 自动扫描完成（O-6/O-14），插件一般无需手动注册 resx；
 - 持有原生/后台资源（如 TdLib 客户端、HTTP 长连接）时**必须** override `ShutdownAsync` 释放——宿主退出时会调用 `PluginLoader.ShutdownAllPluginsAsync`。
@@ -87,9 +87,9 @@ public partial class MyPlugin : IPluginMetadata
 
 | 特性 | 标注目标 | 作用 | 生成结果 |
 |------|---------|------|---------|
-| `[ViewMap(typeof(MyView))]` | ViewModel 类 | VM→View 映射 | `GetViewDefinitions()` 条目，ViewLocator 解析 |
-| `[NavigationItem("my-feature")]` | ViewModel 类 | 注册导航 key | `GetNavigationItems()` 条目，`NavigationService.Navigate("my-feature")` 可达 |
-| `[Menu(Header, Key, ParentKey)]` | ViewModel 类 | 注册菜单项 | `GetMenuItems()` 条目，菜单树构建 |
+| `[ViewMap(typeof(MyView))]` | ViewModel 类 | VM→View 映射 | `Ui.Views` 描述符，ViewLocator 解析（经 DI 创建） |
+| `[NavigationItem("my-feature")]` | ViewModel 类 | 注册导航 key | `Ui.NavigationItems` 描述符，`NavigationService.Navigate("my-feature")` 可达 |
+| `[Menu(Header, Key, ParentKey)]` | ViewModel 类 | 注册菜单项 | `Ui.MenuItems` 描述符，菜单树构建 |
 
 ```csharp
 [NavigationItem("my-feature")]
@@ -151,7 +151,7 @@ public partial class MyPageViewModel : ViewModelBase { }
 
 ### 写法 B：手动实现 `IPlugin`
 
-`LYBox.Plugin.Generators.MetadataGenerator` 不接管 `GetIconResources` 以外的元数据时**仍可**走生成器（用 `[GenerateMetadata]`），但只要插件想自定义 `GetIconResources` 的加载逻辑（比如多文件、运行时拼接），就必须**放弃 `[GenerateMetadata]`、手动实现 `IPlugin`**。同时仍可在伴生 VM 类上标注 `[Menu]/[NavigationItem]/[ViewMap]`，源生成器只接管入口类本身。
+`LYBox.Plugin.Generators.MetadataGenerator` 不接管 `GetIconResources` 以外的元数据时**仍可**走生成器（用 `[GenerateMetadata]`），但只要插件想自定义 `GetIconResources` 的加载逻辑（比如多文件、运行时拼接），就必须**放弃 `[GenerateMetadata]`、手动实现 `IPlugin`**。注意：手动实现的插件**没有生成模块**，伴生 VM 类上的 `[Menu]/[NavigationItem]/[ViewMap]` 不会产生任何注册——**带 UI 的插件必须走写法 A**，写法 B 仅适用于纯服务/CLI/无 UI 插件。
 
 ```csharp
 using Avalonia.Controls;
@@ -171,10 +171,6 @@ public sealed class MyPlugin : IPlugin
     public Task InitializeAsync(IServiceCollection services) => Task.CompletedTask;
     public Task RegisterAsync(IServiceProvider serviceProvider) => Task.CompletedTask;
     public Task ShutdownAsync() => Task.CompletedTask;
-
-    public IEnumerable<KeyValuePair<Type, ViewFactory>> GetViewDefinitions() => [];
-    public Dictionary<string, ViewModelFactory> GetNavigationItems() => [];
-    public List<KeyValuePair<string?, MenuItemViewModel>> GetMenuItems() => [];
 
     public IResourceDictionary? GetIconResources()
     {
@@ -270,7 +266,7 @@ converter 当前在以下位置查找 `iconName` 对应的 `StreamGeometry`（�
 ## ❌ 反模式
 
 - 在非 Web 插件里引用 `Avalonia.Controls.WebView` 或 `LYBox.Plugin.Shared.Web` 包
-- 手写 `IPlugin.GetViewDefinitions()` 等生成器已接管的方法
+- 手写视图/导航/菜单注册——`IPlugin` 实例注册方法已移除，UI 一律经 `[ViewMap]`/`[NavigationItem]`/`[Menu]` 特性走生成模块描述符（`IGeneratedPluginModule.Ui`）
 - 手写 `IPluginMetadata` 属性（应由源生成器从 csproj 注入）
 - 注册静态单例到 DI；在插件里直接操作其他插件的服务/资源
 - 硬编码颜色/Geometry；手写 INPC 属性（应 `[ObservableProperty]`）

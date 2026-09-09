@@ -5,12 +5,10 @@
 ```csharp
 public interface IPlugin
 {
-    Task InitializeAsync(IServiceCollection services);
-    Task RegisterAsync(IServiceProvider serviceProvider);
-    Task ShutdownAsync();
-    IEnumerable<KeyValuePair<Type, ViewFactory>> GetViewDefinitions();
-    Dictionary<string, ViewModelFactory> GetNavigationItems();
-    List<KeyValuePair<string?, MenuItemViewModel>> GetMenuItems();
+    Task InitializeAsync(IServiceCollection services);      // 默认实现 Task.CompletedTask
+    Task RegisterAsync(IServiceProvider serviceProvider);   // 默认实现 Task.CompletedTask
+    Task ShutdownAsync();                                    // 默认实现 Task.CompletedTask
+    IResourceDictionary? GetIconResources();                 // 默认实现 null
 }
 
 public interface IPluginMetadata
@@ -24,7 +22,29 @@ public interface IPluginMetadata
 }
 ```
 
-不要臆造 `Dependencies` 或 `GetIconResources`：它们不是当前核心契约要求的成员。通常使用 `[GenerateMetadata]` 的 partial 入口类，由生成器补齐 `IPlugin` 实现。
+不要臆造 `Dependencies`：它不是当前核心契约的成员。**视图/导航/菜单不再由 `IPlugin` 实例方法注册**（`GetViewDefinitions` 等已移除），统一走下方 `IGeneratedPluginModule` 单轨。通常使用 `[GenerateMetadata]` 的 partial 入口类，由生成器补齐 `IPlugin` 实现。
+
+## UI 单轨注册（IGeneratedPluginModule）
+
+`[ViewMap]`/`[NavigationItem]`/`[Menu]` 特性由生成器转换为程序集级模块描述符（`{Plugin}.Module.g.cs`）：
+
+```csharp
+public interface IGeneratedPluginModule
+{
+    Type PluginType { get; }
+    IPlugin CreatePlugin();
+    IPluginMetadata Metadata { get; }
+    GeneratedPluginUiDescriptor Ui { get; }   // Views / NavigationItems / MenuItems
+}
+```
+
+宿主 `App.RegisterPluginNavigationAndMenus` 经 `PluginLoader.GetGeneratedModule(pluginId)` 消费：
+
+- `ViewLocator.RegisterModule(module, services)` — 注册视图，创建经 DI（缺失时回退 `new`）；
+- `ui.ToNavigationFactories(services)` — 导航 key → ViewModel 工厂（`GeneratedUiDescriptorExtensions`）；
+- `ui.ToMenuItems()` — 菜单树（父级缺失自动补虚拟分组节点，根节点按 `Order` 排序）。
+
+未标注 `[GenerateMetadata]`（无生成模块）的插件没有 UI 注册轨道，仅适用于纯服务/CLI 插件。
 
 ## 元数据特性
 

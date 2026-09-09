@@ -7,18 +7,27 @@ OpenCode 智能体在本仓库工作时的精简指南。
 - **构建系统**：Cake.Sdk（`build/build.cs` — .NET 10 文件化应用，Cake.Sdk 6.2.0）。通过 `.\build.ps1`（Windows）或 `./build.sh`（Linux/macOS）调用。
 
   ```
-  .\build.ps1 --build=all                    # 默认：bin（启动器 + NuGet）+ plugin
+  .\build.ps1 --build=all                    # 默认目标：bin（启动器 + SDK NuGet 包）
   .\build.ps1 --build=bin                    # 构建启动器 + 打包 SDK NuGet 包（host 与 SDK 同版本号，统一发版）
-  .\build.ps1 --build=plugin                 # 构建并打包所有插件为 zip
+  .\build.ps1 --build=nuget                  # --build=bin 的兼容别名
+  .\build.ps1 --build=publish-nuget          # 打包并推送 SDK NuGet 包
   .\build.ps1 --configuration=Debug          # 覆盖配置（默认：Release）
   .\build.ps1 --host-version=2.3.0           # 显式覆盖宿主+SDK 版本（优先级最高，覆盖 version.props）
-  .\build.ps1 --plugin-version=1.2.3         # 覆盖所有插件版本
   .\build.ps1 --package-version=1.2.3        # 兼容旧用法（覆盖所有层版本，优先级高于 version.props、低于 --host-version）
-  .\build.ps1 --plugin=LYBox.Plugin.Template # 仅构建指定插件（逗号分隔多个）
   .\build.ps1 --runtime-identifier=win-x64   # 设置启动器发布的 RID
   .\build.ps1 --self-contained=true          # 启动器自包含发布
   .\build.ps1 --nuget-source=<URL>           # 指定 NuGet 推送源（默认 nuget.org）
   .\build.ps1 --nuget-api-key=<KEY>          # 推送包到 nuget.org
+  ```
+
+  本仓库**没有**插件构建目标（`--build=plugin`/`--plugin=`/`--plugin-version=` 已不存在）。插件构建与打包在姊妹仓库 `..\LYBox.Plugins`：
+
+  ```
+  # LYBox.Plugins 仓库内：
+  .\build.ps1                                                  # 构建并打包全部插件为 zip
+  .\build.ps1 --plugin=LYBox.Plugin.Template                   # 仅构建指定插件（逗号分隔多个）
+  .\build.ps1 --plugin-version=1.2.3                           # 覆盖所有插件版本
+  .\build.ps1 --sdk-feed=local --sdk-feed-path=<本仓库>\artifacts\packages\sdk --sdk-version=<宿主版本>
   ```
 
 - **版本管理（单一真相源）**：宿主 + SDK + 前端共用同一版本号，唯一维护于仓库根 `version.props` 的 `<LyboxVersion>`。**已移除 GitVersion 依赖**（GitVersion.yml / dotnet-tools.json 中的 GitVersion.Tool / build.cs 中相关逻辑均已删除）。
@@ -33,17 +42,15 @@ OpenCode 智能体在本仓库工作时的精简指南。
 
   - **发版流程**：修改 `version.props` 中 `<LyboxVersion>` → 提交 → 打标签 `V<version>` → push 触发 `release-host.yml`。
 
-  - **插件版本独立**：插件版本由各插件 csproj 内 `<PluginVersion>` 各自声明与维护，不受 `version.props` 控制。
+  - **插件版本独立**：插件版本由各插件 csproj 内 `<PluginVersion>` 各自声明与维护，不受 `version.props` 控制。姊妹仓库 `LYBox.Plugins/version.props` 的 `<LyboxVersion>` 表示其依赖的 SDK 契约版本（应与本仓库最新发布版本对齐），插件构建可用 `--sdk-version` 临时覆盖。
 
-- **构建顺序很重要**：`--build=bin` 必须先于 `--build=plugin` 运行（或直接使用 `--build=all`），因为 `--build=bin` 会打包 Generators、CommandLine、Shared 与 Shared.Web SDK NuGet 包。
-
-- **直接** **`dotnet build`** 可用于单个项目，但若未预先构建本地 NuGet 包，插件可能还原失败（使用 `--build=bin` 或确保 `artifacts/packages/sdk/` 下有 `.nupkg` 文件）。`--build=nuget` 保留为 `--build=bin` 的兼容别名。
+- **构建顺序很重要**：SDK NuGet 包（Generators、CommandLine、Shared、Shared.Web）由本仓库 `--build=bin` 打包到 `artifacts/packages/sdk/`；插件在 `LYBox.Plugins` 仓库构建，需将其本地 feed 指向该目录（见 NuGet 配置），且 `--sdk-version` 与 SDK 包版本一致。**同版本号重打 SDK 包不会自动更新**——nuget.org 或本地缓存中的旧内容同名包会优先被还原，本地验证需清 `LYBox.Plugins/packages/lybox.plugin.*/<version>` 缓存，发版必须递增版本号。
 
 - **运行启动器**：`dotnet run --project src/App/LYBox.Launcher.Desktop`
 
-- **VS Code 调试**：使用 "Debug Plugin - {Name}" 启动配置 — 每个配置将 `AVALONIA_EXTRA_PLUGINS_PATH` 指向 `artifacts/bin/{ProjectName}/debug`，用于开发期实时加载。
+- **VS Code 调试**：插件调试启动配置 "Debug Plugin - {Name}" 位于 `LYBox.Plugins/.vscode/launch.json` — 每个配置启动本仓库 Launcher 并将 `AVALONIA_EXTRA_PLUGINS_PATH` 指向 `LYBox.Plugins/artifacts/publish/plugins/{Name}/publish`，用于开发期实时加载。
 
-- **CI 工作流**：`.github/workflows/ci.yml`（push/PR 验证构建）、`release-host.yml`（宿主+SDK+Tool 发布）、`release-plugins.yml`（插件发布）。
+- **CI 工作流**：本仓库 `.github/workflows/ci.yml`（push/PR 验证构建）、`release-host.yml`（宿主+SDK 发布）；插件仓库 `LYBox.Plugins/.github/workflows/` 下有 `ci.yml` 与 `release-plugins.yml`（插件发布）。
 
 ## Setting Up A New Cake.Sdk Project 构建
 
@@ -129,14 +136,14 @@ src/Platforms/  Platforms.Abstractions + 平台实现
 artifacts/bin/、obj/、publish/、packages/、test-results/
 ```
 
-普通 `dotnet build/test` 与 Cake 构建共享 `artifacts/` 根目录。SDK 包位于 `artifacts/packages/sdk/`，插件 zip 位于 `artifacts/packages/plugins/`。
+普通 `dotnet build/test` 与 Cake 构建共享 `artifacts/` 根目录。SDK 包位于 `artifacts/packages/sdk/`；插件 zip 位于姊妹仓库 `LYBox.Plugins/artifacts/packages/plugins/`。
 
-### 两个解决方案
+### 仓库布局（双仓库）
 
-| 解决方案           | 内容                                                                 |
-| -------------- | ------------------------------------------------------------------ |
-| `Core.slnx`    | 宿主：Generators、CommandLine、Shared、Shared.Web、UI、Launcher、Platforms.Abstractions |
-| `Plugins.slnx` | CommandLine、Shared.Web、所有 `plugins/*` 项目（12 个插件）                         |
+| 仓库                            | 内容                                                                                    |
+| ------------------------------ | -------------------------------------------------------------------------------------- |
+| `LYBox`（本仓库）                | 宿主 + SDK：`Core.slnx`（Generators、CommandLine、Shared、Shared.Web、Layout.Core/Ursa、Launcher、Platforms.Abstractions） |
+| `..\LYBox.Plugins`（姊妹仓库）    | 插件：`Plugins.slnx` + `plugins/*`（12 个插件），SDK 包经本地 feed（`%LYBOX_SDK_FEED%`）或 nuget.org 解析 |
 
 ### 项目分层（src/）
 
@@ -161,7 +168,7 @@ LYBox.Launcher.Desktop/         桌面入口（Program.cs → App.axaml.cs）。
 
 - `LYBox.Platforms.Linux` — `net10.0`
 
-### 插件项目（plugins/）
+### 插件项目（位于 LYBox.Plugins 仓库）
 
 每个插件是 `net10.0` 类库，引用 `LYBox.Plugin.Generators`（analyzer，`OutputItemType="Analyzer"`，`ReferenceOutputAssembly="false"`）和 `LYBox.Plugin.Shared`（`PrivateAssets="all"`）。插件元数据通过 MSBuild 属性声明：
 
@@ -191,7 +198,7 @@ Program.cs → App.Initialize()
   6. InitializeDatabase() — 通过 EF Core 初始化 SQLite（AppDbContext）
   7. InitializeLocalization() — 恢复已保存的语言设置
   8. pluginLoader.RegisterAllPluginsAsync(ServiceProvider) — 插件执行多语言/设置注册
-  9. RegisterPluginNavigationAndMenus() — 注册插件导航与菜单
+  9. RegisterPluginNavigationAndMenus() — 消费 IGeneratedPluginModule.Ui 注册插件视图/导航/菜单（单一 UI 注册轨道）
  10. OnFrameworkInitializationCompleted() → 显示启动闪屏，然后显示 MainWindow
 ```
 
@@ -227,9 +234,9 @@ Program.cs → App.Initialize()
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **ServiceLocator** | 插件使用的静态 `IServiceProvider` 包装器。在 `App.Initialize()` 中初始化一次。调用 `GetService<T>()` 前先用 `TryGetService<T>()` 检查。                                                                                                                                                  |
 | **ViewLocator**    | 全局 `IDataTemplate`，使用 `ConditionalWeakTable` 缓存（VM→View 循环无泄漏）。在 XAML 中注册 — `ContentControl.Content="{Binding Content}"` 自动解析。                                                                                                                                |
-| **导航**             | 基于 key 的 `NavigationService` + `WeakReferenceMessenger` 发布/订阅（"JumpTo" 消息）。插件在 `IPlugin.GetNavigationItems()` 中注册导航项。                                                                                                                                         |
+| **导航**             | 基于 key 的 `NavigationService` + `WeakReferenceMessenger` 发布/订阅（"JumpTo" 消息）。插件通过 `[NavigationItem]` 特性声明导航项，由生成模块 `IGeneratedPluginModule.Ui` 描述符在宿主 `RegisterPluginNavigationAndMenus` 中统一注册（`IPlugin` 实例方法注册轨道已移除）。                                                                                                                                         |
 | **菜单层级**           | 扁平菜单项 + 可选 `parentKey`。`MenuItemTreeBuilder.BuildTree()` 解析为树。`MenuConfigurationService` 管理增删。                                                                                                                                                                |
-| **源生成器**           | 在插件入口类上标注 `[GenerateMetadata]` → 自动生成 `IPlugin` + `IPluginMetadata` 实现。`IPluginMetadata` 属性（Name/Version/Author/Description/PluginId/MinPluginSdkVersion）由生成器从 csproj 元数据属性注入（单一事实来源，见 O-1/O-8），入口类无需手写。同时扫描伴生类上的 `[ViewMap]`、`[NavigationItem]`、`[Menu]` 特性。 |
+| **源生成器**           | 在插件入口类上标注 `[GenerateMetadata]` → 自动生成 `IPlugin` + `IPluginMetadata` 实现。`IPluginMetadata` 属性（Name/Version/Author/Description/PluginId/MinPluginSdkVersion）由生成器从 csproj 元数据属性注入（单一事实来源，见 O-1/O-8），入口类无需手写。同时扫描伴生类上的 `[ViewMap]`、`[NavigationItem]`、`[Menu]` 特性，转换为 `IGeneratedPluginModule.Ui` 描述符（`{Plugin}.Module.g.cs`，单一 UI 注册轨道，无模块的插件无 UI 注册）。 |
 | **本地化**            | `ILocalizationService` 堆叠 `.resx` `ResourceManager` 实例。插件在 `Initialize()` 中注册自己的 ResourceManager。                                                                                                                                                             |
 | **插件图标资源**        | `IPlugin.GetIconResources()` 返回的 `IResourceDictionary` 会在启动期合并进 `Application.Current.Resources.MergedDictionaries`（参照 [windit App.axaml.cs:140](file:///F:/Code/Dotnet/LYBox/windit-toolbox-main/src/App/Avalonia.Launcher.Desktop/App.axaml.cs#L140)）。源生成器支持两种声明方式：①插件 csproj 声明 `<PluginIconResources>File.axaml</PluginIconResources>` + `<AvaloniaResource Include="File.axaml" />`（生成器自动 emit `avares://` 加载逻辑）；②手动实现 `IPlugin.GetIconResources()` 返回 `new ResourceDictionary { ... }`。完整规范见 [`.agents/skills/lybox-plugin/SKILL.md` §🖼️ 插件图标资源](file:///F:/Code/Dotnet/LYBox/LYBox/.agents/skills/lybox-plugin/SKILL.md)。 |
 | **插件生命周期**         | `NotInstalled → Installed → Loaded → Disabled → PendingUninstall`（另有 `PendingUpgrade`、`Error`，共 7 个状态）。状态变更触发事件通知 UI。                                                                                                                                         |
@@ -440,9 +447,11 @@ Program.cs → App.Initialize()
 
 ## NuGet 配置
 
-- **根** **`nuget.config`**：将 `globalPackagesFolder` 设置为 `<repo>/packages`（本地缓存，在 `.gitignore` 中以 `packages/nuget/` 例外跟踪）
+- **本仓库根 `nuget.config`**：`<clear/>` 后仅 `nuget.org` 源。
 
-- **`plugins/nuget.config`**：继承根配置，新增 `LYBoxPluginLocal` 源指向 `<repo>/artifacts/packages/sdk` — 插件通过此源解析本地构建的 `LYBox.Plugin.Generators` 和 `LYBox.Plugin.Shared` 包
+- **`LYBox.Plugins/nuget.config`**：`globalPackagesFolder=packages`，两个源——`LYBoxSdkLocal`（值 `%LYBOX_SDK_FEED%` 环境变量，应指向本仓库 `artifacts/packages/sdk/`）与 `nuget.org`。插件仓库 build.cs 在 `--sdk-feed=local` 或默认 staging 探测到 `.nupkg` 时自动设置 `LYBOX_SDK_FEED` 环境变量；未设置时该源路径无效被跳过，回退 nuget.org。
+
+- **验证本地 SDK**：`--sdk-feed=local --sdk-feed-path=<本仓库>\artifacts\packages\sdk --sdk-version=<宿主版本>`；缓存位于 `LYBox.Plugins/packages/lybox.plugin.*/<version>`，同版本重打包后须先清缓存再验证。
 
 ## 平台目标
 
