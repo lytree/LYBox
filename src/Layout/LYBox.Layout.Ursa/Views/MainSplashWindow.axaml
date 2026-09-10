@@ -129,7 +129,7 @@
                             Name="BrandLogo"
                             Width="64"
                             Height="64"
-                            Source="{DynamicResource LYBoxLogoSource}"
+                            Source="/Assets/lybox-logo-256.png"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center" />
                     </Grid>

@@ -10,7 +10,7 @@ xmlns:viewModels="clr-namespace:LYBox.Layout.Ursa.ViewModels"
 Title="{DynamicResource SPLASH_STARTING}"
 Width="720"
 Height="420"
-Icon="{DynamicResource LYBoxWindowIcon}"
+Icon="/Assets/lybox.ico"
 x:DataType="viewModels:SplashViewModel"
 mc:Ignorable="d">
 	<u:SplashWindow.Styles>

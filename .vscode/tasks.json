@@ -8,11 +8,22 @@
             "args": [
                 "build",
                 "${workspaceFolder}/src/App/LYBox.Launcher.Desktop/LYBox.Launcher.Desktop.csproj",
-                "-c", "Debug",
-                "-o", "${workspaceFolder}/bin/bin"
+                "-c", "Debug"
             ],
             "problemMatcher": "$msCompile",
             "group": {"kind": "build", "isDefault": true}
+        },
+        {
+            "label": "build-console",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/src/App/LYBox.Launcher.Console/LYBox.Launcher.Console.csproj",
+                "-c", "Debug"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": "build"
         },
         {
             "label": "publish-host",
@@ -21,8 +32,7 @@
             "args": [
                 "build",
                 "${workspaceFolder}/src/App/LYBox.Launcher.Desktop/LYBox.Launcher.Desktop.csproj",
-                "-c", "Release",
-                "-o", "${workspaceFolder}/bin/bin"
+                "-c", "Release"
             ],
             "problemMatcher": "$msCompile",
             "group": "build"
@@ -33,9 +43,8 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/plugins/LYBox.Plugin.Template/LYBox.Plugin.Template.csproj",
-                "-c", "Debug",
-                "-o", "${workspaceFolder}/plugins/LYBox.Plugin.Template/bin/Debug/net10.0"
+                "${workspaceFolder}/../LYBox.Plugins/plugins/LYBox.Plugin.Template/LYBox.Plugin.Template.csproj",
+                "-c", "Debug"
             ],
             "problemMatcher": "$msCompile",
             "group": "build"
@@ -46,9 +55,8 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/plugins/LYBox.Plugin.BTSou/LYBox.Plugin.BTSou.csproj",
-                "-c", "Debug",
-                "-o", "${workspaceFolder}/plugins/LYBox.Plugin.BTSou/bin/Debug/net10.0"
+                "${workspaceFolder}/../LYBox.Plugins/plugins/LYBox.Plugin.BTSou/LYBox.Plugin.BTSou.csproj",
+                "-c", "Debug"
             ],
             "problemMatcher": "$msCompile",
             "group": "build"
@@ -59,9 +67,8 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/plugins/LYBox.Plugin.ButtonsInputs/LYBox.Plugin.ButtonsInputs.csproj",
-                "-c", "Debug",
-                "-o", "${workspaceFolder}/plugins/LYBox.Plugin.ButtonsInputs/bin/Debug/net10.0"
+                "${workspaceFolder}/../LYBox.Plugins/plugins/LYBox.Plugin.ButtonsInputs/LYBox.Plugin.ButtonsInputs.csproj",
+                "-c", "Debug"
             ],
             "problemMatcher": "$msCompile",
             "group": "build"
@@ -72,9 +79,8 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/plugins/LYBox.Plugin.DateTime/LYBox.Plugin.DateTime.csproj",
-                "-c", "Debug",
-                "-o", "${workspaceFolder}/plugins/LYBox.Plugin.DateTime/bin/Debug/net10.0"
+                "${workspaceFolder}/../LYBox.Plugins/plugins/LYBox.Plugin.DateTime/LYBox.Plugin.DateTime.csproj",
+                "-c", "Debug"
             ],
             "problemMatcher": "$msCompile",
             "group": "build"
@@ -85,9 +91,8 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/plugins/LYBox.Plugin.DialogFeedbacks/LYBox.Plugin.DialogFeedbacks.csproj",
-                "-c", "Debug",
-                "-o", "${workspaceFolder}/plugins/LYBox.Plugin.DialogFeedbacks/bin/Debug/net10.0"
+                "${workspaceFolder}/../LYBox.Plugins/plugins/LYBox.Plugin.DialogFeedbacks/LYBox.Plugin.DialogFeedbacks.csproj",
+                "-c", "Debug"
             ],
             "problemMatcher": "$msCompile",
             "group": "build"
@@ -98,9 +103,8 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/plugins/LYBox.Plugin.Downloader/LYBox.Plugin.Downloader.csproj",
-                "-c", "Debug",
-                "-o", "${workspaceFolder}/plugins/LYBox.Plugin.Downloader/bin/Debug/net10.0"
+                "${workspaceFolder}/../LYBox.Plugins/plugins/LYBox.Plugin.Downloader/LYBox.Plugin.Downloader.csproj",
+                "-c", "Debug"
             ],
             "problemMatcher": "$msCompile",
             "group": "build"
@@ -111,9 +115,8 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/plugins/LYBox.Plugin.LayoutDisplay/LYBox.Plugin.LayoutDisplay.csproj",
-                "-c", "Debug",
-                "-o", "${workspaceFolder}/plugins/LYBox.Plugin.LayoutDisplay/bin/Debug/net10.0"
+                "${workspaceFolder}/../LYBox.Plugins/plugins/LYBox.Plugin.LayoutDisplay/LYBox.Plugin.LayoutDisplay.csproj",
+                "-c", "Debug"
             ],
             "problemMatcher": "$msCompile",
             "group": "build"
@@ -124,9 +127,8 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/plugins/LYBox.Plugin.NavigationMenus/LYBox.Plugin.NavigationMenus.csproj",
-                "-c", "Debug",
-                "-o", "${workspaceFolder}/plugins/LYBox.Plugin.NavigationMenus/bin/Debug/net10.0"
+                "${workspaceFolder}/../LYBox.Plugins/plugins/LYBox.Plugin.NavigationMenus/LYBox.Plugin.NavigationMenus.csproj",
+                "-c", "Debug"
             ],
             "problemMatcher": "$msCompile",
             "group": "build"
@@ -137,9 +139,8 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/plugins/LYBox.Plugin.ProDataGrid/LYBox.Plugin.ProDataGrid.csproj",
-                "-c", "Debug",
-                "-o", "${workspaceFolder}/plugins/LYBox.Plugin.ProDataGrid/bin/Debug/net10.0"
+                "${workspaceFolder}/../LYBox.Plugins/plugins/LYBox.Plugin.ProDataGrid/LYBox.Plugin.ProDataGrid.csproj",
+                "-c", "Debug"
             ],
             "problemMatcher": "$msCompile",
             "group": "build"
@@ -150,9 +151,8 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/plugins/LYBox.Plugin.ScottPlot/LYBox.Plugin.ScottPlot.csproj",
-                "-c", "Debug",
-                "-o", "${workspaceFolder}/plugins/LYBox.Plugin.ScottPlot/bin/Debug/net10.0"
+                "${workspaceFolder}/../LYBox.Plugins/plugins/LYBox.Plugin.ScottPlot/LYBox.Plugin.ScottPlot.csproj",
+                "-c", "Debug"
             ],
             "problemMatcher": "$msCompile",
             "group": "build"
@@ -163,9 +163,8 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/plugins/LYBox.Plugin.TDLSharp/LYBox.Plugin.TDLSharp.csproj",
-                "-c", "Debug",
-                "-o", "${workspaceFolder}/plugins/LYBox.Plugin.TDLSharp/bin/Debug/net10.0"
+                "${workspaceFolder}/../LYBox.Plugins/plugins/LYBox.Plugin.TDLSharp/LYBox.Plugin.TDLSharp.csproj",
+                "-c", "Debug"
             ],
             "problemMatcher": "$msCompile",
             "group": "build"
@@ -176,9 +175,8 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/plugins/LYBox.Plugin.WebTemplate/LYBox.Plugin.WebTemplate.csproj",
-                "-c", "Debug",
-                "-o", "${workspaceFolder}/plugins/LYBox.Plugin.WebTemplate/bin/Debug/net10.0"
+                "${workspaceFolder}/../LYBox.Plugins/plugins/LYBox.Plugin.WebTemplate/LYBox.Plugin.WebTemplate.csproj",
+                "-c", "Debug"
             ],
             "problemMatcher": "$msCompile",
             "group": "build"
