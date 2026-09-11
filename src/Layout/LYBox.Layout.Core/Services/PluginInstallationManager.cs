@@ -218,6 +218,18 @@ public sealed class PluginInstallationManager : IPluginInstallationManager
 
             pluginInfo = pluginInfo.WithInstallInfo(installDir, mainAssembly ?? string.Empty, PluginState.Installed, DateTime.UtcNow);
 
+            // 在注册到 PluginLoader 前为插件分配数据目录（Data/{PluginId}/）。
+            // 目录创建由 PluginDataDirectoryProvider 负责，这里仅写入路径以供后续插件代码使用。
+            var dataDir = PluginDataDirectoryProvider.ResolveHostDataRoot() is var hostRoot
+                && !string.IsNullOrWhiteSpace(pluginInfo.PluginId)
+                ? Path.Combine(hostRoot, pluginInfo.PluginId)
+                : string.Empty;
+            if (!string.IsNullOrEmpty(dataDir))
+            {
+                Directory.CreateDirectory(dataDir);
+                pluginInfo = pluginInfo.WithDataDirectory(dataDir);
+            }
+
             _pluginLoader.RegisterPlugin(pluginInfo);
 
             PluginInstalled?.Invoke(this, pluginInfo);
@@ -263,8 +275,16 @@ public sealed class PluginInstallationManager : IPluginInstallationManager
             return Task.FromResult(false);
         }
 
+        // 在标记卸载前先快照数据目录路径：
+        // 卸载的实际清理发生在 ProcessPendingUninstalls（启动期扫描 PendingUninstall 目录）。
+        // 标记时插件目录还在，数据目录路径直接由 manifest 推出。
+        var dataDir = string.IsNullOrWhiteSpace(pluginInfo.DataDirectory)
+            ? Path.Combine(PluginDataDirectoryProvider.ResolveHostDataRoot(), pluginId)
+            : pluginInfo.DataDirectory;
+
         _pluginLoader.MarkForUninstall(pluginId);
 
+        // 若 UI 已展示过该插件的数据目录，触发事件让前端提示"将一并删除数据"。
         PluginUninstalled?.Invoke(this, pluginInfo);
         return Task.FromResult(true);
     }

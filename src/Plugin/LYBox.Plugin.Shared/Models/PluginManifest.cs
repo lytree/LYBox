@@ -30,6 +30,22 @@ public class PluginManifest
     public string? MinPluginSdkVersion { get; set; }
 
     /// <summary>
+    /// 插件自身数据 schema 版本号（仅由插件作者在 plugin.json 中维护）。
+    /// 当插件的本地数据库/数据结构发生不兼容变更时应递增。
+    /// 宿主不参与校验，仅在升级时透传给插件 <see cref="PluginInfo.PreviousSchemaVersion"/>，
+    /// 由插件 <c>RegisterAsync</c> 自行判断是否需要迁移本地数据。
+    /// 缺省时视为 "0"，表示从未记录过版本。
+    /// </summary>
+    public string? SchemaVersion { get; set; }
+
+    /// <summary>
+    /// 该插件是否需要数据迁移。
+    /// 仅在升级场景下有意义：true 表示从低版本升级到当前版本时，
+    /// 插件需要执行数据迁移（宿主在 <c>RegisterAsync</c> 完成后调用其迁移钩子）。
+    /// </summary>
+    public bool RequiresDataMigration { get; set; }
+
+    /// <summary>
     /// S1 清单 v2：插件类别。缺省解析为 "Avalonia"（向后兼容）。
     /// 可能值："Avalonia" | "Web"。
     /// </summary>

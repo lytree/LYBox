@@ -25,6 +25,14 @@ public sealed class PluginLoader : IPluginLoader, IDisposable
     private List<PluginInfo>? _cachedPluginList;
     private static ILogger _logger = NullLogger<PluginLoader>.Instance;
 
+    /// <summary>
+    /// 升级场景下保留的"上次 SchemaVersion"暂存表。
+    /// 在 <see cref="ProcessSinglePendingUpgrade"/> 步骤 2（重命名旧目录之前）写入，
+    /// 在 <see cref="LoadAllPluginManifests"/> 之后回填到对应 PluginInfo。
+    /// 加载完成后即清空（仅用于单次启动的 in-memory 透传，不持久化）。
+    /// </summary>
+    private readonly Dictionary<string, string?> _pendingPreviousSchemaVersions = new(StringComparer.Ordinal);
+
     public event EventHandler<PluginInfo>? PluginLoaded;
     public event EventHandler<PluginInfo>? PluginUnloaded;
     public event EventHandler<PluginInfo>? PluginStateChanged;
@@ -886,6 +894,12 @@ public sealed class PluginLoader : IPluginLoader, IDisposable
         // 步骤 2：重命名 plugins/{PluginId}/ → plugins/{PluginId}.old/
         // 若旧版本不存在（首次安装被误标为升级），跳过此步。
         var oldManifestExists = Directory.Exists(targetDir) && File.Exists(Path.Combine(targetDir, "plugin.json"));
+        // 升级前先读取旧 manifest 的 SchemaVersion，用于后续透传给新插件的 RegisterAsync。
+        var previousSchemaVersion = oldManifestExists
+            ? TryReadPreviousSchemaVersion(Path.Combine(targetDir, "plugin.json"))
+            : null;
+        // 记入暂存表，由 LoadAllPluginManifests 完成加载后回填到 in-memory PluginInfo。
+        _pendingPreviousSchemaVersions[pluginId] = previousSchemaVersion;
         if (oldManifestExists)
         {
             try
@@ -899,6 +913,7 @@ public sealed class PluginLoader : IPluginLoader, IDisposable
                 TryDeleteDirectory(stagingDir);
                 TryDeleteDirectory(newVersionDir);
                 TryDeleteFile(upgradeJsonPath);
+                _pendingPreviousSchemaVersions.Remove(pluginId);
                 return;
             }
         }
@@ -1210,6 +1225,26 @@ public sealed class PluginLoader : IPluginLoader, IDisposable
                     {
                         _logger.LogError(ex, "Failed to delete plugin directory '{PluginDir}'", pluginDir);
                     }
+
+                    // 卸载时一并清理 Data/{PluginId}/ 目录。
+                    // 若插件作者声明需要保留用户数据，可在 plugin.json 中后续追加
+                    // PreserveDataOnUninstall 字段（暂未实现，TODO）。
+                    if (!string.IsNullOrWhiteSpace(manifest.PluginId))
+                    {
+                        var dataDir = Path.Combine(PluginDataDirectoryProvider.ResolveHostDataRoot(), manifest.PluginId);
+                        try
+                        {
+                            if (Directory.Exists(dataDir))
+                            {
+                                Directory.Delete(dataDir, true);
+                                _logger.LogInformation("[PluginUninstall] Cleared data directory '{DataDir}'", dataDir);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "[PluginUninstall] Failed to delete data directory '{DataDir}'", dataDir);
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -1239,6 +1274,26 @@ public sealed class PluginLoader : IPluginLoader, IDisposable
                 if (pluginInfo.State == PluginState.Loaded)
                 {
                     pluginInfo = pluginInfo.WithState(PluginState.Installed);
+                }
+
+                // 为已安装插件补齐数据目录路径（首次迁移：旧版本可能在 AppContext.BaseDirectory 等位置有遗留数据，
+                // 后续插件升级或重装时建议通过 PluginDataDirectoryProvider 主动迁移）。
+                if (string.IsNullOrEmpty(pluginInfo.DataDirectory) &&
+                    !string.IsNullOrWhiteSpace(pluginInfo.PluginId))
+                {
+                    var hostRoot = PluginDataDirectoryProvider.ResolveHostDataRoot();
+                    var dataDir = Path.Combine(hostRoot, pluginInfo.PluginId);
+                    Directory.CreateDirectory(dataDir);
+                    pluginInfo = pluginInfo.WithDataDirectory(dataDir);
+                }
+
+                // 若本次是升级场景，回填旧 SchemaVersion（仅本次启动有效，不持久化到新 manifest）。
+                if (_pendingPreviousSchemaVersions.TryGetValue(pluginInfo.PluginId, out var previousSchema))
+                {
+                    pluginInfo = pluginInfo.WithUpgradeAwareness(
+                        previousSchemaVersion: previousSchema,
+                        currentSchemaVersion: pluginInfo.CurrentSchemaVersion,
+                        requiresDataMigration: pluginInfo.RequiresDataMigration);
                 }
 
                 var entry = GetOrCreateEntry(pluginInfo.PluginId);
@@ -1274,8 +1329,30 @@ public sealed class PluginLoader : IPluginLoader, IDisposable
             HasMetadata = !string.IsNullOrEmpty(manifest.PluginId),
             MinPluginSdkVersion = manifest.MinPluginSdkVersion,
             Kind = string.IsNullOrWhiteSpace(manifest.Kind) ? "Avalonia" : manifest.Kind,
-            Web = manifest.Web
+            Web = manifest.Web,
+            CurrentSchemaVersion = string.IsNullOrWhiteSpace(manifest.SchemaVersion) ? "0" : manifest.SchemaVersion,
+            RequiresDataMigration = manifest.RequiresDataMigration
         };
+    }
+
+    /// <summary>
+    /// 读取旧 manifest 的 SchemaVersion（若存在），用于在升级场景下透传给新插件，
+    /// 由插件 <c>RegisterAsync</c> 自决定是否迁移本地数据库 schema。
+    /// 旧 manifest 已不在磁盘上时返回 null。
+    /// </summary>
+    private static string? TryReadPreviousSchemaVersion(string oldManifestJsonPath)
+    {
+        try
+        {
+            if (!File.Exists(oldManifestJsonPath)) return null;
+            var old = JsonSerializer.Deserialize<PluginManifest>(
+                File.ReadAllText(oldManifestJsonPath), PluginUtilities.JsonOptions);
+            return old?.SchemaVersion;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private void SavePluginManifest(PluginInfo pluginInfo)
@@ -1312,7 +1389,9 @@ public sealed class PluginLoader : IPluginLoader, IDisposable
                 IsBuiltIn = pluginInfo.IsBuiltIn,
                 MinPluginSdkVersion = pluginInfo.MinPluginSdkVersion,
                 Kind = pluginInfo.Kind,
-                Web = pluginInfo.Kind == "Web" ? pluginInfo.Web : null
+                Web = pluginInfo.Kind == "Web" ? pluginInfo.Web : null,
+                SchemaVersion = string.IsNullOrWhiteSpace(pluginInfo.CurrentSchemaVersion) ? null : pluginInfo.CurrentSchemaVersion,
+                RequiresDataMigration = pluginInfo.RequiresDataMigration
             };
 
             var manifestPath = Path.Combine(pluginDir, "plugin.json");

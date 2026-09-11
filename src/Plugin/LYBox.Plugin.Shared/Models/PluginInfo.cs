@@ -49,6 +49,31 @@ public record PluginInfo
     /// </summary>
     public string? PendingUpgradeVersion { get; init; }
 
+    /// <summary>
+    /// 升级场景：上一次已安装版本的 schema 版本号（来自旧 manifest）。
+    /// 仅当本次是升级（而非全新安装）且旧 manifest 声明过 <c>SchemaVersion</c> 时有效。
+    /// 宿主在 <see cref="PluginLoader.RegisterAllPluginsAsync"/> 透传给插件，
+    /// 由插件 <c>RegisterAsync</c> 中对比 <see cref="CurrentSchemaVersion"/> 自决定是否迁移。
+    /// </summary>
+    public string? PreviousSchemaVersion { get; init; }
+
+    /// <summary>
+    /// 当前安装版本的 schema 版本号（来自新 manifest，与 <see cref="PreviousSchemaVersion"/> 比对）。
+    /// </summary>
+    public string? CurrentSchemaVersion { get; init; }
+
+    /// <summary>
+    /// 当前安装版本的 manifest 是否声明 <c>RequiresDataMigration=true</c>。
+    /// 仅作为提示，宿主不在此处自动执行迁移（由插件自行决定策略）。
+    /// </summary>
+    public bool RequiresDataMigration { get; init; }
+
+    /// <summary>
+    /// 该插件的数据目录绝对路径（由宿主 <see cref="LYBox.Plugin.Shared.Services.IPluginDataDirectoryProvider"/> 解析）。
+    /// 插件 <c>RegisterAsync</c> 中可直接使用该字段作为持久化根目录。
+    /// </summary>
+    public string DataDirectory { get; init; } = string.Empty;
+
     public PluginInfo WithState(PluginState state, string? errorMessage = null) =>
         this with { State = state, ErrorMessage = errorMessage };
 
@@ -69,4 +94,18 @@ public record PluginInfo
 
     public PluginInfo WithPendingUpgrade(string? newVersion, string? errorMessage = null) =>
         this with { PendingUpgradeVersion = newVersion, ErrorMessage = errorMessage };
+
+    public PluginInfo WithDataDirectory(string dataDirectory) =>
+        this with { DataDirectory = dataDirectory };
+
+    public PluginInfo WithUpgradeAwareness(
+        string? previousSchemaVersion,
+        string? currentSchemaVersion,
+        bool requiresDataMigration) =>
+        this with
+        {
+            PreviousSchemaVersion = previousSchemaVersion,
+            CurrentSchemaVersion = currentSchemaVersion,
+            RequiresDataMigration = requiresDataMigration
+        };
 }

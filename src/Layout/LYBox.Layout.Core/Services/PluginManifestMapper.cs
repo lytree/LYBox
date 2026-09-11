@@ -37,7 +37,9 @@ internal static class PluginManifestMapper
             MinPluginSdkVersion = manifest.MinPluginSdkVersion,
             Kind = string.IsNullOrWhiteSpace(manifest.Kind) ? "Avalonia" : manifest.Kind,
             Web = manifest.Web,
-            State = state ?? PluginState.Installed
+            State = state ?? PluginState.Installed,
+            CurrentSchemaVersion = string.IsNullOrWhiteSpace(manifest.SchemaVersion) ? "0" : manifest.SchemaVersion,
+            RequiresDataMigration = manifest.RequiresDataMigration
         };
     }
 

@@ -70,9 +70,17 @@ public static class ServiceCollectionExtensions
 
         services.AddDbContextFactory<AppDbContext>(options =>
         {
-            var dbPath = Path.Combine(AppContext.BaseDirectory, "appdata.db");
+            // 宿主共享数据库统一放在 Data/ 根目录下，与各插件数据并列：
+            //   %LOCALAPPDATA%/LYBox/appdata.db
+            // 历史版本曾位于 AppContext.BaseDirectory（启动器根目录），会因自包含发布/只读权限失败。
+            var hostDataRoot = PluginDataDirectoryProvider.ResolveHostDataRoot();
+            Directory.CreateDirectory(hostDataRoot);
+            var dbPath = Path.Combine(hostDataRoot, "appdata.db");
             options.UseSqlite($"Data Source={dbPath}");
         });
+
+        // 插件数据目录提供者：必须在 db factory 之后注册，便于其他服务解析它。
+        services.AddSingleton<IPluginDataDirectoryProvider, PluginDataDirectoryProvider>();
 
         services.AddSingleton<DatabaseMigrationService>();
 

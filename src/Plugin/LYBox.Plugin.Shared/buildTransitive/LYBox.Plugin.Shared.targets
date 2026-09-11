@@ -159,6 +159,11 @@
     <_PluginKind Condition="'$(_PluginKind)' == ''">Avalonia</_PluginKind>
     <_WebBlock></_WebBlock>
     <_WebBlock Condition="'$(_PluginKind)' == 'Web'">,&#13;&#10;  "web": {&#13;&#10;    "wwwroot": "$(PluginWwwroot)",&#13;&#10;    "entryPage": "$(PluginEntryPage)"&#13;&#10;  }</_WebBlock>
+    <!-- 插件自身数据 schema 版本（用于插件升级场景下的数据迁移提示）。-->
+    <_SchemaBlock></_SchemaBlock>
+    <_SchemaBlock Condition="'$(SchemaVersion)' != ''">,&#13;&#10;  "schemaVersion": "$(SchemaVersion)"</_SchemaBlock>
+    <_SchemaBlock Condition="'$(SchemaVersion)' != '' And '$(RequiresDataMigration)' == 'true'">,&#13;&#10;  "schemaVersion": "$(SchemaVersion)",&#13;&#10;  "requiresDataMigration": true</_SchemaBlock>
+    <_SchemaBlock Condition="'$(SchemaVersion)' == '' And '$(RequiresDataMigration)' == 'true'">,&#13;&#10;  "requiresDataMigration": true</_SchemaBlock>
   </PropertyGroup>
 
   <Target Name="ValidatePluginKind" AfterTargets="GeneratePluginManifest" Condition="'$(GeneratePluginManifest)' == 'true' And '$(IsPluginProject)' == 'true'">
@@ -176,9 +181,9 @@
       <_PluginVersion Condition="'$(_PluginVersion)' == ''">1.0.0</_PluginVersion>
       <_MinPluginSdkVersion Condition="'$(_MinPluginSdkVersion)' == ''">$(MinPluginSdkVersion)</_MinPluginSdkVersion>
       <_MinPluginSdkVersion Condition="'$(_MinPluginSdkVersion)' == ''">0.0.0</_MinPluginSdkVersion>
-      <_PluginManifestContent>{&#13;&#10;  "pluginId": "$(_PluginId)",&#13;&#10;  "name": "$(PluginName)",&#13;&#10;  "version": "$(_PluginVersion)",&#13;&#10;  "author": "$(PluginAuthor)",&#13;&#10;  "description": "$(PluginDescription)",&#13;&#10;  "assembly": "$(AssemblyName).dll",&#13;&#10;  "dependencies": [],&#13;&#10;  "minPluginSdkVersion": "$(_MinPluginSdkVersion)",&#13;&#10;  "kind": "$(_PluginKind)"$(_WebBlock)&#13;&#10;}</_PluginManifestContent>
+      <_PluginManifestContent>{&#13;&#10;  "pluginId": "$(_PluginId)",&#13;&#10;  "name": "$(PluginName)",&#13;&#10;  "version": "$(_PluginVersion)",&#13;&#10;  "author": "$(PluginAuthor)",&#13;&#10;  "description": "$(PluginDescription)",&#13;&#10;  "assembly": "$(AssemblyName).dll",&#13;&#10;  "dependencies": [],&#13;&#10;  "minPluginSdkVersion": "$(_MinPluginSdkVersion)",&#13;&#10;  "kind": "$(_PluginKind)"$(_WebBlock)$(_SchemaBlock)&#13;&#10;}</_PluginManifestContent>
     </PropertyGroup>
     <WriteLinesToFile File="$(OutDir)plugin.json" Lines="$(_PluginManifestContent)" Overwrite="true" Encoding="UTF-8" />
-    <Message Text="Generated plugin.json manifest at: $(OutDir)plugin.json (minPluginSdkVersion=$(_MinPluginSdkVersion), kind=$(_PluginKind))" Importance="high" />
+    <Message Text="Generated plugin.json manifest at: $(OutDir)plugin.json (minPluginSdkVersion=$(_MinPluginSdkVersion), kind=$(_PluginKind), schemaVersion=$(SchemaVersion))" Importance="high" />
   </Target>
 </Project>
