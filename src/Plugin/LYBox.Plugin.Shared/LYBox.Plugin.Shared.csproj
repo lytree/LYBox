@@ -5,6 +5,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<OutputType>Library</OutputType>
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
 		<IsPluginSdkProject>true</IsPluginSdkProject>
 		<PackageId>LYBox.Plugin.Shared</PackageId>
