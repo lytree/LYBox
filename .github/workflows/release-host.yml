@@ -3,7 +3,7 @@ name: Release Main
 # 主体（Launcher + SDK NuGet）发布工作流
 # 触发标签：V*           例如 V1.2.3、V1.2.3-preview.1、V1.2.3-beta.1
 # 产物：
-#   - 主体 SDK NuGet 包（LYBox.Plugin.Generators / LYBox.Plugin.Shared）
+#   - 主体 SDK NuGet 包（LYBox.Plugin.Generators / LYBox.Plugin.CommandLine / LYBox.Plugin.Shared / LYBox.Plugin.Shared.Web）
 #   - Launcher 自包含发布包（win-x64 / win-arm64 / linux-x64 / linux-arm64）
 # NuGet 发布：使用 Trusted Publishing（OIDC 短期令牌），无需长期 API key。
 #   前置条件：
@@ -221,11 +221,17 @@ jobs:
 
             ### SDK NuGet 包
             - `LYBox.Plugin.Generators` ${{ needs.resolve_context.outputs.version }}
+            - `LYBox.Plugin.CommandLine` ${{ needs.resolve_context.outputs.version }}
             - `LYBox.Plugin.Shared` ${{ needs.resolve_context.outputs.version }}
+            - `LYBox.Plugin.Shared.Web` ${{ needs.resolve_context.outputs.version }}
 
             ```bash
             dotnet add package LYBox.Plugin.Generators --version ${{ needs.resolve_context.outputs.version }}
             dotnet add package LYBox.Plugin.Shared --version ${{ needs.resolve_context.outputs.version }}
+            # 仅 Web 插件需要（前端 WebView IPC + 嵌入式 SDK 资源）：
+            dotnet add package LYBox.Plugin.Shared.Web --version ${{ needs.resolve_context.outputs.version }}
+            # 仅实现 CLI 命令的插件需要：
+            dotnet add package LYBox.Plugin.CommandLine --version ${{ needs.resolve_context.outputs.version }}
             ```
 
             ### Launcher 自包含发布包
