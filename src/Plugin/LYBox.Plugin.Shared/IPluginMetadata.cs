@@ -35,6 +35,18 @@ public interface IPluginMetadata
     /// </summary>
     string MinPluginSdkVersion => "0.0.0";
 
+    /// <summary>
+    /// 该插件支持的操作系统平台列表。
+    /// 平台标识（大小写不敏感）：
+    ///   - "windows" — Microsoft Windows
+    ///   - "linux"   — Linux 桌面发行版
+    ///   - "osx"     — Apple macOS
+    /// 返回 null / 空数组 / 包含通配项 "*" 时表示无平台约束（向后兼容）。
+    /// 主体程序加载时与当前进程 <see cref="System.Runtime.InteropServices.RuntimeInformation"/>
+    /// 推导的宿主 OS 比对，若当前 OS 不在列表中则跳过加载并标记为错误。
+    /// </summary>
+    string[]? SupportedPlatforms => null;
+
 }
 
 

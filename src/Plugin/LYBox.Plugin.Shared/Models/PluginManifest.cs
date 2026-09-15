@@ -55,6 +55,16 @@ public class PluginManifest
     /// S1 清单 v2：仅当 <see cref="Kind"/> 为 "Web" 时存在，描述 Web 插件前端资源位置。
     /// </summary>
     public WebDescriptor? Web { get; set; }
+
+    /// <summary>
+    /// 该插件支持的操作系统平台列表。null / 空数组 / 包含 "*" 时表示无平台约束。
+    /// 平台标识（大小写不敏感）："windows" / "linux" / "osx"。
+    /// 由插件作者在 csproj 通过 <c><PluginSupportedPlatforms></c> 声明，
+    /// 构建期由 <c>LYBox.Plugin.Shared.targets</c> 写入 <c>plugin.json</c>。
+    /// 宿主在 <see cref="Services.IPluginLoader"/> 加载插件前与当前宿主 OS 比对，
+    /// 不在列表中时跳过加载并标记 Error，提示用户在受支持的平台上运行。
+    /// </summary>
+    public List<string>? SupportedPlatforms { get; set; }
 }
 
 /// <summary>

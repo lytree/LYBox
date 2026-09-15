@@ -368,6 +368,35 @@ public sealed class PluginLoader : IPluginLoader, IDisposable
                 FireEventsOutsideLock(eventsToFire);
                 return new PluginLoadResult { Success = false, ErrorMessage = errInfo.ErrorMessage };
             }
+
+            // 平台兼容性校验：插件 manifest 声明 supportedPlatforms 后，
+            // 仅在宿主 OS 命中列表时才继续加载；否则跳过（标记 Error），
+            // 让 UI 在插件管理页以红色提示 + 不可点击形式呈现，
+            // 同时避免加载到一半才在 ALC/反射阶段抛 PlatformNotSupportedException。
+            if (!PluginPlatform.IsCurrentOSSupported(pluginInfo.SupportedPlatforms))
+            {
+                var supportedList = pluginInfo.SupportedPlatforms is { Count: > 0 }
+                    ? string.Join(", ", pluginInfo.SupportedPlatforms)
+                    : "(none)";
+                var currentOs = PluginPlatform.CurrentOS;
+                var errInfo = pluginInfo.WithState(
+                    PluginState.Error,
+                    $"Plugin does not support the current platform '{currentOs}'. " +
+                    $"Supported platforms: {supportedList}. " +
+                    $"This plugin will be skipped on the current OS.");
+                lock (_sync)
+                {
+                    if (entryExisted)
+                    {
+                        UpdateEntry(errInfo);
+                        SavePluginManifest(errInfo);
+                        InvalidateSnapshot();
+                    }
+                    eventsToFire.Add(errInfo);
+                }
+                FireEventsOutsideLock(eventsToFire);
+                return new PluginLoadResult { Success = false, ErrorMessage = errInfo.ErrorMessage };
+            }
         }
 
         AssemblyLoadContext loadContext;
@@ -1331,7 +1360,12 @@ public sealed class PluginLoader : IPluginLoader, IDisposable
             Kind = string.IsNullOrWhiteSpace(manifest.Kind) ? "Avalonia" : manifest.Kind,
             Web = manifest.Web,
             CurrentSchemaVersion = string.IsNullOrWhiteSpace(manifest.SchemaVersion) ? "0" : manifest.SchemaVersion,
-            RequiresDataMigration = manifest.RequiresDataMigration
+            RequiresDataMigration = manifest.RequiresDataMigration,
+            SupportedPlatforms = manifest.SupportedPlatforms is { Count: > 0 }
+                ? manifest.SupportedPlatforms.Select(p => p?.Trim() ?? string.Empty)
+                    .Where(p => p.Length > 0)
+                    .ToArray()
+                : null
         };
     }
 
@@ -1391,7 +1425,10 @@ public sealed class PluginLoader : IPluginLoader, IDisposable
                 Kind = pluginInfo.Kind,
                 Web = pluginInfo.Kind == "Web" ? pluginInfo.Web : null,
                 SchemaVersion = string.IsNullOrWhiteSpace(pluginInfo.CurrentSchemaVersion) ? null : pluginInfo.CurrentSchemaVersion,
-                RequiresDataMigration = pluginInfo.RequiresDataMigration
+                RequiresDataMigration = pluginInfo.RequiresDataMigration,
+                SupportedPlatforms = pluginInfo.SupportedPlatforms is { Count: > 0 }
+                    ? pluginInfo.SupportedPlatforms.ToList()
+                    : null
             };
 
             var manifestPath = Path.Combine(pluginDir, "plugin.json");

@@ -74,6 +74,13 @@ public record PluginInfo
     /// </summary>
     public string DataDirectory { get; init; } = string.Empty;
 
+    /// <summary>
+    /// 该插件支持的操作系统平台列表（来自 manifest）。null / 空 / 包含 "*" 表示无约束。
+    /// 宿主 <see cref="LYBox.Plugin.Shared.Services.IPluginLoader"/> 在加载插件前与当前进程 OS 比对，
+    /// 不在列表中时跳过加载并把 <see cref="State"/> 置为 <see cref="PluginState.Error"/>。
+    /// </summary>
+    public IReadOnlyList<string>? SupportedPlatforms { get; init; }
+
     public PluginInfo WithState(PluginState state, string? errorMessage = null) =>
         this with { State = state, ErrorMessage = errorMessage };
 

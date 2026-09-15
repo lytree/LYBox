@@ -232,6 +232,21 @@
   <data name="STATE_NOT_INSTALLED" xml:space="preserve">
     <value>Not Installed</value>
   </data>
+  <data name="PLUGIN_PLATFORM_LABEL" xml:space="preserve">
+    <value>Platforms</value>
+  </data>
+  <data name="PLATFORM_ALL" xml:space="preserve">
+    <value>All Platforms</value>
+  </data>
+  <data name="PLATFORM_WINDOWS" xml:space="preserve">
+    <value>Windows</value>
+  </data>
+  <data name="PLATFORM_LINUX" xml:space="preserve">
+    <value>Linux</value>
+  </data>
+  <data name="PLATFORM_MACOS" xml:space="preserve">
+    <value>macOS</value>
+  </data>
   <data name="PLUGIN_INSTALLED_SUCCESS" xml:space="preserve">
     <value>Plugin '{0}' installed successfully</value>
   </data>

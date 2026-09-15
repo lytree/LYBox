@@ -108,6 +108,11 @@
   <data name="STATE_PENDING_UPGRADE" xml:space="preserve"><value>待升级</value></data>
   <data name="STATE_ERROR" xml:space="preserve"><value>错误</value></data>
   <data name="STATE_NOT_INSTALLED" xml:space="preserve"><value>未安装</value></data>
+  <data name="PLUGIN_PLATFORM_LABEL" xml:space="preserve"><value>支持平台</value></data>
+  <data name="PLATFORM_ALL" xml:space="preserve"><value>全平台</value></data>
+  <data name="PLATFORM_WINDOWS" xml:space="preserve"><value>Windows</value></data>
+  <data name="PLATFORM_LINUX" xml:space="preserve"><value>Linux</value></data>
+  <data name="PLATFORM_MACOS" xml:space="preserve"><value>macOS</value></data>
   <data name="PLUGIN_INSTALLED_SUCCESS" xml:space="preserve"><value>插件 '{0}' 安装成功</value></data>
   <data name="INSTALLATION_FAILED" xml:space="preserve"><value>安装失败：{0}</value></data>
   <data name="INSTALLATION_FAILED_TITLE" xml:space="preserve"><value>安装失败</value></data>

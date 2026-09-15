@@ -93,6 +93,10 @@
                                         <TextBlock FontSize="12" Classes="FluentCaption">
                                             <Run Text="{DynamicResource AUTHOR_LABEL}"/><Run Text="{Binding Author}"/>
                                         </TextBlock>
+                                        <TextBlock FontSize="12" Classes="FluentCaption"
+                                                   ToolTip.Tip="{Binding SupportedPlatformsText}">
+                                            <Run Text="{DynamicResource PLUGIN_PLATFORM_LABEL}"/><Run Text="{Binding SupportedPlatformsText}"/>
+                                        </TextBlock>
                                     </StackPanel>
 
                                     <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding Description}"

@@ -27,6 +27,7 @@ public partial class PluginItemViewModel : ViewModelBase
     [ObservableProperty] private bool _canUninstall;
     [ObservableProperty] private bool _canCancelUpgrade;
     [ObservableProperty] private string? _pendingUpgradeVersion;
+    [ObservableProperty] private string _supportedPlatformsText = string.Empty;
 
     private ILocalizationService? _localizationService;
 
@@ -77,5 +78,48 @@ public partial class PluginItemViewModel : ViewModelBase
         PendingUpgradeVersion = info.State == PluginState.PendingUpgrade
             ? info.PendingUpgradeVersion
             : null;
+
+        // 平台支持：把 ["windows","linux"] 列表渲染成"Windows / Linux"；
+        // null / 空 / 仅 "*" 视为"All Platforms"（无约束）。
+        SupportedPlatformsText = FormatSupportedPlatforms(info.SupportedPlatforms, _localizationService);
     }
+
+    /// <summary>
+    /// 把 <see cref="PluginInfo.SupportedPlatforms"/> 渲染成 UI 友好字符串。
+    /// 空 / null / 仅 "*" → "All Platforms"（本地化优先）。
+    /// </summary>
+    private static string FormatSupportedPlatforms(
+        IReadOnlyList<string>? platforms,
+        ILocalizationService? loc)
+    {
+        var fallbackAll = loc?.GetString("PLATFORM_ALL", "All Platforms") ?? "All Platforms";
+        if (platforms is null || platforms.Count == 0) return fallbackAll;
+
+        var concrete = new List<string>(platforms.Count);
+        var hasWildcard = false;
+        foreach (var p in platforms)
+        {
+            if (string.IsNullOrWhiteSpace(p)) continue;
+            var token = p.Trim();
+            if (token == "*") { hasWildcard = true; continue; }
+            concrete.Add(LocalizePlatformToken(token, loc));
+        }
+
+        if (concrete.Count == 0) return fallbackAll;
+        if (hasWildcard)
+        {
+            var localizedAll = loc?.GetString("PLATFORM_ALL", "All Platforms") ?? "All Platforms";
+            return $"{string.Join(" / ", concrete)} / {localizedAll}";
+        }
+        return string.Join(" / ", concrete);
+    }
+
+    private static string LocalizePlatformToken(string token, ILocalizationService? loc) =>
+        token.ToLowerInvariant() switch
+        {
+            "windows" => loc?.GetString("PLATFORM_WINDOWS", "Windows") ?? "Windows",
+            "linux" => loc?.GetString("PLATFORM_LINUX", "Linux") ?? "Linux",
+            "osx" or "macos" or "mac" => loc?.GetString("PLATFORM_MACOS", "macOS") ?? "macOS",
+            _ => token
+        };
 }

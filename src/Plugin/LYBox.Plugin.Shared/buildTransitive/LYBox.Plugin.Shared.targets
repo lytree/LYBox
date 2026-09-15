@@ -153,6 +153,11 @@
     S1 清单 v2：GeneratePluginManifest 现在写入 kind 与 web 字段（schema v2）。
     kind 缺省为 Avalonia（向后兼容）；web 对象仅 kind=Web 时存在。
     校验见 ValidatePluginKind 目标。
+
+    S1 清单 v3：新增 supportedPlatforms 字段。插件作者通过
+    <PluginSupportedPlatforms>windows;linux;osx</PluginSupportedPlatforms> 声明
+    受支持的 OS 平台（分号分隔，大小写不敏感；通配项 "*" 表示无平台约束）。
+    空字符串 / 未声明 → 字段缺省 → 宿主视为无约束（向后兼容）。
   -->
   <PropertyGroup>
     <_PluginKind Condition="'$(PluginKind)' != ''">$(PluginKind)</_PluginKind>
@@ -164,7 +169,68 @@
     <_SchemaBlock Condition="'$(SchemaVersion)' != ''">,&#13;&#10;  "schemaVersion": "$(SchemaVersion)"</_SchemaBlock>
     <_SchemaBlock Condition="'$(SchemaVersion)' != '' And '$(RequiresDataMigration)' == 'true'">,&#13;&#10;  "schemaVersion": "$(SchemaVersion)",&#13;&#10;  "requiresDataMigration": true</_SchemaBlock>
     <_SchemaBlock Condition="'$(SchemaVersion)' == '' And '$(RequiresDataMigration)' == 'true'">,&#13;&#10;  "requiresDataMigration": true</_SchemaBlock>
+    <!-- 平台支持列表（仅在 PluginSupportedPlatforms 非空时输出）。
+         PluginSupportedPlatforms 以 ',' 或 ';' 分隔（如 windows,linux,osx）。
+         推荐使用 ','：Roslyn 源生成器从 .editorconfig 读取 MSBuild 属性时会
+         把 ';' 视为段分隔符并截断后续内容；',' 在两端（源生成器 + MSBuild 目标）均兼容。
+         转换逻辑通过 _FormatSupportedPlatformsJson 内联任务完成（MSBuild 无原生字符串分隔 → 数组工具）。 -->
+    <_SupportedPlatformsBlock></_SupportedPlatformsBlock>
   </PropertyGroup>
+
+  <UsingTask TaskName="FormatSupportedPlatformsJson" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Raw ParameterType="System.String" Required="true" />
+      <JsonArray ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.Collections.Generic" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        if (string.IsNullOrWhiteSpace(Raw))
+        {
+            JsonArray = string.Empty;
+            return true;
+        }
+        var sb = new StringBuilder();
+        sb.Append('[');
+        var first = true;
+        foreach (var part in Raw.Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var token = part.Trim();
+            if (token.Length == 0) continue;
+            // JSON 字符串字面量转义：\ " 与控制字符
+            var escaped = token
+                .Replace("\\", "\\\\")
+                .Replace("\"", "\\\"")
+                .Replace("\b", "\\b")
+                .Replace("\f", "\\f")
+                .Replace("\n", "\\n")
+                .Replace("\r", "\\r")
+                .Replace("\t", "\\t");
+            if (!first) sb.Append(", ");
+            sb.Append('"').Append(escaped).Append('"');
+            first = false;
+        }
+        sb.Append(']');
+        JsonArray = sb.ToString();
+        return true;
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="_FormatSupportedPlatforms" Condition="'$(IsPluginProject)' == 'true'" BeforeTargets="GeneratePluginManifest">
+    <PropertyGroup>
+      <_SupportedPlatformsJson></_SupportedPlatformsJson>
+    </PropertyGroup>
+    <FormatSupportedPlatformsJson Raw="$(PluginSupportedPlatforms)">
+      <Output TaskParameter="JsonArray" PropertyName="_SupportedPlatformsJson" />
+    </FormatSupportedPlatformsJson>
+    <PropertyGroup>
+      <_SupportedPlatformsJson Condition="'$(_SupportedPlatformsJson)' == '' And '$(PluginSupportedPlatforms.Trim())' != ''">[]</_SupportedPlatformsJson>
+      <_SupportedPlatformsBlock Condition="'$(PluginSupportedPlatforms.Trim())' != ''">,&#13;&#10;  "supportedPlatforms": $(_SupportedPlatformsJson)</_SupportedPlatformsBlock>
+    </PropertyGroup>
+  </Target>
 
   <Target Name="ValidatePluginKind" AfterTargets="GeneratePluginManifest" Condition="'$(GeneratePluginManifest)' == 'true' And '$(IsPluginProject)' == 'true'">
     <Error Condition="'$(PluginKind)' == 'Web' And !Exists('$(PluginWwwroot)')" Text="LYBOX001: Web plugin '$(PluginId)' requires wwwroot directory at '$(PluginWwwroot)'" />
@@ -181,7 +247,7 @@
       <_PluginVersion Condition="'$(_PluginVersion)' == ''">1.0.0</_PluginVersion>
       <_MinPluginSdkVersion Condition="'$(_MinPluginSdkVersion)' == ''">$(MinPluginSdkVersion)</_MinPluginSdkVersion>
       <_MinPluginSdkVersion Condition="'$(_MinPluginSdkVersion)' == ''">0.0.0</_MinPluginSdkVersion>
-      <_PluginManifestContent>{&#13;&#10;  "pluginId": "$(_PluginId)",&#13;&#10;  "name": "$(PluginName)",&#13;&#10;  "version": "$(_PluginVersion)",&#13;&#10;  "author": "$(PluginAuthor)",&#13;&#10;  "description": "$(PluginDescription)",&#13;&#10;  "assembly": "$(AssemblyName).dll",&#13;&#10;  "dependencies": [],&#13;&#10;  "minPluginSdkVersion": "$(_MinPluginSdkVersion)",&#13;&#10;  "kind": "$(_PluginKind)"$(_WebBlock)$(_SchemaBlock)&#13;&#10;}</_PluginManifestContent>
+      <_PluginManifestContent>{&#13;&#10;  "pluginId": "$(_PluginId)",&#13;&#10;  "name": "$(PluginName)",&#13;&#10;  "version": "$(_PluginVersion)",&#13;&#10;  "author": "$(PluginAuthor)",&#13;&#10;  "description": "$(PluginDescription)",&#13;&#10;  "assembly": "$(AssemblyName).dll",&#13;&#10;  "dependencies": [],&#13;&#10;  "minPluginSdkVersion": "$(_MinPluginSdkVersion)",&#13;&#10;  "kind": "$(_PluginKind)"$(_WebBlock)$(_SchemaBlock)$(_SupportedPlatformsBlock)&#13;&#10;}</_PluginManifestContent>
     </PropertyGroup>
     <WriteLinesToFile File="$(OutDir)plugin.json" Lines="$(_PluginManifestContent)" Overwrite="true" Encoding="UTF-8" />
     <Message Text="Generated plugin.json manifest at: $(OutDir)plugin.json (minPluginSdkVersion=$(_MinPluginSdkVersion), kind=$(_PluginKind), schemaVersion=$(SchemaVersion))" Importance="high" />

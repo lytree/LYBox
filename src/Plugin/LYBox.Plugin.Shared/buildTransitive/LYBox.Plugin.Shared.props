@@ -48,6 +48,8 @@
     <CompilerVisibleProperty Include="PluginKind" />
     <CompilerVisibleProperty Include="PluginWwwroot" />
     <CompilerVisibleProperty Include="PluginEntryPage" />
+    <CompilerVisibleProperty Include="PluginIconResources" />
+    <CompilerVisibleProperty Include="PluginSupportedPlatforms" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(LYBoxPluginSharedExclusionsEnabled)' == 'true'">

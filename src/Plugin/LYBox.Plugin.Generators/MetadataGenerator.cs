@@ -68,7 +68,8 @@ public class MetadataGenerator : IIncrementalGenerator
                 GetMsBuildProperty(provider, "PluginKind"),
                 GetMsBuildProperty(provider, "PluginWwwroot"),
                 GetMsBuildProperty(provider, "PluginEntryPage"),
-                GetMsBuildProperty(provider, "PluginIconResources")));
+                GetMsBuildProperty(provider, "PluginIconResources"),
+                GetMsBuildProperty(provider, "PluginSupportedPlatforms")));
 
         var generationInputs = targetClasses
             .Combine(viewDefinitions.Collect())
@@ -98,6 +99,11 @@ public class MetadataGenerator : IIncrementalGenerator
             metaLines.AppendLine($"        public string Description => {Str(meta.Description ?? string.Empty)};");
             metaLines.AppendLine($"        public string PluginId => {Str(meta.PluginId ?? target.ClassName)};");
             metaLines.AppendLine($"        public string MinPluginSdkVersion => {Str(meta.MinSdkVersion ?? "0.0.0")};");
+
+            // SupportedPlatforms: 由 csproj <PluginSupportedPlatforms> 声明（";" 分隔，如 "windows;linux;osx"）。
+            // 空 / 缺省 -> 返回 null，宿主视为无平台约束（向后兼容）。
+            var supportedPlatformsLiteral = BuildSupportedPlatformsArrayLiteral(meta.SupportedPlatforms);
+            metaLines.AppendLine($"        public string[]? SupportedPlatforms => {supportedPlatformsLiteral};");
 
             var baseInterfaces = "IPlugin, IPluginMetadata";
             var webLines = new StringBuilder();
@@ -456,7 +462,8 @@ namespace {target.Namespace}
         string? kind,
         string? wwwroot,
         string? entryPage,
-        string? iconResources)
+        string? iconResources,
+        string? supportedPlatforms)
     {
         public string? Name { get; } = name;
         public string? Version { get; } = version;
@@ -468,5 +475,32 @@ namespace {target.Namespace}
         public string? Wwwroot { get; } = wwwroot;
         public string? EntryPage { get; } = entryPage;
         public string? IconResources { get; } = iconResources;
+        public string? SupportedPlatforms { get; } = supportedPlatforms;
+    }
+
+    /// <summary>
+    /// 把 csproj <c>PluginSupportedPlatforms</c>（";" 分隔字符串）转成可在生成代码中嵌入的
+    /// <c>string[]?</c> 文本字面量。空 / null → 返回 "null"（保持向后兼容）。
+    /// </summary>
+    private static string BuildSupportedPlatformsArrayLiteral(string? rawValue)
+    {
+        if (string.IsNullOrWhiteSpace(rawValue)) return "null";
+
+        var tokens = rawValue.Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => t.Trim())
+            .Where(t => t.Length > 0)
+            .ToArray();
+
+        if (tokens.Length == 0) return "null";
+
+        var builder = new StringBuilder();
+        builder.Append("new string[] { ");
+        for (var i = 0; i < tokens.Length; i++)
+        {
+            if (i > 0) builder.Append(", ");
+            builder.Append(SymbolDisplay.FormatLiteral(tokens[i], quote: true));
+        }
+        builder.Append(" }");
+        return builder.ToString();
     }
 }
