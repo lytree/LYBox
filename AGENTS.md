@@ -48,6 +48,21 @@ OpenCode 智能体在本仓库工作时的精简指南。
 
 - **运行启动器**：`dotnet run --project src/App/LYBox.Launcher.Desktop`
 
+- **启动器调试参数与环境变量（Web 插件开发）**：
+
+  | 开关 | 生效范围 | 说明 |
+  | ---- | -------- | ---- |
+  | `--web-dev` | Release 构建 | 启用 `WebPluginView` 开发工具栏（Back/Forward/Refresh + Route/Status + 开发错误页）。DEBUG 构建默认开启，无需此参数 |
+  | `--web-devtools[=port]` | 全部构建（仅 Windows WebView2 后端生效） | 启用 WebView 远程调试（默认端口 9222），Chromium 系浏览器连接 `http://127.0.0.1:{port}` 可对 Web 插件页面断点调试（DevTools 的 Sources/Network/Console）。经 `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` 注入，须在任何 WebView 创建前生效（`Program.Main` 首行处理） |
+  | `--web-vite[=dir]` | 全部构建 | **C# 端托管 Vite dev server**：一条命令同时拉起宿主与 Vite（后台进程，输出转发宿主日志，退出时整树终止）。目录缺省搜索 `templates/web-plugin-ui`（或环境变量 `LYBOX_VITE_DIR`）；未显式设置时自动探测空闲端口写入 `LYBOX_WEB_PORT`，与 WebHostService 同源联动 |
+  | `LYBOX_WEB_PORT` | 环境变量 | 固定 `WebHostService` 监听端口（默认 `127.0.0.1:0` 随机分配）；被占用时自动回退随机端口并输出 stderr 警告。`--web-vite` 启用时自动保证该变量存在 |
+  | `LYBOX_DEV_ORIGINS` | 环境变量 | 开发来源白名单（分号/逗号分隔的 URI，如 `http://localhost:5173`），放行 Vite dev server 等开发代理的跨域 RPC/SSE 请求；未设置时 CORS 仅放行自身 BaseUrl |
+  | 热刷新（livereload） | dev wwwroot 回退时自动启用 | `MapPluginRoot` 走开发模式回退（bin 无 wwwroot，源码目录兜底）时，`FileSystemWatcher` 监听文件变化（300ms 防抖）→ SSE `dispatch` 推 `__lybox:reload` → ipc.js 内置监听自动 `location.reload()`；无需任何配置 |
+  | `/{BaseUrl}/__lybox/debug` | 仅 Debug 构建 | Web 调试面板（RPC 命令清单 + SSE 事件流查看器）；启动日志会输出完整 URL，开发工具栏 Debug 按钮可用系统浏览器打开。面板插件 ID 支持候选列表选择（`GET /__lybox/debug/plugins`），并可一键创建调试会话（`POST /__lybox/debug/session/{pluginId}`）——外部浏览器自助签发 session 后即可调用生产 RPC / 连接 SSE |
+  | console 桥 | WebView 模式自动启用 | 前端 `console.log/info/warn/error` 经 `'L'` 信封转发宿主日志（分类 `LYBox.Web.Console`，消息格式 `[Web:{PluginId}] ...`），C#/JS 日志同流；单参数截断 2000 字符、最多 8 参数 |
+
+- **插件前端 Vite 开发工作流**：`templates/web-plugin-ui/` 是插件 UI 脚手架模板（Vite + vanilla TS + `src/lybox.ts` 双通道适配层）。**一条命令启动**：`dotnet run --project src/App/LYBox.Launcher.Desktop -- --web-vite` —— 宿主自动探测空闲端口写入 `LYBOX_WEB_PORT`，拉起 Vite（npm run dev）并托管生命周期，Vite 代理（`/__bridge` `/sse` `/__lybox`）与宿主同源联动。开发者只需打开浏览器 `http://localhost:5173`，RPC/调试会话自动签发。若 Vite 工程目录不在模板位置，用 `--web-vite=<dir>` 或 `LYBOX_VITE_DIR` 指定。`npm run build` 产物 `dist/` 拷入插件 `wwwroot/` 后同一套代码自动切换 WebView 原生 bridge。注意：宿主 HTTP 端点无 CORS 响应头，前端必须走代理，不可直连。
+
 - **VS Code 调试**：插件调试启动配置 "Debug Plugin - {Name}" 位于 `LYBox.Plugins/.vscode/launch.json` — 每个配置启动本仓库 Launcher 并将 `AVALONIA_EXTRA_PLUGINS_PATH` 指向 `LYBox.Plugins/artifacts/publish/plugins/{Name}/publish`，用于开发期实时加载。
 
 - **CI 工作流**：本仓库 `.github/workflows/ci.yml`（push/PR 验证构建）、`release-host.yml`（宿主+SDK 发布）；插件仓库 `LYBox.Plugins/.github/workflows/` 下有 `ci.yml` 与 `release-plugins.yml`（插件发布）。

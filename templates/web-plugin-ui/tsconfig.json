@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "types": ["vite/client"],
+    "paths": {
+      // 业务侧 import '/sdk/lybox-plugin-sdk' 时类型提示来自本地 lybox.dev.ts（Vite dev 形态）。
+      // 生产构建由 vite.config.ts 的 alias 把 ./lybox.dev 重写为 ./lybox.prod（API 完全一致）。
+      // 运行时 SDK 字节由宿主 /sdk/lybox-plugin-sdk.js 提供（嵌入式资源，跨宿主/插件版本同步）。
+      "/sdk/lybox-plugin-sdk": ["./src/lybox.dev.ts"]
+    }
+  },
+  "include": ["src", "index.html"]
+}

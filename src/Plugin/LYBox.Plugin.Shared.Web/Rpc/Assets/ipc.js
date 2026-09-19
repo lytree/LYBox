@@ -21,6 +21,45 @@
   // —— 传输层抽象 ——
   var isWebView = (typeof invokeCSharpAction === 'function');
 
+  // —— console 桥（仅 WebView 模式）：hook console.log/info/warn/error → 'L' 信封转发宿主日志 ——
+  // 浏览器模式不安装（开发者可直接用原生 DevTools）。宿主端由 WebConsoleBridge 解析并写 ILogger。
+  // 限制：单参数截断至 2000 字符、最多 8 个参数，防止高频/超长输出刷爆 IPC 与日志。
+  if (isWebView) {
+    var CONSOLE_LEVELS = ['log', 'info', 'warn', 'error'];
+    var CONSOLE_MAX_ARGS = 8;
+    var CONSOLE_MAX_LEN = 2000;
+    for (var li = 0; li < CONSOLE_LEVELS.length; li++) {
+      (function (level) {
+        var original = console[level] ? console[level].bind(console) : function () {};
+        console[level] = function () {
+          original.apply(null, arguments);
+          try {
+            var parts = [];
+            for (var i = 0; i < arguments.length && i < CONSOLE_MAX_ARGS; i++) parts.push(serializeConsoleArg(arguments[i]));
+            if (arguments.length > CONSOLE_MAX_ARGS) parts.push('…(' + (arguments.length - CONSOLE_MAX_ARGS) + ' more)');
+            if (parts.length) send('L' + JSON.stringify({ l: level, a: parts }));
+          } catch (e) { /* 静默：console 桥失败不得影响页面本身 */ }
+        };
+      })(CONSOLE_LEVELS[li]);
+    }
+  }
+
+  function serializeConsoleArg(value) {
+    var text;
+    if (value instanceof Error) {
+      text = value.name + ': ' + value.message + (value.stack ? '\n' + value.stack : '');
+    } else if (typeof value === 'string') {
+      text = value;
+    } else {
+      try {
+        text = JSON.stringify(value);
+        if (text === undefined) text = String(value);
+      } catch (e) { text = String(value); }
+    }
+    if (text.length > CONSOLE_MAX_LEN) text = text.slice(0, CONSOLE_MAX_LEN) + '…[truncated]';
+    return text;
+  }
+
   // HTTP 桥接统一入口（S4 BC-6）：POST /__bridge/{pluginId}/{action}
   function bridge(action) {
     return '/__bridge/' + encodeURIComponent(runtimePluginId || 'mock-plugin') + '/' + action;
@@ -178,6 +217,9 @@
     var set = eventListeners[name];
     if (set) set.forEach(function (cb) { try { cb(data); } catch (e) { console.error(e); } });
   }
+
+  // —— 内置：开发模式热刷新（宿主 dev wwwroot 文件变化 → SSE dispatch __lybox:reload → 自动刷新页面）——
+  on('__lybox:reload', function () { try { location.reload(); } catch (e) { /* 刷新失败静默 */ } });
 
   // 宿主注入绑定清单（WebView 模式）。浏览器模式由 mock-server 提供 /__lybox/bindings.json。
   // 当前实现为 noop：rpc 入口已统一为 __lybox.rpc(name, args)，无需构建 window.go。

@@ -21,6 +21,27 @@ public sealed partial class Program
     public static bool NoSplash => HasArg("--no-splash");
     public static bool CollapsedSidebar => HasArg("--collapsed-sidebar");
 
+    /// <summary>
+    /// 是否显式启用 Web 插件开发工具栏（Release 构建下生效；DEBUG 构建默认开启，无需此参数）。
+    /// </summary>
+    public static bool WebDev => HasArg("--web-dev");
+
+    /// <summary>
+    /// WebView 远程调试端口（<c>--web-devtools[=port]</c>，默认 9222）。null = 未启用。
+    /// 启用后可在 Chromium 系浏览器连接 <c>http://127.0.0.1:{port}</c>，对 WebView 内页面断点调试。
+    /// </summary>
+    public static int? WebDevToolsPort { get; private set; }
+
+    /// <summary>
+    /// Vite 开发服务器托管目录（<c>--web-vite[=dir]</c>）。null = 未启用。
+    /// 启用后由宿主拉起 <c>npm run dev</c> 并托管其生命周期（退出时终止进程树），
+    /// 端口经 <c>LYBOX_WEB_PORT</c> 环境变量与 WebHostService 自动联动。
+    /// </summary>
+    public static bool WebViteEnabled { get; private set; }
+
+    /// <summary><c>--web-vite=&lt;dir&gt;</c> 显式指定的 Vite 工程目录；未指定时 ViteDevHost 按缺省规则搜索。</summary>
+    public static string? WebViteDir { get; private set; }
+
     // Initialization code. Don't use any Avalonia, third-party APIs or any
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
@@ -33,7 +54,13 @@ public sealed partial class Program
             ? args.Where(argument => !string.Equals(argument, ConsoleModeArgument, StringComparison.OrdinalIgnoreCase)).ToArray()
             : args;
 
+        // LaunchArgs 必须先于 HasArg/GetArgValue 消费者赋值（含下方的环境预处理）
         LaunchArgs = applicationArgs;
+
+        // WebView2 远程调试开关必须在首个 WebView 创建前注入（环境变量方式），故在一切初始化之前处理
+        ApplyWebDevToolsEnvironment(args);
+        // Vite 托管：确保 LYBOX_WEB_PORT 存在（WebHostService 与 vite.config.ts 代理共用），早于 DI 初始化
+        ApplyWebViteEnvironment(args);
 
         if (consoleMode)
         {
@@ -42,6 +69,82 @@ public sealed partial class Program
         }
 
         StartDesktop(applicationArgs);
+    }
+
+    /// <summary>
+    /// 解析 <c>--web-devtools[=port]</c> 并设置 WebView2 远程调试环境变量。
+    /// 仅 Windows WebView2 后端生效；其他平台该环境变量被忽略（无害）。
+    /// 追加语义：若 <c>WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS</c> 已有值则在其后追加，不覆盖。
+    /// </summary>
+    internal static void ApplyWebDevToolsEnvironment(string[] args)
+    {
+        WebDevToolsPort = ParseDevToolsPort(args);
+        if (WebDevToolsPort is not int port)
+            return;
+
+        const string varName = "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS";
+        var existing = Environment.GetEnvironmentVariable(varName);
+        var debugArg = $"--remote-debugging-port={port}";
+        Environment.SetEnvironmentVariable(
+            varName,
+            string.IsNullOrEmpty(existing) ? debugArg : $"{existing} {debugArg}");
+    }
+
+    /// <summary>
+    /// 解析 <c>--web-devtools</c>（默认端口 9222）或 <c>--web-devtools=&lt;port&gt;</c>；
+    /// 未指定或端口无效（0/超范围/非数字）返回 null。
+    /// </summary>
+    internal static int? ParseDevToolsPort(string[] args)
+    {
+        foreach (var arg in args)
+        {
+            if (string.Equals(arg, "--web-devtools", StringComparison.OrdinalIgnoreCase))
+                return 9222;
+            if (arg.StartsWith("--web-devtools=", StringComparison.OrdinalIgnoreCase))
+            {
+                return int.TryParse(arg.Substring("--web-devtools=".Length), out var port) && port is > 0 and <= 65535
+                    ? port
+                    : null;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// 解析 <c>--web-vite</c> 启用与 <c>--web-vite=&lt;dir&gt;</c> 目录，并保证 <c>LYBOX_WEB_PORT</c> 存在：
+    /// 未显式设置时探测一个空闲端口写入进程级环境变量——WebHostService（读取该变量固定端口）
+    /// 与 Vite 子进程（vite.config.ts 读取该变量定位代理目标）共用，实现端口自动联动。
+    /// </summary>
+    internal static void ApplyWebViteEnvironment(string[] args)
+    {
+        WebViteDir = GetArgValue("--web-vite");
+        WebViteEnabled = WebViteDir is not null || HasArg("--web-vite");
+        if (!WebViteEnabled)
+            return;
+
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LYBOX_WEB_PORT")))
+            return; // 用户已固定端口，尊重现有设置
+
+        var port = FindFreePort();
+        if (port is int p)
+            Environment.SetEnvironmentVariable("LYBOX_WEB_PORT", p.ToString());
+    }
+
+    /// <summary>探测一个可用 TCP 端口（监听 127.0.0.1:0 后立即释放）。失败返回 null。</summary>
+    private static int? FindFreePort()
+    {
+        try
+        {
+            var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+            listener.Start();
+            var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+            listener.Stop();
+            return port;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     internal static void StartWithConsole(string[] args)

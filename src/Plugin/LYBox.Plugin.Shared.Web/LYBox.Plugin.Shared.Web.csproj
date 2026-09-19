@@ -46,6 +46,11 @@
 		<EmbeddedResource Include="Rpc\Assets\ipc.js" />
 		<!-- S4 浏览器端 SDK 资源：供直接 <script type="module"> 引用，由 WebHostService 暴露在 /sdk/ 下 -->
 		<EmbeddedResource Include="Assets\lybox-plugin-sdk.js" LogicalName="LYBox.Plugin.Shared.Web.Assets.lybox-plugin-sdk.js" />
+		<!--
+			TS 类型声明：与 .js 一一对应，由 WebHostService 在 /sdk/lybox-plugin-sdk.d.ts 暴露。
+			前端 import 'lybox' 时拿到的类型提示来自本资源（Vite dev 经同源代理转发；WebView 生产直连宿主）。
+		-->
+		<EmbeddedResource Include="Assets\lybox-plugin-sdk.d.ts" LogicalName="LYBox.Plugin.Shared.Web.Assets.lybox-plugin-sdk.d.ts" />
 		<EmbeddedResource Include="Assets\lybox-plugin-theme.css" LogicalName="LYBox.Plugin.Shared.Web.Assets.lybox-plugin-theme.css" />
 	</ItemGroup>
 

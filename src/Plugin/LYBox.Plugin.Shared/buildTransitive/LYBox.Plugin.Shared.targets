@@ -179,7 +179,13 @@
 
   <UsingTask TaskName="FormatSupportedPlatformsJson" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
-      <Raw ParameterType="System.String" Required="true" />
+      <!--
+        修复：原 Required="true" 在调用方 <FormatSupportedPlatformsJson Raw="$(PluginSupportedPlatforms)">
+        处若 $(PluginSupportedPlatforms) 未声明（默认空），MSBuild 仍报 MSB4044，即使 Task 代码体内
+        已对 string.IsNullOrWhiteSpace(Raw) 做短路返回。改为 false 后，未声明 PluginSupportedPlatforms
+        的插件也能顺利通过 GeneratePluginManifest（向后兼容）。
+      -->
+      <Raw ParameterType="System.String" Required="false" />
       <JsonArray ParameterType="System.String" Output="true" />
     </ParameterGroup>
     <Task>
@@ -214,7 +220,8 @@
         }
         sb.Append(']');
         JsonArray = sb.ToString();
-        return true;
+        // 注意：Fragment 模式下 RoslynCodeTaskFactory 会在代码体后自动追加 return，
+        // 此处不能再写 return true; 否则追加的语句不可达（CS0162 警告）。
       ]]></Code>
     </Task>
   </UsingTask>

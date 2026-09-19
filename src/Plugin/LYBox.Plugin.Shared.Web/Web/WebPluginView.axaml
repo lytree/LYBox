@@ -13,7 +13,7 @@
                 BorderBrush="{DynamicResource FluentCardStrokeBrush}"
                 BorderThickness="0,0,0,1"
                 IsVisible="False">
-                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto">
+                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
                     <Button
                         Name="PART_BackButton"
                         Grid.Column="0"
@@ -40,19 +40,29 @@
                         Click="OnDevRefreshClick"
                         Content="↻"
                         ToolTip.Tip="Refresh" />
-                    <Border Grid.Column="3" Margin="8,0,0,0" Padding="6,2" CornerRadius="4" Background="{DynamicResource FluentBackgroundBrush}">
+                    <!-- 调试面板按钮：仅 Debug 构建（面板端点 #if DEBUG 裁剪），系统浏览器打开 /__lybox/debug -->
+                    <Button
+                        Name="PART_DebugPanelButton"
+                        Grid.Column="3"
+                        Margin="4,0,0,0"
+                        Padding="7,3"
+                        Click="OnDevDebugPanelClick"
+                        Content="Debug"
+                        IsVisible="False"
+                        ToolTip.Tip="Open Debug Panel in browser" />
+                    <Border Grid.Column="4" Margin="8,0,0,0" Padding="6,2" CornerRadius="4" Background="{DynamicResource FluentBackgroundBrush}">
                         <TextBlock Name="PART_ModeText" VerticalAlignment="Center" Classes="WinUICaption" />
                     </Border>
-                    <TextBlock Grid.Column="4" Margin="8,0,4,0" VerticalAlignment="Center" Text="Route" Classes="WinUICaption" />
+                    <TextBlock Grid.Column="5" Margin="8,0,4,0" VerticalAlignment="Center" Text="Route" Classes="WinUICaption" />
                     <TextBlock
                         Name="PART_RouteText"
-                        Grid.Column="5"
+                        Grid.Column="6"
                         VerticalAlignment="Center"
                         TextTrimming="CharacterEllipsis"
                         Classes="WinUICaption" />
                     <TextBlock
                         Name="PART_StatusText"
-                        Grid.Column="6"
+                        Grid.Column="7"
                         Margin="12,0,2,0"
                         VerticalAlignment="Center"
                         Classes="WinUICaption" />

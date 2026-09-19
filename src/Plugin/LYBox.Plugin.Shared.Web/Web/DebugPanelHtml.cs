@@ -40,9 +40,12 @@ internal static class DebugPanelHtml
         sb.Append("<h1>LYBox Debug Panel <span class=\"badge\">DEBUG</span></h1>");
         sb.Append("<p>WebView RPC 命令清单与 SSE 事件流调试器。仅 Debug 配置可用。</p>");
         sb.Append("<div class=\"card\"><h2>受信会话</h2>");
-        sb.Append("<p>生产宿主调用需要当前 WebView 文档的 pluginId 与 session。独立浏览器不会自动获得 session。</p>");
-        sb.Append("<input type=\"text\" id=\"session-plugin-id\" placeholder=\"pluginId\" size=\"40\"/>");
-        sb.Append("<input type=\"password\" id=\"session-token\" placeholder=\"session token\" size=\"48\"/></div>");
+        sb.Append("<p>生产宿主调用需要 pluginId 与 session。独立浏览器不会自动获得 session——点击\"创建调试会话\"为本浏览器签发。</p>");
+        sb.Append("<datalist id=\"plugins-list\"></datalist>");
+        sb.Append("<input type=\"text\" id=\"session-plugin-id\" placeholder=\"pluginId（候选列表可选）\" size=\"40\" list=\"plugins-list\"/>");
+        sb.Append("<input type=\"password\" id=\"session-token\" placeholder=\"session token\" size=\"48\"/>");
+        sb.Append("<button onclick=\"createDebugSession()\">创建调试会话</button>");
+        sb.Append("<span id=\"debug-session-status\" style=\"color:#666;font-size:12px;margin-left:8px;\"></span></div>");
 
         // RPC 命令列表
         sb.Append("<div class=\"card\">");
@@ -55,7 +58,7 @@ internal static class DebugPanelHtml
         sb.Append("<h2>SSE 事件流</h2>");
         sb.Append("<p>连接 <code>/sse/{pluginId}</code> 接收 C# 主动推送：</p>");
         sb.Append("<div style=\"margin:8px 0\">");
-        sb.Append("<input type=\"text\" id=\"sse-plugin-id\" placeholder=\"pluginId\" value=\"\" size=\"40\"/>");
+        sb.Append("<input type=\"text\" id=\"sse-plugin-id\" placeholder=\"pluginId\" value=\"\" size=\"40\" list=\"plugins-list\"/>");
         sb.Append("<button onclick=\"startSse()\">连接 SSE</button>");
         sb.Append("<button onclick=\"stopSse()\" style=\"background:#666\">断开</button>");
         sb.Append("</div>");
@@ -151,7 +154,44 @@ internal static class DebugPanelHtml
             }
         ");
 
+        // 加载插件候选列表 + 创建调试会话（外部浏览器自助签发，解决拿不到 WebView session 的问题）
+        sb.Append(@"
+            async function loadPlugins() {
+                try {
+                    var resp = await fetch('/__lybox/debug/plugins');
+                    var plugins = await resp.json();
+                    var dl = document.getElementById('plugins-list');
+                    plugins.forEach(function (p) {
+                        var opt = document.createElement('option');
+                        opt.value = p;
+                        dl.appendChild(opt);
+                    });
+                    if (plugins.length && !document.getElementById('session-plugin-id').value)
+                        document.getElementById('session-plugin-id').value = plugins[0];
+                } catch (e) { /* 忽略：手动输入仍可用 */ }
+            }
+            async function createDebugSession() {
+                var status = document.getElementById('debug-session-status');
+                var pluginId = document.getElementById('session-plugin-id').value.trim();
+                if (!pluginId) { status.textContent = '请先填写 pluginId'; return; }
+                status.textContent = '创建中...';
+                try {
+                    var resp = await fetch('/__lybox/debug/session/' + encodeURIComponent(pluginId), { method: 'POST' });
+                    var data = await resp.json();
+                    if (resp.ok) {
+                        document.getElementById('session-token').value = data.session;
+                        status.textContent = '已创建调试会话（' + data.pluginId + '），可调用 RPC / 连接 SSE';
+                    } else {
+                        status.textContent = '创建失败: ' + (data.error || resp.status);
+                    }
+                } catch (e) {
+                    status.textContent = '创建失败: ' + e.message;
+                }
+            }
+        ");
+
         sb.Append("renderCommands();");
+        sb.Append("loadPlugins();");
         sb.Append("</script></body></html>");
 
         return sb.ToString();

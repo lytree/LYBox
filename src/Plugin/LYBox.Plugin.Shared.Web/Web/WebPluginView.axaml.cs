@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using LYBox.Plugin.Shared.Rpc;
 using LYBox.Plugin.Shared.Services;
+using Microsoft.Extensions.Logging;
 
 namespace LYBox.Plugin.Shared.Web;
 
@@ -55,6 +56,7 @@ public partial class WebPluginView : UserControl
     private Uri? _targetUri;
     private string _routeBasePath = string.Empty;
     private bool _isErrorPageActive;
+    private ILogger? _consoleLogger;
 
     public static readonly StyledProperty<string?> PluginIdProperty =
         AvaloniaProperty.Register<WebPluginView, string?>(nameof(PluginId));
@@ -239,6 +241,12 @@ public partial class WebPluginView : UserControl
 
             if (_routeText is not null && _targetUri is not null)
                 _routeText.Text = PluginWebViewDevTools.GetRouteText(_targetUri, _routeBasePath);
+
+#if DEBUG
+            // 调试面板端点（/__lybox/debug）仅在 Debug 配置编译，按钮也仅此时显示
+            if (this.FindControl<Button>("PART_DebugPanelButton") is { } debugButton)
+                debugButton.IsVisible = true;
+#endif
         }
 
         // 导航信任校验在开发模式下启用；生产模式同样拦截越权导航但直接取消（不显示错误页）
@@ -324,6 +332,18 @@ public partial class WebPluginView : UserControl
         if (string.IsNullOrWhiteSpace(e.Body))
             return;
 
+        // console 桥：ipc.js 的 'L' 信封 → 宿主日志（前端 console 与 C# 日志同流，便于排障）
+        if (WebConsoleBridge.TryParse(e.Body) is { } console)
+        {
+            _consoleLogger ??= CreateConsoleLogger();
+            _consoleLogger?.Log(
+                WebConsoleBridge.ToLogLevel(console.Level),
+                "[Web:{PluginId}] {Message}",
+                PluginId ?? "unknown",
+                console.Message);
+            return;
+        }
+
         try
         {
             using var doc = JsonDocument.Parse(e.Body);
@@ -339,6 +359,12 @@ public partial class WebPluginView : UserControl
             // 非重试消息（如 Rpc 信封），交由 Rpc 传输层处理
         }
     }
+
+    /// <summary>懒创建 console 桥日志器（分类 LYBox.Web.Console）。宿主未配置 LoggerFactory 时返回 null。</summary>
+    private ILogger? CreateConsoleLogger()
+        => ServiceLocator.TryGetService<ILoggerFactory>(out var factory) && factory is not null
+            ? factory.CreateLogger("LYBox.Web.Console")
+            : null;
 
     private void UpdateDevStatus(string status, WebViewNavigationCompletedEventArgs args)
     {
@@ -419,4 +445,35 @@ public partial class WebPluginView : UserControl
 
         _webView?.Refresh();
     }
+
+    /// <summary>
+    /// 在系统浏览器中打开 Web 调试面板（<c>/__lybox/debug</c>）。
+    /// 面板端点仅在 Debug 配置编译；Release 下按钮隐藏且此方法为 no-op。
+    /// </summary>
+    private void OnDevDebugPanelClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+#if DEBUG
+        if (_webHost is not { IsRunning: true })
+            return;
+
+        var debugUri = new Uri($"{_webHost.BaseUrl}/__lybox/debug");
+        _ = LaunchUriInSystemBrowserAsync(debugUri);
+#endif
+    }
+
+#if DEBUG
+    private async Task LaunchUriInSystemBrowserAsync(Uri uri)
+    {
+        try
+        {
+            var launcher = TopLevel.GetTopLevel(this)?.Launcher;
+            if (launcher is not null)
+                await launcher.LaunchUriAsync(uri).ConfigureAwait(true);
+        }
+        catch
+        {
+            // 系统浏览器启动失败不阻塞开发工具栏
+        }
+    }
+#endif
 }

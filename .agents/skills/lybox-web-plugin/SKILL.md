@@ -1,6 +1,6 @@
 ---
 name: lybox-web-plugin
-description: "LYBox Web 插件开发规范：PluginKind 声明与 Web 描述符、wwwroot 静态资源、WebHostService 懒启动、WebView IPC（RPC/事件/Channel/SSE）、会话与 origin 约束、前端 @lytree/sdk 与统一脚手架 create-lybox。新建或修改 plugins/ 下含 WebView/wwwroot 前端页面的插件时使用。"
+description: "LYBox Web 插件开发规范：PluginKind 声明与 Web 描述符、wwwroot 静态资源、WebHostService 懒启动、WebView IPC（RPC/事件/Channel/SSE）、会话与 origin 约束、前端零依赖开发（window.__lybox）。新建或修改 plugins/ 下含 WebView/wwwroot 前端页面的插件时使用。"
 risk: unknown
 source: project
 date_added: "2026-08-16"
@@ -18,7 +18,7 @@ date_added: "2026-08-16"
 
 - 新建 Web 插件（前端页面 + WebView 承载 + 宿主通信）
 - 为 Web 插件添加 RPC 命令、事件推送、数据 Channel
-- 搭建前端工程（React/Vue3 脚手架）或排查 WebView 加载问题
+- 编写插件前端页面（原生 `window.__lybox`，零依赖）或排查 WebView 加载问题
 - 处理 wwwroot 打包、开发期资源回退、浏览器模式联调
 
 ---
@@ -115,35 +115,7 @@ public static class GreetCommands
 
 ## 💻 前端开发
 
-### 方式 A：@lytree/sdk（框架项目，推荐）
-
-> ⚠️ 包名是 **`@lytree/sdk`**（`frontend/packages/sdk/package.json:2`），文档中写作 `@lybox/sdk` 处均为笔误。
-
-```bash
-# 统一脚手架 create-lybox，--template 指定 react | vue3（缺省 react）
-npm create lybox my-plugin-ui -- --template react
-npm create lybox my-plugin-ui -- --template vue3
-# 兼容薄封装（固定模板）
-npm create lybox-react my-plugin-ui     # 固定 React
-npm create lybox-vue3 my-plugin-ui      # 固定 Vue3
-```
-
-常用 API：
-
-```ts
-import { rpc, on, isWebView, mountDebugPanel, restoreTheme } from '@lytree/sdk';
-import '@lytree/sdk/css';        // Design Token CSS 变量
-// 可选：import '@lytree/sdk/components';  // .ly-btn/.ly-card 等组件类
-
-const greeting = await rpc<string>('GreetAsync', 'world');
-const off = on('EventName', (data) => { /* ... */ });
-```
-
-- 模板已配置 Vite 代理（`/__bridge` `/sse`）并内置类型化 RPC（`createRpcClient<Methods>()`）示例；
-- 构建产物 `dist/` 需放入插件 `wwwroot/`（现状手动拷贝）；
-- 主题：`data-theme` 属性 + `localStorage`，CSS 变量 `--lybox-*`。
-
-### 方式 B：原生 window.__lybox（零依赖页面）
+### 原生 window.__lybox（零依赖）
 
 ```html
 <script>

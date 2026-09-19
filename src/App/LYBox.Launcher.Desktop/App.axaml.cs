@@ -87,6 +87,14 @@ public partial class App : Application
 
     private async Task InitializeCoreAsync()
     {
+        // Web 插件开发工具栏接线：DEBUG 构建默认开启（方便调试）；Release 需显式 --web-dev。
+        // 必须早于任何 WebPluginView 附加到视觉树。
+#if DEBUG
+        WebPluginView.ShowDevelopmentToolbar = true;
+#else
+        WebPluginView.ShowDevelopmentToolbar = Program.WebDev;
+#endif
+
         var services = new ServiceCollection();
         services.AddAvaloniaServices();
         // 注册 Ursa 宿主层服务：NavigationService / MenuConfigurationService / LocalizationService
@@ -105,7 +113,10 @@ public partial class App : Application
         services.AddSingleton<IPluginLoader>(pluginLoader);
 
         // 注册嵌入式 HTTP 资源服务（单例，随 ServiceProvider.Dispose 自动停止）
-        services.AddSingleton<WebHostService>();
+        // LYBOX_DEV_ORIGINS（分号/逗号分隔的 URI，如 http://localhost:5173）：
+        // 开发代理来源白名单，解锁前端跑在 Vite dev server（HMR）、RPC/SSE 走宿主的开发模式
+        services.AddSingleton(new WebHostService(
+            WebHostService.ParseOrigins(Environment.GetEnvironmentVariable("LYBOX_DEV_ORIGINS"))));
 
         ServiceProvider = services.BuildServiceProvider();
         ServiceLocator.Initialize(ServiceProvider);
@@ -171,25 +182,45 @@ public partial class App : Application
     /// </summary>
     private async Task InitializeWebHostAsync()
     {
+        // WebView2 远程调试提示（--web-devtools[=port]）：与 Kestrel 启动无关，仅启动期提示一次
+        if (Program.WebDevToolsPort is int devPort)
+        {
+            ServiceProvider?.GetRequiredService<ILogger<App>>()
+                ?.LogInformation("WebView 远程调试已启用，可用 Chromium 系浏览器连接 http://127.0.0.1:{Port}", devPort);
+        }
+
         try
         {
             var webHost = ServiceProvider?.GetRequiredService<WebHostService>();
             if (webHost is null) return;
 
             // 懒加载：仅当插件显式注册了 Web 资源时才初始化并启用静态资源服务，否则保持关闭
-            if (!webHost.HasRegisteredPlugins)
+            if (!webHost.HasRegisteredPlugins && !Program.WebViteEnabled)
             {
                 var skipLogger = ServiceProvider?.GetRequiredService<ILogger<App>>();
                 skipLogger?.LogInformation("无插件显式注册 Web 资源，静态资源服务保持关闭（懒加载）");
                 return;
             }
 
+            // --web-vite 场景：即使无 Web 插件也启动 WebHost（Vite 代理目标 + 调试面板后端）
+            if (Program.WebViteEnabled)
+                webHost.AllowStartWithoutPlugins = true;
+
             // 已有插件注册路由，启动 Kestrel
             await webHost.StartAsync();
 
             var bootLogger = ServiceProvider?.GetRequiredService<ILogger<App>>();
             if (webHost.IsRunning)
+            {
                 bootLogger?.LogInformation("WebHostService 已启动，监听 {BaseUrl}", webHost.BaseUrl);
+#if DEBUG
+                // 调试面板端点仅在 Debug 配置编译（#if DEBUG），随端口日志一并输出完整 URL
+                bootLogger?.LogInformation("Web 调试面板: {DebugUrl}", $"{webHost.BaseUrl}/__lybox/debug");
+#endif
+                // --web-vite：WebHost 就绪后由宿主托管 Vite dev server（后台运行，退出时随宿主终止）
+                if (Program.WebViteEnabled)
+                    _ = Task.Run(() => ViteDevHost.Start(Program.WebViteDir, bootLogger));
+            }
             else
                 bootLogger?.LogInformation("WebHostService 启动未生效，监听端口未就绪");
         }
@@ -349,6 +380,9 @@ public partial class App : Application
         // 先取消关闭请求，然后在线程池线程上执行清理，完成后调用 Environment.Exit 强制退出
         _ = Task.Run(async () =>
         {
+            // 托管的 Vite dev server 随宿主终止（整树，避免 node 残留占用 5173）
+            ViteDevHost.Stop();
+
             var cleanupTask = PerformCleanupAsync();
             var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10));
             var completed = await Task.WhenAny(cleanupTask, timeoutTask);

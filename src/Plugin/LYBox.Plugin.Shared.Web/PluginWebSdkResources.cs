@@ -29,6 +29,9 @@ public static class PluginWebSdkResources
     /// <summary>SDK JS 嵌入资源名。</summary>
     public const string SdkScriptResourceName = ResourceNamePrefix + ".lybox-plugin-sdk.js";
 
+    /// <summary>SDK TypeScript 类型声明嵌入资源名。与 <see cref="SdkScriptResourceName"/> 一一对应。</summary>
+    public const string SdkTypeDeclarationsResourceName = ResourceNamePrefix + ".lybox-plugin-sdk.d.ts";
+
     /// <summary>主题 CSS 嵌入资源名。</summary>
     public const string ThemeStylesheetResourceName = ResourceNamePrefix + ".lybox-plugin-theme.css";
 

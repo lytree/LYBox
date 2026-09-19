@@ -1,6 +1,9 @@
 /**
  * LYBox WebView IPC 浏览器 SDK（ES Module）
  *
+ * @version 2.3.0-preview.7   ← 与 LYBox/version.props 的 <LyboxVersion> 保持一致；
+ *                                 CI 通过 build.cs 的 ReplaceSdkVersionToken 在打包前同步。
+ *
  * 为浏览器开发模式（无 WebView）提供与原生 LYBox 宿主一致的 RPC 调用体验。
  * 运行环境检测：
  *   - WebView 模式：window.__lybox（由 LYBox 嵌入式 ipc.js 注入）存在 → 直接调用 window.__lybox.rpc
@@ -11,6 +14,9 @@
  * 旧位置参数调用由 lyboxInvokeLegacy(method, ...args) 保留兼容。
  * 事件订阅走 lyboxOn(eventName, handler): unsubscribe。
  * HTTP 请求走 lyboxRequest(path, options) / lyboxGetJson(path, options)。
+ *
+ * 与 templates/web-plugin-ui/src/lybox.ts 方法签名一一对应；两端任一升级必须同步修改。
+ * 宿主侧运行时校验：WebHostService 启动时读取本资源，校验 @version 头是否与 <PluginSdkVersion> 一致。
  */
 
 const REQUEST_KIND = "lybox-ipc-request";
