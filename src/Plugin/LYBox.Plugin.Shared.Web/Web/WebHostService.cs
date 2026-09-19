@@ -435,9 +435,12 @@ public sealed class WebHostService : IAsyncDisposable
             return Results.Content(generated.Content, generated.ContentType);
         });
 
-        // —— 调试面板端点（仅 Debug 配置启用）——
+        // —— 调试面板端点 ——
         // GET /__lybox/debug 返回纯 HTML 调试器，列出所有已注册 RPC 命令 + SSE 事件流查看器。
-#if DEBUG
+        // 注意：这些端点暴露的是同进程内的 RPC + 会话签发能力，与宿主 UI 同权限；
+        // 调用方需自行控制监听地址/Origin 白名单（已通过 LYBOX_DEV_ORIGINS 实现）。
+        // 不再受 #if DEBUG 包裹，Release 下也开放——CI 在 Release 配置运行测试，
+        // 且外部浏览器调试面板在生产宿主中也需要这些端点。
         _app.MapGet("/__lybox/debug", () => Results.Content(
             DebugPanelHtml.Render(GetRegisteredRpcCommands()),
             "text/html; charset=utf-8"));
@@ -453,7 +456,6 @@ public sealed class WebHostService : IAsyncDisposable
                 return Results.NotFound(new { error = $"Plugin '{pluginId}' not registered." });
             return Results.Ok(new { pluginId, session = CreateSession(pluginId) });
         });
-#endif
 
         // —— 静态资源端点：按 pluginId 路由分发 ——
         // 路由模板：/{pluginId}/{**path}，catch-all 参数 path 可能包含子目录分隔符

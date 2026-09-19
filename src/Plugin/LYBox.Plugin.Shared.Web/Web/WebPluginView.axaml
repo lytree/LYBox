@@ -40,7 +40,7 @@
                         Click="OnDevRefreshClick"
                         Content="↻"
                         ToolTip.Tip="Refresh" />
-                    <!-- 调试面板按钮：仅 Debug 构建（面板端点 #if DEBUG 裁剪），系统浏览器打开 /__lybox/debug -->
+                    <!-- 调试面板按钮：仅 Debug 构建可见（Release 隐藏，端点本身仍可用） -->
                     <Button
                         Name="PART_DebugPanelButton"
                         Grid.Column="3"

@@ -243,7 +243,8 @@ public partial class WebPluginView : UserControl
                 _routeText.Text = PluginWebViewDevTools.GetRouteText(_targetUri, _routeBasePath);
 
 #if DEBUG
-            // 调试面板端点（/__lybox/debug）仅在 Debug 配置编译，按钮也仅此时显示
+            // 调试面板按钮仅在 Debug 构建显示（Release 隐藏，避免给终端用户暴露开发者入口）
+            // 端点本身在 Release 也可用，外部脚本/测试可直接调用。
             if (this.FindControl<Button>("PART_DebugPanelButton") is { } debugButton)
                 debugButton.IsVisible = true;
 #endif
