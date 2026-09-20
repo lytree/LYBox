@@ -2,12 +2,14 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using Avalonia;
 using LYBox.Plugin.Shared;
+using LYBox.Plugin.Shared.Messages;
 using LYBox.Plugin.Shared.Models;
 using LYBox.Plugin.Shared.Services;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 
 namespace LYBox.Layout.Ursa.ViewModels;
 
@@ -15,6 +17,11 @@ public partial class SettingsPageViewModel : ViewModelBase
 {
     private readonly ISettingsService? _settingsService;
     private readonly ILocalizationService? _localizationService;
+
+    /// <summary>
+    /// 通过 Key 索引 SettingEntry 引用，便于插件更新特定条目的副标题。
+    /// </summary>
+    private readonly Dictionary<string, SettingEntryViewModel> _entriesByKey = new(StringComparer.OrdinalIgnoreCase);
 
     public ObservableCollection<SettingsGroupViewModel> Groups { get; } = [];
 
@@ -29,6 +36,7 @@ public partial class SettingsPageViewModel : ViewModelBase
     {
         _settingsService = settingsService;
         _localizationService = localizationService;
+        WeakReferenceMessenger.Default.Register<SettingsPageViewModel, SettingStatusChangedMessage>(this, OnSettingStatusChanged);
         LoadSettings();
     }
 
@@ -129,6 +137,7 @@ public partial class SettingsPageViewModel : ViewModelBase
         if (_settingsService == null) return;
 
         Groups.Clear();
+        _entriesByKey.Clear();
         IsDirty = false;
         SaveStatusText = string.Empty;
 
@@ -142,9 +151,27 @@ public partial class SettingsPageViewModel : ViewModelBase
             foreach (var setting in group.OrderBy(s => s.ItemOrder))
             {
                 var localizedSetting = LocalizeSettingItem(setting);
-                groupVm.Items.Add(CreateEntry(localizedSetting, _settingsService, this));
+                var entry = CreateEntry(localizedSetting, _settingsService, this);
+                _entriesByKey[setting.Key] = entry;
+                groupVm.Items.Add(entry);
             }
             Groups.Add(groupVm);
+        }
+    }
+
+    private void OnSettingStatusChanged(SettingsPageViewModel recipient, SettingStatusChangedMessage message)
+    {
+        if (_entriesByKey.TryGetValue(message.Key, out var entry))
+        {
+            switch (entry)
+            {
+                case ActionSettingEntryViewModel action:
+                    action.UpdateSubtitle(message.Text);
+                    break;
+                case ReadOnlySettingEntryViewModel readOnly:
+                    readOnly.UpdateText(message.Text);
+                    break;
+            }
         }
     }
 
@@ -179,6 +206,8 @@ public partial class SettingsPageViewModel : ViewModelBase
             SettingType.Switch => new SwitchSettingEntryViewModel(setting, settingsService, parent),
             SettingType.Dropdown => new DropdownSettingEntryViewModel(setting, settingsService, parent),
             SettingType.Path => new PathSettingEntryViewModel(setting, settingsService, parent, _localizationService),
+            SettingType.ReadOnly => new ReadOnlySettingEntryViewModel(setting, settingsService, parent, _localizationService),
+            SettingType.Action => new ActionSettingEntryViewModel(setting, settingsService, parent),
             _ => new TextSettingEntryViewModel(setting, settingsService, parent)
         };
     }
@@ -392,5 +421,67 @@ public partial class PathSettingEntryViewModel : SettingEntryViewModel
                 PathValue = result[0].TryGetLocalPath() ?? result[0].Path.ToString();
             }
         }
+    }
+}
+
+/// <summary>
+/// 只读条目（用于显示状态/提示文本，不参与保存）。
+/// </summary>
+public partial class ReadOnlySettingEntryViewModel : SettingEntryViewModel
+{
+    private readonly ILocalizationService? _localizationService;
+
+    [ObservableProperty] private string _textValue;
+
+    public ReadOnlySettingEntryViewModel(SettingItem setting, ISettingsService settingsService, SettingsPageViewModel parent, ILocalizationService? localizationService = null)
+        : base(setting, settingsService, parent)
+    {
+        _localizationService = localizationService;
+        _textValue = setting.RawValue;
+    }
+
+    public override object? GetCurrentValue() => TextValue;
+
+    public override void ResetToSaved() { /* read-only */ }
+
+    public override void MarkSaved() { /* read-only */ }
+
+    /// <summary>
+    /// 由 <see cref="SettingStatusChangedMessage"/> 触发：插件可借此更新文本（例如刷新运行期状态）。
+    /// </summary>
+    public void UpdateText(string value) => TextValue = value ?? string.Empty;
+}
+
+/// <summary>
+/// 动作条目：渲染一个按钮 + 可选的状态/说明文本。点击按钮时通过
+/// <see cref="SettingActionInvokedMessage"/> 通知插件执行对应动作。
+/// 插件在自身 <c>RegisterAsync</c> 时通过 <c>WeakReferenceMessenger</c> 订阅。
+/// </summary>
+public partial class ActionSettingEntryViewModel : SettingEntryViewModel
+{
+    /// <summary>
+    /// 可由插件通过 <c>WeakReferenceMessenger.Default.Send(new SettingActionInvokedMessage(actionId))</c>
+    /// 或外部调用更新（例如刷新状态文本）。
+    /// </summary>
+    [ObservableProperty] private string _subtitle;
+
+    public ActionSettingEntryViewModel(SettingItem setting, ISettingsService settingsService, SettingsPageViewModel parent)
+        : base(setting, settingsService, parent)
+    {
+        _subtitle = setting.RawValue ?? string.Empty;
+    }
+
+    public override object? GetCurrentValue() => Subtitle;
+
+    public override void ResetToSaved() { /* action has no persisted value */ }
+
+    public override void MarkSaved() { /* action has no persisted value */ }
+
+    public void UpdateSubtitle(string? value) => Subtitle = value ?? string.Empty;
+
+    [RelayCommand]
+    private void Invoke()
+    {
+        WeakReferenceMessenger.Default.Send(new SettingActionInvokedMessage(Setting.Key));
     }
 }

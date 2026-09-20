@@ -111,6 +111,38 @@
 												</Grid>
 											</Border>
 										</DataTemplate>
+										<DataTemplate x:DataType="viewModels:ReadOnlySettingEntryViewModel">
+											<Border Classes="FluentSettingsCard">
+												<Grid ColumnDefinitions="*,Auto">
+													<StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="2">
+														<TextBlock Text="{Binding DisplayName}" Classes="FluentSettingsCardTitle" />
+														<TextBlock Text="{Binding Description}" Classes="FluentSettingsCardDescription"
+																   IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+													</StackPanel>
+													<TextBlock Grid.Column="1" Text="{Binding TextValue}" Classes="FluentSettingsCardDescription"
+															   VerticalAlignment="Center" Margin="16,0,0,0" />
+												</Grid>
+											</Border>
+										</DataTemplate>
+										<DataTemplate x:DataType="viewModels:ActionSettingEntryViewModel">
+											<Border Classes="FluentSettingsCard">
+												<Grid ColumnDefinitions="*,Auto">
+													<StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="2">
+														<TextBlock Text="{Binding DisplayName}" Classes="FluentSettingsCardTitle" />
+														<TextBlock Text="{Binding Description}" Classes="FluentSettingsCardDescription"
+																   IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+														<TextBlock Text="{Binding Subtitle}" Classes="FluentSettingsCardDescription"
+																   IsVisible="{Binding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+																   Margin="0,4,0,0" />
+													</StackPanel>
+													<Button Grid.Column="1"
+															Content="{Binding DisplayName}"
+															Command="{Binding InvokeCommand}"
+															Classes="FluentAccent"
+															VerticalAlignment="Center" Margin="16,0,0,0" />
+												</Grid>
+											</Border>
+										</DataTemplate>
 									</ItemsControl.DataTemplates>
 								</ItemsControl>
 							</StackPanel>
