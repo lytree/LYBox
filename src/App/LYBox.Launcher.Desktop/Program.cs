@@ -57,6 +57,10 @@ public sealed partial class Program
         // LaunchArgs 必须先于 HasArg/GetArgValue 消费者赋值（含下方的环境预处理）
         LaunchArgs = applicationArgs;
 
+        // 极早期 dump：DI / logger 都还没起来前，把最关键的路径打到 stderr，
+        // 这样即使后续初始化失败也能在 stderr 中看到环境上下文。
+        DumpEarlyPaths(args);
+
         // WebView2 远程调试开关必须在首个 WebView 创建前注入（环境变量方式），故在一切初始化之前处理
         ApplyWebDevToolsEnvironment(args);
         // Vite 托管：确保 LYBOX_WEB_PORT 存在（WebHostService 与 vite.config.ts 代理共用），早于 DI 初始化
@@ -168,6 +172,36 @@ public sealed partial class Program
     {
         BuildAvaloniaApp()
             .StartWithClassicDesktopLifetime(args);
+    }
+
+    /// <summary>
+    /// 极早期路径 dump：在 DI / logger 还没起来前，把环境变量 / BaseDirectory 等打到 stderr。
+    /// 同时把 <c>LYBOX_DATA_ROOT</c> 环境变量解析结果打出来，方便排查插件数据根目录错位。
+    /// </summary>
+    private static void DumpEarlyPaths(string[] args)
+    {
+        try
+        {
+            var envDataRoot = Environment.GetEnvironmentVariable("LYBOX_DATA_ROOT");
+            var localAppData = OperatingSystem.IsWindows()
+                ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+                : Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var resolvedRoot = !string.IsNullOrWhiteSpace(envDataRoot)
+                ? Path.GetFullPath(envDataRoot)
+                : Path.Combine(localAppData, "LYBox");
+
+            // 仅写 stderr（避免与 Avalonia 控制台输出混在一起），并带 [LYBox.Early] 前缀便于过滤。
+            Console.Error.WriteLine($"[LYBox.Early] Args                      = {string.Join(' ', args)}");
+            Console.Error.WriteLine($"[LYBox.Early] ConsoleMode               = {args.Any(a => string.Equals(a, ConsoleModeArgument, StringComparison.OrdinalIgnoreCase))}");
+            Console.Error.WriteLine($"[LYBox.Early] AppContext.BaseDirectory  = {AppContext.BaseDirectory}");
+            Console.Error.WriteLine($"[LYBox.Early] LocalAppData              = {localAppData}");
+            Console.Error.WriteLine($"[LYBox.Early] LYBOX_DATA_ROOT (env)     = {(string.IsNullOrEmpty(envDataRoot) ? "<not set>" : envDataRoot)}");
+            Console.Error.WriteLine($"[LYBox.Early] HostDataRoot (resolved)   = {resolvedRoot}");
+        }
+        catch
+        {
+            // 极早期 dump 自身不能抛异常影响主流程。
+        }
     }
 
     private static bool TryCreateConsole()

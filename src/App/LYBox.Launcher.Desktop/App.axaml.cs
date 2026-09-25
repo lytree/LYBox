@@ -56,6 +56,7 @@ public partial class App : Application
         }
         catch
         {
+            // logger 取不到（DI 已被销毁 / ServiceProvider 未就绪）的极端兜底，必须能落地。
             Console.Error.WriteLine($"[全局异常] {source}: {ex}");
         }
     }
@@ -63,6 +64,7 @@ public partial class App : Application
     private static void OnUIThreadUnhandledException(object? sender, Avalonia.Threading.DispatcherUnhandledExceptionEventArgs e)
     {
         LogGlobalException("UIThreadUnhandledException", e.Exception);
+        // 兜底：UI 线程未处理异常，stderr 必须能看到（与 logger 通道并行）。
         Console.Error.WriteLine($"[UIThreadUnhandledException] {e.Exception}");
 #if DEBUG
         // DEBUG 模式下不吞异常，让问题暴露
@@ -131,6 +133,10 @@ public partial class App : Application
         // 记录应用启动日志
         var logger = ServiceProvider.GetRequiredService<ILogger<App>>();
         logger.ZLogInformation($"AvaloniaTemplate 应用启动");
+
+        // 启动期一次性 dump：宿主侧关键路径，便于排查插件数据 / 日志落盘位置。
+        // 同时输出到控制台与滚动日志文件（AddZLoggerConsole + AddZLoggerRollingFile）。
+        DumpHostPaths(logger);
 
         InitializeDatabase();
         InitializeLocalization();
@@ -394,6 +400,54 @@ public partial class App : Application
 
             Environment.Exit(0);
         });
+    }
+
+    /// <summary>
+    /// 启动期一次性打印宿主侧关键路径：方便排查插件数据根目录、日志落盘位置等。
+    /// 同时通过 ZLogger 输出到控制台与滚动日志文件（<c>{AppBaseDirectory}/logs/app-yyyy-MM-dd_NNN.log</c>）。
+    /// </summary>
+    private static void DumpHostPaths(ILogger logger)
+    {
+        // 路径来源统一通过 IPluginHostEnvironment（与插件使用同一份解析结果）。
+        // 宿主自身的 PluginId 用 "LYBox.Host"，让宿主的日志也落到独立目录 logs/plugins/LYBox.Host/。
+        var factory = ServiceProvider?.GetService<IPluginHostEnvironmentFactory>();
+        var hostEnv = factory?.Create("LYBox.Host");
+        var appBase = hostEnv?.AppBaseDirectory ?? AppContext.BaseDirectory;
+        var logDir = hostEnv?.LogsDirectory ?? Path.Combine(appBase, "logs");
+        var hostDataRoot = hostEnv?.HostDataRoot ?? PluginDataDirectoryProvider.ResolveHostDataRoot();
+        var appVersion = hostEnv?.AppVersion ?? "<unavailable>";
+        var isPortable = hostEnv?.IsPortableMode ?? false;
+        var pluginLogDir = hostEnv?.PluginLogsDirectory ?? "<unavailable>";
+        var lyboxDataRootEnv = Environment.GetEnvironmentVariable(PluginDataDirectoryProvider.DataRootEnvironmentVariable);
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+        logger.LogInformation("==== 宿主启动期路径 dump (via IPluginHostEnvironment) ====");
+        logger.LogInformation("AppBaseDirectory       = {Base}", appBase);
+        logger.LogInformation("LogsDir                = {Logs} (roll: app-yyyy-MM-dd_NNN.log)", logDir);
+        logger.LogInformation("HostDataRoot (resolved)= {Root}", hostDataRoot);
+        logger.LogInformation("AppVersion             = {Ver}", appVersion);
+        logger.LogInformation("IsPortableMode         = {Portable}", isPortable);
+        logger.LogInformation("PluginLogsDir          = {PluginLogs} (LYBox.Host 独立通道)", pluginLogDir);
+        logger.LogInformation("LYBOX_DATA_ROOT (env)  = {Env}", string.IsNullOrEmpty(lyboxDataRootEnv) ? "<not set>" : lyboxDataRootEnv);
+        logger.LogInformation("LocalApplicationData   = {Local}", localAppData);
+        logger.LogInformation("==== 宿主启动期路径 dump 结束 ====");
+    }
+
+    /// <summary>
+    /// 统一日志管理：宿主初始化完成后，向宿主 ILogger 写入一行"统一日志入口就绪"标记，
+    /// 便于排查"插件 logger 是否真的落到宿主文件"问题。
+    /// </summary>
+    private static void LogLoggingReady()
+    {
+        try
+        {
+            var logger = ServiceProvider?.GetRequiredService<ILogger<App>>();
+            logger?.LogInformation("[LYBox.Host] 统一日志入口就绪：控制台 + {Logs} 滚动日志", PluginDataDirectoryProvider.ResolveHostDataRoot());
+        }
+        catch
+        {
+            // 不影响主流程。
+        }
     }
 
     private async Task PerformCleanupAsync()

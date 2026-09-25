@@ -82,6 +82,11 @@ public static class ServiceCollectionExtensions
         // 插件数据目录提供者：必须在 db factory 之后注册，便于其他服务解析它。
         services.AddSingleton<IPluginDataDirectoryProvider, PluginDataDirectoryProvider>();
 
+        // 宿主运行时环境信息（路径 / 日志 / 版本）。插件通过 IPluginHostEnvironment 统一获取。
+        // 每个插件一个实例（含独立的 ILoggerFactory），不注册为单例，
+        // 而是由插件入口在 RegisterAsync 中按 PluginId 调用工厂创建。
+        services.AddSingleton<IPluginHostEnvironmentFactory, PluginHostEnvironmentFactory>();
+
         services.AddSingleton<DatabaseMigrationService>();
 
         services.AddSingleton<ISettingsService, SettingsService>();
