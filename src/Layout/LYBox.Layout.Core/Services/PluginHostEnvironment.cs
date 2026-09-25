@@ -1,5 +1,8 @@
+using LYBox.Plugin.Shared;
 using LYBox.Plugin.Shared.Services;
 using Microsoft.Extensions.Logging;
+using ZLogger;
+using ZLogger.Providers;
 
 namespace LYBox.Layout.Core.Services;
 
@@ -26,7 +29,7 @@ public sealed class PluginHostEnvironment : IPluginHostEnvironment, IDisposable
     {
         get
         {
-            var dir = Path.Combine(AppBaseDirectory, "logs");
+            var dir = Path.Combine(AppBaseDirectory, WellKnownPaths.LogsSubDir);
             Directory.CreateDirectory(dir);
             return dir;
         }
@@ -53,7 +56,7 @@ public sealed class PluginHostEnvironment : IPluginHostEnvironment, IDisposable
     {
         get
         {
-            var dir = Path.Combine(LogsDirectory, "plugins", SafeDirName(_pluginId));
+            var dir = Path.Combine(LogsDirectory, WellKnownPaths.PluginsSubDir, SafeDirName(_pluginId));
             Directory.CreateDirectory(dir);
             return dir;
         }
@@ -87,12 +90,12 @@ public sealed class PluginHostEnvironment : IPluginHostEnvironment, IDisposable
     static ILoggerFactory BuildLoggerFactory(string pluginId)
     {
         var dir = Path.Combine(
-            Path.Combine(AppContext.BaseDirectory, "logs"),
-            "plugins",
+            Path.Combine(AppContext.BaseDirectory, WellKnownPaths.LogsSubDir),
+            WellKnownPaths.PluginsSubDir,
             SafeDirName(pluginId));
         Directory.CreateDirectory(dir);
 
-        var lf = LoggerFactory.Create(builder =>
+        var lf = Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
         {
             builder.ClearProviders();
             builder.SetMinimumLevel(LogLevel.Information);
@@ -106,7 +109,7 @@ public sealed class PluginHostEnvironment : IPluginHostEnvironment, IDisposable
             builder.AddZLoggerRollingFile(options =>
             {
                 options.FilePathSelector = (dt, seq) =>
-                    Path.Combine(dir, $"app-{dt:yyyy-MM-dd}_{seq:000}.log");
+                    Path.Combine(dir, WellKnownPaths.FormatRollingLogFileName(dt, seq));
                 options.RollingInterval = RollingInterval.Day;
                 options.RollingSizeKB = 10240;
                 ConfigureFormatter(options);

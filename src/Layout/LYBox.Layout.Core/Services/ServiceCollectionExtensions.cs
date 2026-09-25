@@ -1,3 +1,4 @@
+using LYBox.Plugin.Shared;
 using LYBox.Plugin.Shared.Models;
 using LYBox.Plugin.Shared.Services;
 using LYBox.Layout.Core.Data;
@@ -20,7 +21,7 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddAvaloniaServices(this IServiceCollection services)
     {
-        var logPath = Path.Combine(AppContext.BaseDirectory, "logs");
+        var logPath = Path.Combine(AppContext.BaseDirectory, WellKnownPaths.LogsSubDir);
         Directory.CreateDirectory(logPath);
 
         services.AddLogging(builder =>
@@ -40,7 +41,7 @@ public static class ServiceCollectionExtensions
             builder.AddZLoggerRollingFile(options =>
             {
                 options.FilePathSelector = (dt, seq) =>
-                    Path.Combine(logPath, $"app-{dt:yyyy-MM-dd}_{seq:000}.log");
+                    Path.Combine(logPath, WellKnownPaths.FormatRollingLogFileName(dt, seq));
                 options.RollingInterval = RollingInterval.Day;
                 options.RollingSizeKB = 10240; // 10MB
                 ConfigurePlainTextFormatter(options);
@@ -75,12 +76,15 @@ public static class ServiceCollectionExtensions
             // 历史版本曾位于 AppContext.BaseDirectory（启动器根目录），会因自包含发布/只读权限失败。
             var hostDataRoot = PluginDataDirectoryProvider.ResolveHostDataRoot();
             Directory.CreateDirectory(hostDataRoot);
-            var dbPath = Path.Combine(hostDataRoot, "appdata.db");
+            var dbPath = Path.Combine(hostDataRoot, WellKnownPaths.HostDatabaseFileName);
             options.UseSqlite($"Data Source={dbPath}");
         });
 
-        // 插件数据目录提供者：必须在 db factory 之后注册，便于其他服务解析它。
+        // 插件数据目录提供者:必须在 db factory 之后注册,便于其他服务解析它。
         services.AddSingleton<IPluginDataDirectoryProvider, PluginDataDirectoryProvider>();
+
+        // 跨平台 / 用户目录画像:供插件读取 UserHome / Downloads / Documents / IsPortableMode。
+        services.AddSingleton<IRuntimeProfile, RuntimeProfile>();
 
         // 宿主运行时环境信息（路径 / 日志 / 版本）。插件通过 IPluginHostEnvironment 统一获取。
         // 每个插件一个实例（含独立的 ILoggerFactory），不注册为单例，

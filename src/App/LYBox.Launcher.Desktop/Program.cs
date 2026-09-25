@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using LYBox.Plugin.Shared;
 
 namespace LYBox.Launcher.Desktop;
 
@@ -86,11 +87,9 @@ public sealed partial class Program
         if (WebDevToolsPort is not int port)
             return;
 
-        const string varName = "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS";
-        var existing = Environment.GetEnvironmentVariable(varName);
+        var existing = LYBoxEnv.Get(LYBoxEnv.WebView2DebugArgsKey);
         var debugArg = $"--remote-debugging-port={port}";
-        Environment.SetEnvironmentVariable(
-            varName,
+        LYBoxEnv.Set(LYBoxEnv.WebView2DebugArgsKey,
             string.IsNullOrEmpty(existing) ? debugArg : $"{existing} {debugArg}");
     }
 
@@ -126,12 +125,12 @@ public sealed partial class Program
         if (!WebViteEnabled)
             return;
 
-        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LYBOX_WEB_PORT")))
+        if (!string.IsNullOrEmpty(LYBoxEnv.Get(LYBoxEnv.WebPortKey)))
             return; // 用户已固定端口，尊重现有设置
 
         var port = FindFreePort();
         if (port is int p)
-            Environment.SetEnvironmentVariable("LYBOX_WEB_PORT", p.ToString());
+            LYBoxEnv.SetWebPort(p);
     }
 
     /// <summary>探测一个可用 TCP 端口（监听 127.0.0.1:0 后立即释放）。失败返回 null。</summary>
@@ -180,28 +179,9 @@ public sealed partial class Program
     /// </summary>
     private static void DumpEarlyPaths(string[] args)
     {
-        try
-        {
-            var envDataRoot = Environment.GetEnvironmentVariable("LYBOX_DATA_ROOT");
-            var localAppData = OperatingSystem.IsWindows()
-                ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
-                : Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var resolvedRoot = !string.IsNullOrWhiteSpace(envDataRoot)
-                ? Path.GetFullPath(envDataRoot)
-                : Path.Combine(localAppData, "LYBox");
-
-            // 仅写 stderr（避免与 Avalonia 控制台输出混在一起），并带 [LYBox.Early] 前缀便于过滤。
-            Console.Error.WriteLine($"[LYBox.Early] Args                      = {string.Join(' ', args)}");
-            Console.Error.WriteLine($"[LYBox.Early] ConsoleMode               = {args.Any(a => string.Equals(a, ConsoleModeArgument, StringComparison.OrdinalIgnoreCase))}");
-            Console.Error.WriteLine($"[LYBox.Early] AppContext.BaseDirectory  = {AppContext.BaseDirectory}");
-            Console.Error.WriteLine($"[LYBox.Early] LocalAppData              = {localAppData}");
-            Console.Error.WriteLine($"[LYBox.Early] LYBOX_DATA_ROOT (env)     = {(string.IsNullOrEmpty(envDataRoot) ? "<not set>" : envDataRoot)}");
-            Console.Error.WriteLine($"[LYBox.Early] HostDataRoot (resolved)   = {resolvedRoot}");
-        }
-        catch
-        {
-            // 极早期 dump 自身不能抛异常影响主流程。
-        }
+        // 行布局与解析逻辑统一经 PathsReport，避免早期 dump 与 DI 之后启动 banner 各写一份。
+        var consoleMode = args.Any(a => string.Equals(a, ConsoleModeArgument, StringComparison.OrdinalIgnoreCase));
+        PathsReport.WriteEarlyLines(Console.Error, args, consoleMode);
     }
 
     private static bool TryCreateConsole()

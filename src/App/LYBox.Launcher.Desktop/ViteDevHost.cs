@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using LYBox.Plugin.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace LYBox.Launcher.Desktop;
@@ -47,7 +48,7 @@ internal static class ViteDevHost
             return;
         }
 
-        var hostPort = Environment.GetEnvironmentVariable("LYBOX_WEB_PORT") ?? "(随机)";
+        var hostPort = LYBoxEnv.Get(LYBoxEnv.WebPortKey) ?? "(随机)";
         try
         {
             var info = new ProcessStartInfo
@@ -129,7 +130,7 @@ internal static class ViteDevHost
         if (!string.IsNullOrWhiteSpace(explicitDir))
             return Directory.Exists(Path.GetFullPath(explicitDir)) ? Path.GetFullPath(explicitDir) : null;
 
-        var env = Environment.GetEnvironmentVariable("LYBOX_VITE_DIR");
+        var env = LYBoxEnv.Get(LYBoxEnv.ViteDirKey);
         if (!string.IsNullOrWhiteSpace(env) && Directory.Exists(Path.GetFullPath(env)))
             return Path.GetFullPath(env);
 
@@ -167,7 +168,7 @@ internal static class ViteDevHost
         if (!_readyLogged && IsViteReadyLine(line))
         {
             _readyLogged = true;
-            var hostPort = Environment.GetEnvironmentVariable("LYBOX_WEB_PORT") ?? "(随机)";
+            var hostPort = LYBoxEnv.Get(LYBoxEnv.WebPortKey) ?? "(随机)";
             _logger?.LogInformation(
                 "Vite 就绪：浏览器打开 http://localhost:5173 开发（完整 HMR）；RPC/SSE 经同源代理访问宿主 127.0.0.1:{Port}；宿主退出时 Vite 自动终止",
                 hostPort);

@@ -255,13 +255,14 @@ public sealed class WebHostService : IAsyncDisposable
     /// </summary>
     public static Uri[] ParseOrigins(string? raw)
     {
-        if (string.IsNullOrWhiteSpace(raw))
-            return Array.Empty<Uri>();
+        // 接受 null 入口便于内部分流；实际值统一经 LYBoxEnv.GetDevOrigins() 解析。
+        var parts = string.IsNullOrWhiteSpace(raw)
+            ? Array.Empty<string>()
+            : raw.Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         var origins = new List<Uri>();
-        foreach (var part in raw.Split(';', ','))
+        foreach (var candidate in parts)
         {
-            var candidate = part.Trim();
             if (candidate.Length == 0)
                 continue;
             if (Uri.TryCreate(candidate, UriKind.Absolute, out var uri)
@@ -284,15 +285,14 @@ public sealed class WebHostService : IAsyncDisposable
     /// </summary>
     private static string? ResolveDevWwwroot(string pluginId)
     {
-        var envKey = $"LYBOX_PLUGIN_SRC_{pluginId.Replace("-", "_")}";
-        var envPath = Environment.GetEnvironmentVariable(envKey);
+        var envPath = LYBoxEnv.GetPluginSrcDir(pluginId);
         if (!string.IsNullOrEmpty(envPath))
         {
             var candidate = Path.Combine(envPath, "wwwroot");
             if (Directory.Exists(candidate)) return candidate;
         }
 
-        var extraPath = Environment.GetEnvironmentVariable("AVALONIA_EXTRA_PLUGINS_PATH");
+        var extraPath = LYBoxEnv.Get(LYBoxEnv.ExtraPluginsKey);
         if (!string.IsNullOrEmpty(extraPath))
         {
             var dir = new DirectoryInfo(extraPath);
@@ -344,7 +344,7 @@ public sealed class WebHostService : IAsyncDisposable
     /// 未设置或无效时返回 0（OS 随机分配）。
     /// </summary>
     private int ResolveRequestedPort() =>
-        _requestedPort ?? ParsePort(Environment.GetEnvironmentVariable("LYBOX_WEB_PORT"));
+        _requestedPort ?? LYBoxEnv.GetWebPortOrZero();
 
     /// <summary>解析端口文本。有效范围 1-65535；空/非数字/超范围返回 0（随机分配）。</summary>
     internal static int ParsePort(string? raw) =>

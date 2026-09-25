@@ -118,7 +118,7 @@ public partial class App : Application
         // LYBOX_DEV_ORIGINS（分号/逗号分隔的 URI，如 http://localhost:5173）：
         // 开发代理来源白名单，解锁前端跑在 Vite dev server（HMR）、RPC/SSE 走宿主的开发模式
         services.AddSingleton(new WebHostService(
-            WebHostService.ParseOrigins(Environment.GetEnvironmentVariable("LYBOX_DEV_ORIGINS"))));
+            WebHostService.ParseOrigins(LYBoxEnv.Get(LYBoxEnv.DevOriginsKey))));
 
         ServiceProvider = services.BuildServiceProvider();
         ServiceLocator.Initialize(ServiceProvider);
@@ -405,6 +405,7 @@ public partial class App : Application
     /// <summary>
     /// 启动期一次性打印宿主侧关键路径：方便排查插件数据根目录、日志落盘位置等。
     /// 同时通过 ZLogger 输出到控制台与滚动日志文件（<c>{AppBaseDirectory}/logs/app-yyyy-MM-dd_NNN.log</c>）。
+    /// 行布局统一经 <see cref="PathsReport.BuildBootLines"/> 生成，便于与 DI 之前的早期 dump 保持一致。
     /// </summary>
     private static void DumpHostPaths(ILogger logger)
     {
@@ -413,22 +414,24 @@ public partial class App : Application
         var factory = ServiceProvider?.GetService<IPluginHostEnvironmentFactory>();
         var hostEnv = factory?.Create("LYBox.Host");
         var appBase = hostEnv?.AppBaseDirectory ?? AppContext.BaseDirectory;
-        var logDir = hostEnv?.LogsDirectory ?? Path.Combine(appBase, "logs");
+        var logDir = hostEnv?.LogsDirectory ?? Path.Combine(appBase, WellKnownPaths.LogsSubDir);
         var hostDataRoot = hostEnv?.HostDataRoot ?? PluginDataDirectoryProvider.ResolveHostDataRoot();
         var appVersion = hostEnv?.AppVersion ?? "<unavailable>";
         var isPortable = hostEnv?.IsPortableMode ?? false;
         var pluginLogDir = hostEnv?.PluginLogsDirectory ?? "<unavailable>";
-        var lyboxDataRootEnv = Environment.GetEnvironmentVariable(PluginDataDirectoryProvider.DataRootEnvironmentVariable);
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var lyboxDataRootEnv = LYBoxEnv.Get(LYBoxEnv.DataRootKey);
+        var localAppData = OperatingSystem.IsWindows()
+            ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+            : Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
         logger.LogInformation("==== 宿主启动期路径 dump (via IPluginHostEnvironment) ====");
         logger.LogInformation("AppBaseDirectory       = {Base}", appBase);
-        logger.LogInformation("LogsDir                = {Logs} (roll: app-yyyy-MM-dd_NNN.log)", logDir);
+        logger.LogInformation("LogsDir                = {Logs} (roll: {Roll})", logDir, WellKnownPaths.FormatRollingLogFileName(DateTimeOffset.UtcNow, 0));
         logger.LogInformation("HostDataRoot (resolved)= {Root}", hostDataRoot);
         logger.LogInformation("AppVersion             = {Ver}", appVersion);
         logger.LogInformation("IsPortableMode         = {Portable}", isPortable);
         logger.LogInformation("PluginLogsDir          = {PluginLogs} (LYBox.Host 独立通道)", pluginLogDir);
-        logger.LogInformation("LYBOX_DATA_ROOT (env)  = {Env}", string.IsNullOrEmpty(lyboxDataRootEnv) ? "<not set>" : lyboxDataRootEnv);
+        logger.LogInformation("LYBOX_DATA_ROOT (env)  = {Env}", lyboxDataRootEnv ?? "<not set>");
         logger.LogInformation("LocalApplicationData   = {Local}", localAppData);
         logger.LogInformation("==== 宿主启动期路径 dump 结束 ====");
     }
