@@ -10,14 +10,14 @@
         运行时通过 SDK buildTransitive 的 _SharedAssembliesPatterns 由宿主提供共享程序集。
     -->
     <PropertyGroup>
-        <AvaloniaVersion>12.1.2</AvaloniaVersion>
+        <AvaloniaVersion>12.1.4</AvaloniaVersion>
         <IrihiUrsaVersion>2.2.0</IrihiUrsaVersion>
         <CommunityToolkit>8.4.2</CommunityToolkit>
         <MicrosoftExtensionsDI>10.0.12</MicrosoftExtensionsDI>
         <AvaloniaDiagnosticsSupport>2.2.3</AvaloniaDiagnosticsSupport>
         <EfCoreVersion>10.0.12</EfCoreVersion>
         <MicrosoftExtensionsLocalization>10.0.12</MicrosoftExtensionsLocalization>
-        <ProDataGridVersion>12.0.4</ProDataGridVersion>
+        <ProDataGridVersion>12.1.0.6</ProDataGridVersion>
         <ScottPlotVersion>5.1.59</ScottPlotVersion>
         <ZLoggerVersion>2.5.10</ZLoggerVersion>
         <!-- SkiaSharp 锁定 3.x：Avalonia 12.x 与 ScottPlot 5.1.x 均依赖 3.x；
@@ -29,23 +29,23 @@
              Generator 与 Protocol 版本同步升级到 0.94.2（0.91.1 → 0.94.2）。 -->
         <TmdsDBusProtocolVersion>0.94.2</TmdsDBusProtocolVersion>
         <TmdsDBusGeneratorVersion>0.94.2</TmdsDBusGeneratorVersion>
-        <!-- Roslyn 源生成器 SDK：LYBox.Plugin.Generators 依赖，跟随最新 5.6.x -->
-        <MicrosoftCodeAnalysisVersion>5.6.0</MicrosoftCodeAnalysisVersion>
+        <!-- Roslyn 源生成器 SDK：LYBox.Plugin.Generators 依赖，5.9.0 与 .NET SDK 10.0.401 内置 Roslyn 完全对齐 -->
+        <MicrosoftCodeAnalysisVersion>5.9.0</MicrosoftCodeAnalysisVersion>
         <!-- Avalonia 递归依赖（版本跟随 Avalonia 12.x 发布） -->
-        <HarfBuzzSharpVersion>14.2.1.1</HarfBuzzSharpVersion>
+        <HarfBuzzSharpVersion>14.2.1.301</HarfBuzzSharpVersion>
 
         <!-- Ursa 递归依赖（版本跟随 Irihi.Ursa 2.1.x 发布） -->
         <IrihiAvaloniaSharedVersion>0.5.0</IrihiAvaloniaSharedVersion>
 
         <!-- WebView + 嵌入式 HTTP 资源服务（P1 引入） -->
-        <!-- Avalonia.Controls.WebView 12.0.1：官方 WebView 控件，与 Avalonia 12.1.1 兼容（最新稳定版） -->
-        <AvaloniaControlsWebView>12.0.1</AvaloniaControlsWebView>
+        <!-- Avalonia.Controls.WebView 12.1.0：官方 WebView 控件，与 Avalonia 12.1.4 兼容 -->
+        <AvaloniaControlsWebView>12.1.0</AvaloniaControlsWebView>
         <!-- ASP.NET Core：通过 FrameworkReference 引用 Microsoft.AspNetCore.App 共享框架，
              不再使用独立 NuGet 包（Kestrel/StaticFiles 自 .NET Core 3+ 起不再发布为独立包） -->
         <!-- 控制台 CLI 与插件命令注册基础设施（S4 引入）。
              System.CommandLine：CLI 解析（与 .NET 团队维护的 System.CommandLine 2.0.x 一致）。
              Spectre.Console：富文本终端输出（表格/Markup/ANSI），与 windit-toolbox CLI 输出风格一致。 -->
-        <SystemCommandLineVersion>2.0.11</SystemCommandLineVersion>
+        <SystemCommandLineVersion>2.0.12</SystemCommandLineVersion>
         <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
     </PropertyGroup>
 </Project>

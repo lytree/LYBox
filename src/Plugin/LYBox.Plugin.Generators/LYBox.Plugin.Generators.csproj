@@ -24,7 +24,7 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="$(MicrosoftCodeAnalysisVersion)" PrivateAssets="all" />
 		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="$(MicrosoftCodeAnalysisVersion)" PrivateAssets="all" />
-		<PackageReference Include="System.Text.Json" Version="9.0.18" PrivateAssets="all" />
+		<PackageReference Include="System.Text.Json" Version="10.0.12" PrivateAssets="all" />
 	</ItemGroup>
 	<ItemGroup>
 		<None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="analyzers\dotnet\cs" Visible="false" />
