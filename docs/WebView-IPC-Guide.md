@@ -600,6 +600,33 @@ LYBox 不再依赖 npm / pnpm / 任何前端构建工具。前端 SDK 与主题 
 <script type="module" src="/sdk/lybox-plugin-sdk.js"></script>
 ```
 
+#### Vite 工程：改为运行时注入
+
+Vite 会在构建期把 `index.html` 里以 `/` 开头的静态资源当项目内文件解析，上面两行直接写会导致构建失败：
+`Failed to resolve /sdk/lybox-plugin-sdk.js from .../index.html`。
+
+Vite 工程请改成运行时注入。SDK 必须仍是 `type="module"`——它是 ES Module（文末有 `export`），
+用经典脚本加载会抛 `SyntaxError`，整份脚本不执行、`window.LyboxPlugin` 永远挂不上。
+注入的模块脚本不阻塞首屏，而 `window.LyboxPlugin` 只在真正发起 RPC 时才被读取，时序上足够。
+
+```html
+<script>
+  (function () {
+    var theme = document.createElement('link');
+    theme.rel = 'stylesheet';
+    theme.href = '/sdk/lybox-plugin-theme.css';
+    document.head.appendChild(theme);
+
+    var sdk = document.createElement('script');
+    sdk.type = 'module';
+    sdk.src = '/sdk/lybox-plugin-sdk.js';
+    document.head.appendChild(sdk);
+  })();
+</script>
+```
+
+参考实现：`LYBox.Plugins/plugins/LYBox.Plugin.Zitie/ui/index.html`。
+
 加载后 SDK 自动把 `window.LyboxPlugin` 挂到全局。两种导入方式：
 
 ```javascript
@@ -713,7 +740,11 @@ if (isLyboxBridgeAvailable()) {
 }
 ```
 
-宿主运行时可通过 `WebHostService` 在导航完成 / 主题切换时把当前主题色板注入页面 CSS 变量。
+宿主 `WebPluginView` 在**导航完成**与**主题切换**时会向页面根元素写入 `data-lybox-theme="dark|light"`
+（取值自 `TopLevel.ActualThemeVariant`），驱动上面的深/浅色分支。
+
+**不要只依赖 `prefers-color-scheme`**：WebView2 的媒体查询取值来自操作系统主题，
+宿主内切换主题（与系统不一致时）不会改变它，插件页面就会停留在错误配色。
 
 ### 完整 demo
 

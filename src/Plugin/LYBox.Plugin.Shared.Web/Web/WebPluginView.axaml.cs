@@ -2,6 +2,7 @@ using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Platform;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using LYBox.Plugin.Shared.Rpc;
 using LYBox.Plugin.Shared.Services;
@@ -45,6 +46,7 @@ public partial class WebPluginView : UserControl
     private string? _webSession;
     private bool _initialized;
     private bool _isAttached;
+    private TopLevel? _topLevel;
 
     // ---- 展示层状态（移植自 PluginWebViewPage） ----
     private Border? _devToolbar;
@@ -79,6 +81,29 @@ public partial class WebPluginView : UserControl
     public static bool ShowDevelopmentToolbar { get; set; }
 
     /// <summary>
+    /// Windows 上是否让 WebView 走离屏（Composition）渲染。默认 <c>true</c>。
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 为什么默认开启：<see cref="NativeWebView"/> 在 Windows 上默认以 WebView2 的原生 HWND 承载，
+    /// 而原生子窗口恒位于本窗口<strong>所有</strong> Avalonia 渲染内容之上——包括窗口装饰 Overlay 层
+    /// （标题栏的最小化 / 最大化 / 关闭按钮，见 <c>WindowDrawnDecorations.Overlay</c>）。
+    /// 只要 WebView 矩形与标题栏有任何重叠（内容边距与实际 WebView 位置之间的偏差、DPI 缩放、
+    /// 最大化状态、窗口阴影补偿等都会造成这种偏差），标题栏按钮就会被 WebView 盖住且点不到；
+    /// 同理 <c>ClipToBounds</c>、圆角、模态遮罩等常规布局语义对原生子窗口一律无效。
+    /// </para>
+    /// <para>
+    /// 开启离屏渲染后，WebView 合成进 Avalonia 视觉树，不再有独立 HWND，
+    /// 装饰层重新回到最上层，上述问题一并消失。
+    /// </para>
+    /// <para>
+    /// 若目标环境上离屏渲染出现异常（例如黑屏、输入法或 GPU 合成问题），
+    /// 可将其置为 <c>false</c> 回退为 HWND 承载。
+    /// </para>
+    /// </remarks>
+    public static bool UseOffscreenWebViewRendering { get; set; } = true;
+
+    /// <summary>
     /// 插件 ID（Kestrel 路由前缀 + SSE 通道 key）。
     /// 必须在控件附加到视觉树前或后通过 XAML 绑定设置。
     /// </summary>
@@ -97,12 +122,28 @@ public partial class WebPluginView : UserControl
     {
         _isAttached = true;
         base.OnAttachedToVisualTree(e);
+
+        // 主题跟随：宿主切换浅/深色时把 data-lybox-theme 同步给插件页面。
+        // 该属性是 /sdk/lybox-plugin-theme.css 约定的宿主覆盖入口——仅靠 prefers-color-scheme
+        // 时，WebView 跟随的是操作系统主题，宿主内切换主题（与系统不同）不会生效。
+        if (TopLevel.GetTopLevel(this) is { } top)
+        {
+            _topLevel = top;
+            top.ActualThemeVariantChanged += OnTopLevelThemeChanged;
+        }
+
         _ = TryInitialize();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         _isAttached = false;
+
+        if (_topLevel is not null)
+        {
+            _topLevel.ActualThemeVariantChanged -= OnTopLevelThemeChanged;
+            _topLevel = null;
+        }
         if (_webView is not null)
         {
             _webView.NavigationStarted -= OnNavigationStarted;
@@ -261,13 +302,21 @@ public partial class WebPluginView : UserControl
 
     /// <summary>
     /// WebView2 环境参数回调（仅 Windows 后端触发；其他平台传入各自的参数类型，此处不干预）。
-    /// 显式钦定每用户可写的用户数据目录（UDF），避免默认目录无写权限导致的
-    /// <c>0x80070005 (E_ACCESSDENIED)</c>。
     /// </summary>
+    /// <remarks>
+    /// 两件事都在此定：显式钦定每用户可写的用户数据目录（UDF），避免默认目录无写权限导致的
+    /// <c>0x80070005 (E_ACCESSDENIED)</c>；并按 <see cref="UseOffscreenWebViewRendering"/>
+    /// 选择离屏（Composition）渲染，避免原生 HWND 覆盖窗口装饰层（标题栏按钮）。
+    /// </remarks>
     private static void OnWebViewEnvironmentRequested(object? sender, WebViewEnvironmentRequestedEventArgs e)
     {
         if (e is WindowsWebView2EnvironmentRequestedEventArgs win)
+        {
             win.UserDataFolder = ResolveUserDataFolder();
+
+            if (UseOffscreenWebViewRendering)
+                win.ExperimentalOffscreen = true;
+        }
     }
 
     /// <summary>
@@ -461,10 +510,42 @@ public partial class WebPluginView : UserControl
                 $"window.__lybox && window.__lybox.configureRuntime({pidJson},{sessionJson});" +
                 $"window.__lybox && window.__lybox.startSse({pidJson},{sessionJson});").ConfigureAwait(false);
             await _host.InjectBindingsAsync().ConfigureAwait(false);
+
+            // 文档就绪后立即写入宿主当前主题，避免插件页面按系统主题先渲染一帧
+            await ApplyThemeAsync().ConfigureAwait(false);
         }
         catch
         {
             // 页面已销毁、导航已切换或 WebView 未就绪，忽略旧文档回调
+        }
+    }
+
+    /// <summary>宿主主题切换：把新的浅/深色同步到已加载的插件文档。</summary>
+    private void OnTopLevelThemeChanged(object? sender, EventArgs e) => _ = ApplyThemeAsync();
+
+    /// <summary>
+    /// 把宿主当前主题写入插件文档根元素的 <c>data-lybox-theme</c>。
+    /// </summary>
+    /// <remarks>
+    /// 该属性是 <c>/sdk/lybox-plugin-theme.css</c> 约定的宿主覆盖入口：
+    /// 只有它能让插件页面跟随<strong>宿主</strong>主题，而不是操作系统的
+    /// <c>prefers-color-scheme</c>（WebView2 的媒体查询取值来自系统，宿主内切换主题不会改变它）。
+    /// </remarks>
+    private async Task ApplyThemeAsync()
+    {
+        if (_transport is null)
+            return;
+
+        var themeName = _topLevel?.ActualThemeVariant == ThemeVariant.Dark ? "dark" : "light";
+        try
+        {
+            await _transport
+                .ExecuteScriptAsync($"document.documentElement.setAttribute('data-lybox-theme','{themeName}');")
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            // 页面尚未完成导航或已销毁：忽略，下一次导航完成会重新写入
         }
     }
 
