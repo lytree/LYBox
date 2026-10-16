@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using LYBox.Plugin.Shared.Rpc;
 using LYBox.Plugin.Shared.Services;
@@ -107,6 +108,21 @@ public partial class WebPluginView : UserControl
             _webView.NavigationStarted -= OnNavigationStarted;
             _webView.NavigationCompleted -= OnNavigationCompleted;
             _webView.WebMessageReceived -= OnDevWebMessageReceived;
+            _webView.EnvironmentRequested -= OnWebViewEnvironmentRequested;
+
+            // 摘除控件：下次挂树时重新走一遍注册门控 + 创建流程（懒加载状态不跨挂载周期残留）
+            if (this.FindControl<Border>("PART_WebHost") is { } host
+                && ReferenceEquals(host.Child, _webView))
+            {
+                try
+                {
+                    host.Child = null;
+                }
+                catch
+                {
+                    // 卸载 WebView2 适配器失败不应影响控件脱离视觉树
+                }
+            }
         }
 
         _webHost?.RevokeSession(_webSession);
@@ -145,35 +161,34 @@ public partial class WebPluginView : UserControl
                 "如遇渲染问题，可降级为 NativeWebDialog（WebKitGTK 独立窗口）。");
         }
 
-        var webView = this.FindControl<NativeWebView>("PART_WebView");
-        if (webView is null) return;
-        _webView = webView;
-
         // 1. 获取 WebHostService 单例
         if (!ServiceLocator.TryGetService<WebHostService>(out var webHost) || webHost is null)
             return;
         _webHost = webHost;
 
-        // 懒加载门控：仅当服务已启动且当前插件已主动注册时才渲染 WebView，否则显示占位
+        // 2. 懒加载门控必须在任何 WebView 创建之前完成：
+        //    NativeWebView 只要挂到视觉树，就会在 OnAttached 里创建 WebView2 环境
+        //    （WebViewAdapter.CreateFactory → WebView2HwndAdapter.CreateBuilder），与 IsVisible 无关。
+        //    未主动注册 Web 资源的插件因此完全不触碰 WebView2 运行时，也就不会在 UI 线程上抛初始化异常。
         if (!webHost.IsRunning || !webHost.IsRegistered(pluginId))
         {
             ShowPlaceholder($"插件 {pluginId} 未主动注册 Web 资源，Web 界面未启用");
             return;
         }
 
-        // 插件已注册，确保 WebView 可见、占位隐藏
-        if (webView.IsVisible == false) webView.IsVisible = true;
-        var placeholder = this.FindControl<Border>("PART_Placeholder");
-        if (placeholder is not null) placeholder.IsVisible = false;
+        // 3. 此时才创建并挂载 NativeWebView（WebView2 环境在此初始化；失败降级为占位）
+        if (!TryAttachWebView(pluginId, out var webView))
+            return;
+        _webView = webView;
 
-        // 2. 构造 IPC 传输层 + 主机（注入 SSE pusher + pluginId + webHost 以启用 SSE 推送 + HTTP RPC 桥）
+        // 4. 构造 IPC 传输层 + 主机（注入 SSE pusher + pluginId + webHost 以启用 SSE 推送 + HTTP RPC 桥）
         _transport = new WebViewIpcTransport(webView);
         _host = new WebViewIpcHost(_transport, webHost.EventPusher, pluginId, webHost);
 
-        // 3. 注册插件的 [RpcCommand] 绑定（需在 InjectBindingsAsync 前完成）
+        // 5. 注册插件的 [RpcCommand] 绑定（需在 InjectBindingsAsync 前完成）
         RegisterPluginBindings(pluginId);
 
-        // 3b. 注册系统级命令（文件选择器 + 对话框），所有 web 插件共享
+        // 5b. 注册系统级命令（文件选择器 + 对话框），所有 web 插件共享
         SystemCommands.Register(_host, () => TopLevel.GetTopLevel(this));
 
         var pluginSegment = Uri.EscapeDataString(pluginId);
@@ -182,21 +197,142 @@ public partial class WebPluginView : UserControl
             UriKind.Absolute);
         _targetUri = new Uri(pluginBaseUri, "index.html");
 
-        // 3c. 展示层：开发工具栏 + 导航信任校验 + 开发错误页
+        // 5c. 展示层：开发工具栏 + 导航信任校验 + 开发错误页
         InitializeDevTools(webView, pluginBaseUri);
 
-        // 4. 订阅 NavigationCompleted 注入引导脚本
+        // 6. 订阅 NavigationCompleted 注入引导脚本
         webView.NavigationCompleted += OnNavigationCompleted;
 
-        // 5. 导航到插件入口页
+        // 7. 导航到插件入口页
         webView.Source = _targetUri;
     }
 
-    /// <summary>插件未主动注册 Web 服务时显示占位提示，隐藏 WebView，不渲染 Web 界面。</summary>
+    /// <summary>
+    /// 预检 WebView2 运行时 → 创建 <see cref="NativeWebView"/> → 挂入 <c>PART_WebHost</c>。
+    /// </summary>
+    /// <remarks>
+    /// 任一步骤失败都回落为占位提示，不把异常抛给 UI 线程：
+    /// 该异常在 DEBUG 下会被全局处理器上抛（<c>e.Handled = false</c>）从而终止整个宿主，
+    /// 而它本质上是环境问题（UDF 无写权限 0x80070005、运行时缺失、安全软件拦截），页面降级即可。
+    /// </remarks>
+    /// <param name="pluginId">插件 ID（仅用于日志与占位文案）。</param>
+    /// <param name="webView">创建成功时返回挂载后的控件，失败时为 <c>null</c>。</param>
+    private bool TryAttachWebView(string pluginId, out NativeWebView webView)
+    {
+        webView = null!;
+
+        var host = this.FindControl<Border>("PART_WebHost");
+        if (host is null)
+            return false;
+
+        if (!IsWebView2RuntimeAvailable(out var unavailableReason))
+        {
+            LogWebViewWarning("WebView2 运行时不可用（{Reason}），插件 {PluginId} 的 Web 界面降级为占位",
+                unavailableReason, pluginId);
+            ShowPlaceholder($"WebView2 运行时不可用：{unavailableReason}");
+            return false;
+        }
+
+        var view = new NativeWebView();
+
+        // UDF 必须在控件挂树（即 WebView2 环境创建）之前指定：
+        // 默认目录可能落在只读位置（exe 同级、%TEMP% 受限等），是 0x80070005 的常见来源。
+        view.EnvironmentRequested += OnWebViewEnvironmentRequested;
+
+        try
+        {
+            host.Child = view;
+        }
+        catch (Exception ex)
+        {
+            view.EnvironmentRequested -= OnWebViewEnvironmentRequested;
+            LogWebViewWarning("插件 {PluginId} 的 WebView2 初始化失败：{Message}", pluginId, ex.Message);
+            ShowPlaceholder($"WebView2 初始化失败：{ex.Message}");
+            return false;
+        }
+
+        host.IsVisible = true;
+        if (this.FindControl<Border>("PART_Placeholder") is { } placeholder)
+            placeholder.IsVisible = false;
+
+        webView = view;
+        return true;
+    }
+
+    /// <summary>
+    /// WebView2 环境参数回调（仅 Windows 后端触发；其他平台传入各自的参数类型，此处不干预）。
+    /// 显式钦定每用户可写的用户数据目录（UDF），避免默认目录无写权限导致的
+    /// <c>0x80070005 (E_ACCESSDENIED)</c>。
+    /// </summary>
+    private static void OnWebViewEnvironmentRequested(object? sender, WebViewEnvironmentRequestedEventArgs e)
+    {
+        if (e is WindowsWebView2EnvironmentRequestedEventArgs win)
+            win.UserDataFolder = ResolveUserDataFolder();
+    }
+
+    /// <summary>
+    /// 解析 WebView2 用户数据目录：优先 <c>%LOCALAPPDATA%\LYBox\WebView2</c>，
+    /// 创建失败时回落 <c>%TEMP%\LYBox-WebView2</c>（同样确保目录已存在）。
+    /// </summary>
+    private static string ResolveUserDataFolder()
+    {
+        foreach (var root in new[]
+                 {
+                     Path.Combine(
+                         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                         "LYBox",
+                         "WebView2"),
+                     Path.Combine(Path.GetTempPath(), "LYBox-WebView2"),
+                 })
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(root)) continue;
+                Directory.CreateDirectory(root);
+                return root;
+            }
+            catch
+            {
+                // 该候选目录不可用，尝试下一个
+            }
+        }
+
+        // 两个候选都不可用时返回空串，交回 WebView2 自身默认策略，由创建失败路径兜底降级
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// 预检 WebView2 适配器是否已安装。仅当能明确判定“未安装”时返回 <c>false</c>；
+    /// 预检本身异常（无法判定）一律按可用处理，真正的兜底由创建失败路径承担。
+    /// </summary>
+    private static bool IsWebView2RuntimeAvailable(out string reason)
+    {
+        reason = string.Empty;
+        if (!OperatingSystem.IsWindows())
+            return true;
+
+        try
+        {
+            var info = WebViewAdapterInfo.GetAdapterInfo(WebViewAdapterType.WebView2);
+            if (info.IsInstalled)
+                return true;
+
+            reason = info.UnavailableReason ?? "未安装 Microsoft Edge WebView2 Runtime";
+            return false;
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
+    /// <summary>将插件未主动注册 Web 服务（或 WebView 不可用）的状态呈现为占位面板，隐藏 WebView 宿主。</summary>
     private void ShowPlaceholder(string message)
     {
         if (_webView is not null)
             _webView.IsVisible = false;
+        if (this.FindControl<Border>("PART_WebHost") is { } host)
+            host.IsVisible = false;
         var placeholder = this.FindControl<Border>("PART_Placeholder");
         if (placeholder is not null)
             placeholder.IsVisible = true;
@@ -204,6 +340,10 @@ public partial class WebPluginView : UserControl
         if (msg is not null)
             msg.Text = message;
     }
+
+    /// <summary>WebView 相关的降级告警（宿主未配置 LoggerFactory 时静默）。</summary>
+    private void LogWebViewWarning(string template, params object?[] args)
+        => (_consoleLogger ??= CreateConsoleLogger())?.LogWarning(template, args);
 
     private void RegisterPluginBindings(string pluginId)
     {

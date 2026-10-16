@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace LYBox.Layout.Core.Services;
@@ -14,6 +15,20 @@ internal static class PluginUtilities
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    /// <summary>
+    /// 回写 <c>plugin.json</c> 专用的写入选项。
+    /// <para>
+    /// 相比 <see cref="JsonOptions"/> 仅多一项宽松转义：默认编码器会把非 ASCII 字符写成
+    /// <c>\uXXXX</c> 转义序列，导致中文插件名 / 描述在每次宿主回写后变成乱码般的转义串，
+    /// 既破坏人工可读性又污染版本 diff。清单是本地文件、不参与 HTML 上下文，故可安全放宽。
+    /// </para>
+    /// </summary>
+    public static readonly JsonSerializerOptions ManifestWriteOptions = new()
+    {
+        WriteIndented = true,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
     /// <summary>

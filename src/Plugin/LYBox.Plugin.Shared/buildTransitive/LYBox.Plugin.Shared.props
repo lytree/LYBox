@@ -66,6 +66,7 @@ HarfBuzzSharp.*
 
 LYBox.Plugin.Shared
 LYBox.Plugin.Shared.UI
+LYBox.Plugin.Shared.Web
 CommunityToolkit.*
 Microsoft.Extensions.DependencyInjection
 Microsoft.Extensions.DependencyInjection.Abstractions

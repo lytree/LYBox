@@ -23,6 +23,7 @@ internal class PluginLoadContext : AssemblyLoadContext
         "HarfBuzzSharp.*",
         
         "LYBox.Plugin.Shared",
+        "LYBox.Plugin.Shared.Web",
         "LYBox.Plugin.CommandLine",
         "System.CommandLine",
         "System.CommandLine.*",
@@ -76,24 +77,26 @@ internal class PluginLoadContext : AssemblyLoadContext
     /// </summary>
     private void LoadSharedAssembliesList()
     {
-        var listPath = Path.Combine(_pluginDirectory, "shared-assemblies.txt");
-        if (File.Exists(listPath))
+        // 内置契约集合始终生效：shared-assemblies.txt 只能在其之上追加，不能退订。
+        // 历史教训：插件目录里遗留的旧 shared-assemblies.txt 不含后加入的共享程序集
+        // （例如 LYBox.Plugin.Shared.Web），插件于是加载了自己那份陈旧 SDK 副本，
+        // 既让宿主侧修复对新插件不生效，又因类型标识分裂使 IWebPlugin /
+        // IGeneratedPluginWebModule 跨 ALC 转换失败。
+        foreach (var pattern in DefaultSharedPatterns)
         {
-            foreach (var rawLine in File.ReadAllLines(listPath))
-            {
-                var pattern = rawLine.Trim();
-                if (string.IsNullOrEmpty(pattern) || pattern.StartsWith('#'))
-                    continue;
-                AddSharedPattern(pattern);
-            }
+            AddSharedPattern(pattern);
         }
-        else
+
+        var listPath = Path.Combine(_pluginDirectory, "shared-assemblies.txt");
+        if (!File.Exists(listPath))
+            return;
+
+        foreach (var rawLine in File.ReadAllLines(listPath))
         {
-            // Fallback: use default must-share set for plugins built before this change
-            foreach (var pattern in DefaultSharedPatterns)
-            {
-                AddSharedPattern(pattern);
-            }
+            var pattern = rawLine.Trim();
+            if (string.IsNullOrEmpty(pattern) || pattern.StartsWith('#'))
+                continue;
+            AddSharedPattern(pattern);
         }
     }
 

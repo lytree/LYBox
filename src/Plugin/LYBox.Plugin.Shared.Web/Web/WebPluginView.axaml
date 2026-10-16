@@ -1,6 +1,5 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:web="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.WebView"
              x:Class="LYBox.Plugin.Shared.Web.WebPluginView">
     <Border BorderBrush="{DynamicResource FluentCardStrokeBrush}" BorderThickness="1" ClipToBounds="True">
         <Grid RowDefinitions="Auto,*">
@@ -68,8 +67,12 @@
                         Classes="WinUICaption" />
                 </Grid>
             </Border>
-            <web:NativeWebView x:Name="PART_WebView" Grid.Row="1" />
-            <!-- 懒加载占位：插件未主动注册 Web 服务时显示，不渲染 WebView -->
+            <!-- WebView 宿主容器：NativeWebView 不在 XAML 里声明，而由代码在“插件已显式注册 Web 资源”
+                 之后创建并挂入此处。NativeWebView 一旦挂树就会在 OnAttached 中创建 WebView2 环境
+                 （WebView2HwndAdapter.CreateBuilder），即“先建控件再隐藏”既省不掉初始化开销，
+                 也躲不开其初始化异常；容器化后未注册的插件完全不触碰 WebView2 运行时（真·懒加载）。 -->
+            <Border x:Name="PART_WebHost" Grid.Row="1" />
+            <!-- 懒加载占位：插件未主动注册 Web 服务（或 WebView 初始化失败）时显示，不渲染 WebView -->
             <Border x:Name="PART_Placeholder" Grid.Row="1" IsVisible="False"
                     Background="{DynamicResource FluentBackgroundBrush}">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8" Margin="24">

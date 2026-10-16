@@ -66,12 +66,48 @@ public partial class App : Application
         LogGlobalException("UIThreadUnhandledException", e.Exception);
         // 兜底：UI 线程未处理异常，stderr 必须能看到（与 logger 通道并行）。
         Console.Error.WriteLine($"[UIThreadUnhandledException] {e.Exception}");
+
+        // WebView 后端初始化失败属环境问题（用户数据目录无写权限 0x80070005、运行时缺失、
+        // 安全软件拦截等），后果只是承载页面降级，不应终止整个宿主。
+        // 这是 DEBUG 下唯一被吞的异常类别，其余仍按“不吞、暴露问题”处理。
+        if (IsWebViewAdapterFailure(e.Exception))
+        {
+            Console.Error.WriteLine(
+                "[UIThreadUnhandledException] WebView 后端初始化失败，已降级：" +
+                "承载页面显示占位提示，宿主继续运行（不影响其他插件与页面）。");
+            e.Handled = true;
+            return;
+        }
 #if DEBUG
         // DEBUG 模式下不吞异常，让问题暴露
         e.Handled = false;
 #else
         e.Handled = true;
 #endif
+    }
+
+    /// <summary>
+    /// 判定异常是否来自 Avalonia WebView 适配器初始化（<c>WebViewAdapter.CreateFactory</c>、
+    /// <c>WebView2HwndAdapter.CreateBuilder</c>、<c>NativeWebView.OnAttached</c> 等）。
+    /// 用于把“运行环境不可用”与“代码缺陷”区分开：前者降级，后者照常暴露。
+    /// </summary>
+    private static bool IsWebViewAdapterFailure(Exception? exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            var stack = current.StackTrace;
+            if (stack is null)
+                continue;
+
+            if (stack.Contains("WebViewAdapter", StringComparison.Ordinal)
+                || stack.Contains("WebView2HwndAdapter", StringComparison.Ordinal)
+                || stack.Contains("Avalonia.Controls.Win.WebView", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public override void Initialize()

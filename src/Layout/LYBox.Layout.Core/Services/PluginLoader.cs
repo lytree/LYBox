@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using LYBox.Plugin.Shared;
 using LYBox.Plugin.Shared.Generated;
 using LYBox.Plugin.Shared.Models;
@@ -783,25 +784,31 @@ public sealed class PluginLoader : IPluginLoader, IDisposable
     {
         try
         {
-            var assemblyName = AssemblyName.GetAssemblyName(dllPath);
-            var pluginId = assemblyName.Name ?? Path.GetFileNameWithoutExtension(dllPath);
+            var pluginDir = Path.GetDirectoryName(dllPath) ?? _extraPluginPath!;
+
+            // 优先走 plugin.json（构建期由 LYBox.Plugin.Shared.targets 生成），与"已安装插件"
+            // 共用同一份 ManifestToPluginInfo 语义。只按程序集名构造会丢掉三样关键信息：
+            //   1. PluginId —— csproj 声明的 id（常为 GUID），插件侧 ViewModel 路由 / SSE / RPC
+            //      前缀都用它，与程序集名不一致时 IsRegistered(pluginId) 永远判假；
+            //   2. Kind —— 恒为默认 "Avalonia"，RegisterWebPlugins 筛不到，Web 资源永不注册；
+            //   3. Web  —— wwwroot 描述缺失，静态资源服务无从映射。
+            var pluginInfo = TryReadExtraPluginManifest(pluginDir, Path.GetFileName(dllPath))
+                ?? BuildInfoFromAssembly(dllPath, pluginDir);
+
+            // 加载路径上的一律视为"待加载"，不受 manifest 里持久化的历史状态影响
+            pluginInfo = pluginInfo with
+            {
+                AssemblyPath = dllPath,
+                InstallPath = pluginDir,
+                State = PluginState.Installed,
+                IsBuiltIn = false,
+            };
 
             lock (_sync)
             {
-                if (_entries.TryGetValue(pluginId, out var existing) && existing.Plugin is not null)
+                if (_entries.TryGetValue(pluginInfo.PluginId, out var existing) && existing.Plugin is not null)
                     return;
             }
-
-            var pluginInfo = new PluginInfo
-            {
-                PluginId = pluginId,
-                Name = assemblyName.Name ?? pluginId,
-                Version = assemblyName.Version?.ToString() ?? "0.0.0",
-                AssemblyPath = dllPath,
-                InstallPath = Path.GetDirectoryName(dllPath) ?? _extraPluginPath!,
-                State = PluginState.Installed,
-                IsBuiltIn = false
-            };
 
             await DiscoverPluginAssemblyAsync(pluginInfo);
         }
@@ -809,6 +816,61 @@ public sealed class PluginLoader : IPluginLoader, IDisposable
         {
             _logger.LogError(ex, "Failed to load extra plugin from '{DllPath}'", dllPath);
         }
+    }
+
+    /// <summary>
+    /// 读取插件目录下的 <c>plugin.json</c> 并转换为 <see cref="PluginInfo"/>。
+    /// 文件不存在、无 PluginId 或解析失败时返回 <c>null</c>（由调用方退化为按程序集名构造）。
+    /// </summary>
+    /// <param name="pluginDir">待探测的插件目录。</param>
+    /// <param name="dllFileName">当前正在处理的程序集文件名（用于与 manifest 的 assembly 字段比对）。</param>
+    private PluginInfo? TryReadExtraPluginManifest(string pluginDir, string dllFileName)
+    {
+        var manifestPath = Path.Combine(pluginDir, "plugin.json");
+        if (!File.Exists(manifestPath))
+            return null;
+
+        try
+        {
+            var json = File.ReadAllText(manifestPath);
+            var manifest = JsonSerializer.Deserialize<PluginManifest>(json, PluginUtilities.JsonOptions);
+            if (manifest is null || string.IsNullOrWhiteSpace(manifest.PluginId))
+                return null;
+
+            // 开发插件的输出目录里还有一堆框架/依赖 dll，只有 manifest 声明的入口程序集
+            // 才按该插件处理；否则它们会共用同一份 manifest，被当成同一插件重复注册。
+            if (!string.IsNullOrWhiteSpace(manifest.Assembly)
+                && !string.Equals(manifest.Assembly, dllFileName, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            return ManifestToPluginInfo(manifest, pluginDir);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex, "读取开发插件 manifest '{ManifestPath}' 失败，退化为按程序集名构造", manifestPath);
+            return null;
+        }
+    }
+
+    /// <summary>无 manifest 时的退化路径：以程序集名 / 程序集版本构造 <see cref="PluginInfo"/>。</summary>
+    private static PluginInfo BuildInfoFromAssembly(string dllPath, string pluginDir)
+    {
+        var assemblyName = AssemblyName.GetAssemblyName(dllPath);
+        var pluginId = assemblyName.Name ?? Path.GetFileNameWithoutExtension(dllPath);
+
+        return new PluginInfo
+        {
+            PluginId = pluginId,
+            Name = assemblyName.Name ?? pluginId,
+            Version = assemblyName.Version?.ToString() ?? "0.0.0",
+            AssemblyPath = dllPath,
+            InstallPath = pluginDir,
+            State = PluginState.Installed,
+            IsBuiltIn = false,
+        };
     }
 
     /// <summary>
@@ -1389,6 +1451,29 @@ public sealed class PluginLoader : IPluginLoader, IDisposable
         }
     }
 
+    // 宿主拥有的运行期键：只有这些键允许被宿主覆盖写入 plugin.json。
+    // 其余键（pluginId / name / version / author / description / assembly / dependencies /
+    // minPluginSdkVersion / kind / web / sharedAssemblies / schemaVersion / requiresDataMigration /
+    // supportedPlatforms）均由插件作者在 csproj 声明、构建期由 LYBox.Plugin.Shared.targets 生成，
+    // 属于清单的权威信息源，宿主一律原样保留。
+    private const string ManifestKeyState = "state";
+
+    private const string ManifestKeyInstallTime = "installTime";
+
+    private const string ManifestKeyIsBuiltIn = "isBuiltIn";
+
+    /// <summary>
+    /// 持久化插件清单。
+    /// <para>
+    /// 采用「键级补丁」而非整份重写：以磁盘上的既有 <c>plugin.json</c> 为骨架，只更新宿主拥有的
+    /// 运行期键。这样即使内存里的 <see cref="PluginInfo"/> 因加载路径退化（例如开发期
+    /// <c>AVALONIA_EXTRA_PLUGINS_PATH</c> 路径只能按程序集名推断），也**不会把降级快照回写成权威清单**，
+    /// 从而避免 <c>pluginId</c> / <c>kind</c> / <c>web</c> / <c>sharedAssemblies</c> 等作者声明被抹掉。
+    /// </para>
+    /// <para>
+    /// 仅当清单文件缺失或无法解析时，才退回「按内存信息重建完整清单」的兜底路径。
+    /// </para>
+    /// </summary>
     private void SavePluginManifest(PluginInfo pluginInfo)
     {
         if (!_persistManifestChanges) return;
@@ -1407,38 +1492,166 @@ public sealed class PluginLoader : IPluginLoader, IDisposable
 
             Directory.CreateDirectory(pluginDir);
 
-            var manifest = new PluginManifest
-            {
-                PluginId = pluginInfo.PluginId,
-                Name = pluginInfo.Name,
-                Version = pluginInfo.Version,
-                Author = pluginInfo.Author,
-                Description = pluginInfo.Description,
-                Assembly = !string.IsNullOrEmpty(pluginInfo.AssemblyPath)
-                    ? Path.GetFileName(pluginInfo.AssemblyPath)
-                    : $"{pluginInfo.Name}.dll",
-                Dependencies = pluginInfo.Dependencies,
-                State = pluginInfo.State.ToString(),
-                InstallTime = pluginInfo.InstallTime,
-                IsBuiltIn = pluginInfo.IsBuiltIn,
-                MinPluginSdkVersion = pluginInfo.MinPluginSdkVersion,
-                Kind = pluginInfo.Kind,
-                Web = pluginInfo.Kind == "Web" ? pluginInfo.Web : null,
-                SchemaVersion = string.IsNullOrWhiteSpace(pluginInfo.CurrentSchemaVersion) ? null : pluginInfo.CurrentSchemaVersion,
-                RequiresDataMigration = pluginInfo.RequiresDataMigration,
-                SupportedPlatforms = pluginInfo.SupportedPlatforms is { Count: > 0 }
-                    ? pluginInfo.SupportedPlatforms.ToList()
-                    : null
-            };
-
             var manifestPath = Path.Combine(pluginDir, "plugin.json");
-            var json = JsonSerializer.Serialize(manifest, PluginUtilities.JsonOptions);
-            File.WriteAllText(manifestPath, json);
+            var root = TryReadManifestObject(manifestPath);
+
+            if (root is null)
+            {
+                // 清单缺失/损坏：内存中的 PluginInfo 是唯一信息源，写一份完整清单兜底。
+                root = BuildFullManifestObject(pluginInfo);
+                _logger.LogWarning(
+                    "[PluginManifest] '{ManifestPath}' 缺失或不可解析，按内存信息重建完整清单（pluginId={PluginId}）",
+                    manifestPath, pluginInfo.PluginId);
+            }
+            else
+            {
+                ApplyHostOwnedManifestKeys(root, pluginInfo, manifestPath);
+            }
+
+            File.WriteAllText(manifestPath, root.ToJsonString(PluginUtilities.ManifestWriteOptions));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to save plugin manifest for '{PluginId}'", pluginInfo.PluginId);
         }
+    }
+
+    /// <summary>读取既有清单为可变的 <see cref="JsonObject"/>；不存在或解析失败时返回 <c>null</c>。</summary>
+    private static JsonObject? TryReadManifestObject(string manifestPath)
+    {
+        if (!File.Exists(manifestPath)) return null;
+
+        try
+        {
+            return JsonNode.Parse(File.ReadAllText(manifestPath)) as JsonObject;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 就地更新清单中宿主拥有的运行期键，其余键保持原样。
+    /// 写入策略是「单调」的：只写有意义的正值，绝不用空值删除既有声明。
+    /// </summary>
+    private void ApplyHostOwnedManifestKeys(JsonObject root, PluginInfo pluginInfo, string manifestPath)
+    {
+        // 身份不一致是加载路径退化的信号（例如开发期只能按程序集名推断 pluginId）。
+        // 此时仍然只写运行期键，绝不改写身份字段，但要在日志里留痕。
+        if (root["pluginId"] is JsonValue declaredId &&
+            declaredId.TryGetValue<string>(out var declaredIdText) &&
+            !string.IsNullOrWhiteSpace(declaredIdText) &&
+            !string.Equals(declaredIdText, pluginInfo.PluginId, StringComparison.Ordinal))
+        {
+            _logger.LogWarning(
+                "[PluginManifest] 清单身份与内存不一致（'{ManifestPath}'：磁盘 pluginId={DeclaredId}，内存 pluginId={MemoryId}），" +
+                "仅更新运行期键，身份字段保持磁盘声明",
+                manifestPath, declaredIdText, pluginInfo.PluginId);
+        }
+
+        root[ManifestKeyState] = pluginInfo.State.ToString();
+
+        // installTime / isBuiltIn 只在有正值时写：缺省（不存在 / false）本身就是合法语义，
+        // 用空值覆盖会抹掉磁盘上的既有声明。
+        if (pluginInfo.InstallTime is { } installTime)
+        {
+            root[ManifestKeyInstallTime] = installTime;
+        }
+
+        if (pluginInfo.IsBuiltIn)
+        {
+            root[ManifestKeyIsBuiltIn] = true;
+        }
+    }
+
+    /// <summary>
+    /// 按内存信息构造一份完整清单节点，仅用于清单缺失/损坏时的兜底写入。
+    /// <para>
+    /// 手工拼装 <see cref="JsonObject"/> 而不用 <c>JsonSerializer</c>：该路径依赖反射式序列化，
+    /// 一旦启用裁剪/AOT（<c>JsonSerializerIsReflectionEnabledByDefault=false</c>）就会抛
+    /// <see cref="InvalidOperationException"/> 并被上层 catch 静默吞掉，导致插件既无清单也无线索。
+    /// 手工拼装无此依赖，且键名与顺序和 <c>LYBox.Plugin.Shared.targets</c> 的构建期模板保持一致。
+    /// </para>
+    /// </summary>
+    private static JsonObject BuildFullManifestObject(PluginInfo pluginInfo)
+    {
+        var manifest = new JsonObject
+        {
+            ["pluginId"] = pluginInfo.PluginId,
+            ["name"] = pluginInfo.Name,
+            ["version"] = pluginInfo.Version,
+            ["author"] = pluginInfo.Author,
+            ["description"] = pluginInfo.Description,
+            ["assembly"] = !string.IsNullOrEmpty(pluginInfo.AssemblyPath)
+                ? Path.GetFileName(pluginInfo.AssemblyPath)
+                : $"{pluginInfo.Name}.dll",
+            ["dependencies"] = ToJsonArray(pluginInfo.Dependencies)
+        };
+
+        if (!string.IsNullOrWhiteSpace(pluginInfo.MinPluginSdkVersion))
+        {
+            manifest["minPluginSdkVersion"] = pluginInfo.MinPluginSdkVersion;
+        }
+
+        var kind = string.IsNullOrWhiteSpace(pluginInfo.Kind) ? "Avalonia" : pluginInfo.Kind;
+        manifest["kind"] = kind;
+
+        if (string.Equals(kind, "Web", StringComparison.OrdinalIgnoreCase) && pluginInfo.Web is { } web)
+        {
+            var webNode = new JsonObject();
+            if (!string.IsNullOrWhiteSpace(web.Wwwroot)) webNode["wwwroot"] = web.Wwwroot;
+            if (!string.IsNullOrWhiteSpace(web.EntryPage)) webNode["entryPage"] = web.EntryPage;
+            manifest["web"] = webNode;
+        }
+
+        // "0" 是"从未记录过版本"的哨兵值，与缺省等价，故不落盘（对齐构建期模板的省略行为）。
+        if (!string.IsNullOrWhiteSpace(pluginInfo.CurrentSchemaVersion) && pluginInfo.CurrentSchemaVersion != "0")
+        {
+            manifest["schemaVersion"] = pluginInfo.CurrentSchemaVersion;
+        }
+
+        if (pluginInfo.RequiresDataMigration)
+        {
+            manifest["requiresDataMigration"] = true;
+        }
+
+        if (pluginInfo.SupportedPlatforms is { Count: > 0 })
+        {
+            manifest["supportedPlatforms"] = ToJsonArray(pluginInfo.SupportedPlatforms);
+        }
+
+        if (pluginInfo.SharedAssemblies is { Count: > 0 })
+        {
+            manifest["sharedAssemblies"] = ToJsonArray(pluginInfo.SharedAssemblies);
+        }
+
+        // 宿主拥有的运行期键
+        manifest[ManifestKeyState] = pluginInfo.State.ToString();
+        if (pluginInfo.InstallTime is { } installTime)
+        {
+            manifest[ManifestKeyInstallTime] = JsonValue.Create(installTime);
+        }
+        if (pluginInfo.IsBuiltIn)
+        {
+            manifest[ManifestKeyIsBuiltIn] = true;
+        }
+
+        return manifest;
+    }
+
+    private static JsonArray ToJsonArray(IEnumerable<string> values)
+    {
+        var array = new JsonArray();
+        foreach (var value in values)
+        {
+            array.Add(value);
+        }
+        return array;
     }
 
     private void DeletePluginManifest(string pluginId)
