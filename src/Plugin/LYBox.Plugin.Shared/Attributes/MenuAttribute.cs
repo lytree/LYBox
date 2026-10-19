@@ -40,4 +40,10 @@ public class MenuAttribute(string header, string key, string? parentKey = null) 
     /// 菜单项顺序
     /// </summary>
     public int Order { get; set; } = 0;
+
+    /// <summary>
+    /// 菜单分组标识。相邻菜单项的 Group 不同时，宿主会在两者之间插入一条分隔线；
+    /// 留空表示不参与分组（不会产生分隔线）。
+    /// </summary>
+    public string? Group { get; set; }
 }

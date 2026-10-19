@@ -82,9 +82,10 @@
   <data name="CHOOSER_PROMPT_FILE_ALREADY_EXISTS" xml:space="preserve"><value>文件已存在：</value></data>
   <data name="DRAWERPAGE_TOGGLE_NAVIGATION_DRAWER" xml:space="preserve"><value>切换导航抽屉</value></data>
   <data name="BREADCRUMB_HOME" xml:space="preserve"><value>首页</value></data>
-  <data name="NAV_Introduction" xml:space="preserve"><value>介绍</value></data>
+  <data name="NAV_Introduction" xml:space="preserve"><value>所有工具</value></data>
+  <data name="NAV_FluentControls" xml:space="preserve"><value>控件示例</value></data>
   <data name="NAV_Settings" xml:space="preserve"><value>设置</value></data>
-  <data name="NAV_Plugins" xml:space="preserve"><value>插件</value></data>
+  <data name="NAV_Plugins" xml:space="preserve"><value>管理扩展</value></data>
   <data name="NAV_PluginManagement" xml:space="preserve"><value>插件管理</value></data>
   <data name="PLUGIN_MANAGEMENT_TITLE" xml:space="preserve"><value>插件管理</value></data>
   <data name="PLUGIN_MANAGEMENT_DESC" xml:space="preserve"><value>安装、卸载、启用或禁用插件</value></data>
@@ -153,8 +154,11 @@
   <data name="TOOLTIP_PLUGIN_MANAGEMENT" xml:space="preserve"><value>插件管理</value></data>
   <data name="TOOLTIP_TOGGLE_SIDEBAR" xml:space="preserve"><value>切换侧边栏</value></data>
   <data name="TOOLTIP_TOGGLE_NAV" xml:space="preserve"><value>折叠/展开导航栏</value></data>
-  <data name="SEARCH_PLACEHOLDER" xml:space="preserve"><value>搜索</value></data>
+  <data name="TOOLTIP_BACK" xml:space="preserve"><value>返回</value></data>
+  <data name="TOOLTIP_MORE" xml:space="preserve"><value>更多</value></data>
+  <data name="SEARCH_PLACEHOLDER" xml:space="preserve"><value>输入以搜索工具...</value></data>
   <data name="SEARCH_NO_RESULTS" xml:space="preserve"><value>未找到相关功能</value></data>
+  <data name="HOME_WELCOME_TITLE" xml:space="preserve"><value>欢迎使用 LYBox</value></data>
   <data name="WINDOW_TITLE" xml:space="preserve"><value>LYBox 桌面</value></data>
   <data name="SPLASH_STARTING" xml:space="preserve"><value>正在启动 Ursa 演示...</value></data>
   <data name="SPLASH_TITLE" xml:space="preserve"><value>主启动窗口</value></data>

@@ -16,7 +16,8 @@ public sealed class MenuConfigurationService : IMenuConfigurationService
     public MenuConfigurationService()
     {
         _menuViewModel = new LYBox.Plugin.Shared.ViewModels.MenuViewModel();
-        // Ursa 默认菜单项：Introduction 首页
+        // 宿主只内置「主页」一项：其余目录/工具全部由插件通过 [Menu] 注册，
+        // 侧边栏底部固定入口（管理扩展 / 设置）由 MainView 直接承载，不进菜单列表。
         _menuViewModel.MenuItems.Add(new MenuItemViewModel
         {
             MenuHeader = "NAV_Introduction",

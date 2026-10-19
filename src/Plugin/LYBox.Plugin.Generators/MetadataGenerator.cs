@@ -298,7 +298,7 @@ namespace {target.Namespace}
         foreach (var item in items)
         {
             builder.AppendLine(
-                $"                    new global::LYBox.Plugin.Shared.Generated.GeneratedMenuDescriptor({item.Header}, {item.Key}, {item.Parent}, {item.IconName ?? "null"}, {item.Status}, {item.Order}),");
+                $"                    new global::LYBox.Plugin.Shared.Generated.GeneratedMenuDescriptor({item.Header}, {item.Key}, {item.Parent}, {item.IconName ?? "null"}, {item.Status}, {item.Order}, {item.Group}),");
         }
         builder.AppendLine("                }");
     }
@@ -360,6 +360,7 @@ namespace {target.Namespace}
         string? iconName = null;
         var status = "null";
         var order = 100;
+        var group = "null";
 
         foreach (var argument in attribute.NamedArguments)
         {
@@ -371,10 +372,11 @@ namespace {target.Namespace}
                 case "IconName": iconName = ToSourceExpression(argument.Value); break;
                 case "Status": status = ToSourceExpression(argument.Value); break;
                 case "Order" when argument.Value.Value is int value: order = value; break;
+                case "Group": group = ToSourceExpression(argument.Value); break;
             }
         }
 
-        return new MenuItemData(header, key, parent, iconName, status, order);
+        return new MenuItemData(header, key, parent, iconName, status, order, group);
     }
 
     private static string GetConstructorArgument(AttributeData attribute, int index, string fallback) =>
@@ -442,7 +444,8 @@ namespace {target.Namespace}
         string parent,
         string? iconName,
         string status,
-        int order)
+        int order,
+        string group)
     {
         public string Header { get; } = header;
         public string Key { get; } = key;
@@ -450,6 +453,7 @@ namespace {target.Namespace}
         public string? IconName { get; } = iconName;
         public string Status { get; } = status;
         public int Order { get; } = order;
+        public string Group { get; } = group;
     }
 
     private readonly struct PluginMetadataInfo(

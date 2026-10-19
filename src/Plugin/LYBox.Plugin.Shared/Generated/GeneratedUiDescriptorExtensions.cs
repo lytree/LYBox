@@ -42,6 +42,7 @@ public static class GeneratedUiDescriptorExtensions
                 MenuIconName = item.IconName,
                 Status = item.Status,
                 Order = item.Order,
+                Group = item.Group,
             }, item.Order));
         }
         return MenuItemTreeBuilder.BuildTree(allItems);

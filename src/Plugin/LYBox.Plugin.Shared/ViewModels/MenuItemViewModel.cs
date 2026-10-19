@@ -36,6 +36,12 @@ public partial class MenuItemViewModel : ViewModelBase
     private string? _menuIconName;
     public string? Key { get; set; }
     public string? Status { get; set; }
+
+    /// <summary>
+    /// 菜单项描述（首页工具卡片的次级文案）。为空时宿主回退为所属分组名。
+    /// </summary>
+    public string? Description { get; set; }
+
     public string? Group { get; set; }
     public int Order { get; set; }
 

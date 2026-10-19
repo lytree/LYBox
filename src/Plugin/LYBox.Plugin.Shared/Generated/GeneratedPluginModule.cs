@@ -70,6 +70,9 @@ public sealed class GeneratedNavigationDescriptor
 
 public sealed class GeneratedMenuDescriptor
 {
+    /// <summary>
+    /// 兼容旧插件程序集（生成代码仍使用 6 参数构造）的保留重载。
+    /// </summary>
     public GeneratedMenuDescriptor(
         string header,
         string key,
@@ -77,6 +80,18 @@ public sealed class GeneratedMenuDescriptor
         string? iconName,
         string? status,
         int order)
+        : this(header, key, parentKey, iconName, status, order, null)
+    {
+    }
+
+    public GeneratedMenuDescriptor(
+        string header,
+        string key,
+        string? parentKey,
+        string? iconName,
+        string? status,
+        int order,
+        string? group)
     {
         Header = header ?? throw new ArgumentNullException(nameof(header));
         Key = key ?? throw new ArgumentNullException(nameof(key));
@@ -84,6 +99,7 @@ public sealed class GeneratedMenuDescriptor
         IconName = iconName;
         Status = status;
         Order = order;
+        Group = group;
     }
 
     public string Header { get; }
@@ -92,4 +108,7 @@ public sealed class GeneratedMenuDescriptor
     public string? IconName { get; }
     public string? Status { get; }
     public int Order { get; }
+
+    /// <summary>菜单分组标识；相邻项分组不同时宿主插入分隔线。</summary>
+    public string? Group { get; }
 }

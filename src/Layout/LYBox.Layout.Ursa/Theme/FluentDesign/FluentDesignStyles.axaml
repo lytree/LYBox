@@ -59,14 +59,34 @@
         <Setter Property="BoxShadow" Value="{DynamicResource FluentPaneBoxShadow}" />
     </Style>
 
-    <!-- 主内容表面 (Border) — 与导航面板分隔的内容区外壳（WinUI MainContent 风格） -->
+    <!-- 主内容表面 (Border) — 与侧边栏贴合的扁平内容区（工具坞布局：无圆角、无外边距），
+         不使用阴影/描边，仅靠底色层级区分侧边栏与内容 -->
     <Style Selector="Border.FluentMainContentSurface">
         <Setter Property="Background" Value="{DynamicResource FluentPageBackgroundBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource FluentShellContentBorderBrush}" />
-        <Setter Property="BorderThickness" Value="1,1,0,0" />
-        <Setter Property="CornerRadius" Value="8,0,0,0" />
-        <Setter Property="BoxShadow" Value="{DynamicResource FluentShellContentBoxShadow}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="BoxShadow" Value="{DynamicResource FluentPaneBoxShadow}" />
     </Style>
+
+    <!-- ===== 顶部菜单栏 (Menu) — Win11 菜单条：透明背景、紧凑行高 ===== -->
+    <!-- 用法：<Menu Classes="FluentMenuBar"><MenuItem Header="文件">…</MenuItem></Menu> -->
+    <Style Selector="Menu.FluentMenuBar">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="4,0" />
+        <Setter Property="MinHeight" Value="40" />
+    </Style>
+    <Style Selector="Menu.FluentMenuBar > MenuItem">
+        <Setter Property="Padding" Value="10,5" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- ===== 命令栏 (CommandBar) ===== -->
+    <!-- 组件本体为 Controls/FluentCommandBar（Button/ToggleButton 组合），
+         卡片化外壳与按钮态样式内置于该控件，这里不再重复定义。 -->
 
     <!-- 标题栏 (Border) — 顶部应用标题区域（与导航面板同层色，视觉一致） -->
     <Style Selector="Border.FluentTitleBar">
@@ -205,6 +225,111 @@
         <Setter Property="Padding" Value="11,6" />
     </Style>
 
+    <!-- ===== 工具坞布局（参考 DevToys 布局结构，配色仍走 Fluent 令牌） ===== -->
+
+    <!-- 侧边栏顶部图标按钮（汉堡/返回）— 32x32 透明按钮 -->
+    <Style Selector="Button.FluentRailButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Transitions">
+            <Setter.Value>
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.083" />
+                </Transitions>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style Selector="Button.FluentRailButton:pointerover">
+        <Setter Property="Background" Value="{DynamicResource FluentSubtleHoverBrush}" />
+    </Style>
+    <Style Selector="Button.FluentRailButton:pressed">
+        <Setter Property="Background" Value="{DynamicResource FluentSubtlePressedBrush}" />
+    </Style>
+    <Style Selector="Button.FluentRailButton:disabled">
+        <Setter Property="Opacity" Value="0.4" />
+        <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+
+    <!-- 首页头图区（Banner）— 全宽、无圆角，内容区顶部通栏。
+         左右内边距与卡片网格的 24px 外边距对齐，保证标题与卡片左边缘同一条竖线。 -->
+    <Style Selector="Border.FluentHeroBanner">
+        <Setter Property="Background" Value="{DynamicResource FluentColorPrimaryLight}" />
+        <Setter Property="Padding" Value="24,0" />
+        <Setter Property="MinHeight" Value="104" />
+    </Style>
+    <!-- 头图主标题 — 30px Bold -->
+    <Style Selector="TextBlock.FluentHeroTitle">
+        <Setter Property="FontSize" Value="30" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{DynamicResource FluentColorText0}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- 头图版本后缀 — 主标题右侧基线对齐 -->
+    <Style Selector="TextBlock.FluentHeroVersion">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Foreground" Value="{DynamicResource FluentColorText2}" />
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+        <Setter Property="Margin" Value="0,0,0,7" />
+    </Style>
+
+    <!-- 工具卡片（Button）— 左侧图标方块 + 右侧标题/描述，三列网格使用 -->
+    <Style Selector="Button.FluentToolCard">
+        <Setter Property="Background" Value="{DynamicResource FluentCardBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FluentCardStrokeBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="14" />
+        <Setter Property="Height" Value="96" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Transitions">
+            <Setter.Value>
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+                </Transitions>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style Selector="Button.FluentToolCard:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource FluentCardBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FluentAccentBrush}" />
+    </Style>
+    <Style Selector="Button.FluentToolCard:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource FluentSubtlePressedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FluentAccentBrush}" />
+    </Style>
+
+    <!-- 工具卡片左侧图标方块 -->
+    <Style Selector="Border.FluentToolIconTile">
+        <Setter Property="Width" Value="52" />
+        <Setter Property="Height" Value="52" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Background" Value="{DynamicResource FluentSubtleBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.FluentToolCardTitle">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource FluentColorText0}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+    <Style Selector="TextBlock.FluentToolCardDescription">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource FluentColorText2}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="MaxLines" Value="2" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="Margin" Value="0,3,0,0" />
+    </Style>
+
     <!-- 汉堡菜单按钮 — 40x40 透明按钮（WinUI 标准标题栏按钮尺寸，光标反馈 Subtle） -->
     <Style Selector="Button.FluentHamburger">
         <Setter Property="Background" Value="Transparent" />
@@ -229,6 +354,11 @@
     </Style>
     <Style Selector="Button.FluentHamburger:pressed">
         <Setter Property="Background" Value="{DynamicResource FluentSubtlePressedBrush}" />
+    </Style>
+    <!-- 返回按钮无历史可回时置灰但仍占位，避免汉堡按钮左右跳动 -->
+    <Style Selector="Button.FluentHamburger:disabled">
+        <Setter Property="Opacity" Value="0.4" />
+        <Setter Property="Cursor" Value="Arrow" />
     </Style>
 
     <!-- 导航面板折叠按钮 — 底部导航切换 -->

@@ -23,40 +23,28 @@
     TransparencyLevelHint="Mica"
     Background="Transparent"
     mc:Ignorable="d">
-    <!-- 标题栏三段式布局（Win11 Fluent 风格）：
-           左：汉堡折叠按钮；中：搜索框；右：工具按钮（主题切换等）。
-           Title 设为空字符串，避免 WindowDrawnDecorations 的左侧标题文本与搜索框重叠。 -->
+    <!-- 标题栏三段式布局（工具坞风格）：
+           左：应用图标 + 品牌名；右：主题切换。
+           折叠/返回按钮已迁入侧边栏顶部（MainView），标题栏中部留空作为窗口拖拽区域。
+           Title 设为空字符串，避免 WindowDrawnDecorations 的左侧标题文本与品牌区重叠。 -->
     <u:UrsaWindow.LeftContent>
-        <Button
-            Classes="FluentHamburger"
-            Margin="10,0,0,0"
-            VerticalAlignment="Center"
-            Command="{Binding MainViewViewModel.ToggleCollapseCommand}"
-            ToolTip.Tip="{DynamicResource TOOLTIP_TOGGLE_NAV}">
-            <PathIcon
-                Width="20" Height="20"
-                Data="{DynamicResource FluentLineHorizontal320Regular}"
-                Foreground="{DynamicResource FluentColorText1}" />
-        </Button>
+        <StackPanel
+            Orientation="Horizontal"
+            Spacing="8"
+            Margin="12,0,0,0"
+            VerticalAlignment="Center">
+            <Image
+                Width="16" Height="16"
+                Source="/Assets/lybox-logo-256.png"
+                VerticalAlignment="Center" />
+            <TextBlock
+                VerticalAlignment="Center"
+                FontSize="12"
+                FontWeight="SemiBold"
+                Foreground="{DynamicResource FluentColorText1}"
+                Text="{DynamicResource APP_TITLE}" />
+        </StackPanel>
     </u:UrsaWindow.LeftContent>
-    <u:UrsaWindow.TitleBarContent>
-        <TextBox
-            Name="SearchBox"
-            Classes="FluentSearchBox"
-            Width="360"
-            MinWidth="240"
-            MaxWidth="480"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            PlaceholderText="{DynamicResource SEARCH_PLACEHOLDER}"
-            Text="{Binding MainViewViewModel.SearchText, Mode=TwoWay}">
-            <TextBox.InnerLeftContent>
-                <Path Width="14" Height="14"
-                    Data="{DynamicResource FluentSearch20Regular}"
-                    Fill="{DynamicResource FluentColorText2}" />
-            </TextBox.InnerLeftContent>
-        </TextBox>
-    </u:UrsaWindow.TitleBarContent>
     <u:UrsaWindow.RightContent>
         <StackPanel
             Orientation="Horizontal"

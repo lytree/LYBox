@@ -2,9 +2,9 @@
     x:Class="LYBox.Layout.Ursa.Pages.IntroductionDemo"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:LYBox.Plugin.Shared.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:models="using:LYBox.Plugin.Shared.Models"
     xmlns:u="https://irihi.tech/ursa"
     xmlns:vm="using:LYBox.Layout.Core.ViewModels"
     x:CompileBindings="True"
@@ -16,112 +16,104 @@
         <vm:IntroductionDemoViewModel />
     </Design.DataContext>
 
+    <UserControl.Resources>
+        <converters:IconNameToPathConverter x:Key="IconConverter" />
+    </UserControl.Resources>
+
     <UserControl.Styles>
-        <Style Selector="TextBlock.GroupHeader">
-            <Setter Property="FontSize" Value="20" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{DynamicResource FluentColorText0}" />
-            <Setter Property="Margin" Value="0,8,0,12" />
-        </Style>
-        <Style Selector="Button.ToolCard">
-            <Setter Property="Background" Value="{DynamicResource FluentCardBackgroundBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource FluentCardStrokeBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="16,12" />
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-            <Setter Property="MinHeight" Value="56" />
-            <Setter Property="Transitions">
-                <Setter.Value>
-                    <Transitions>
-                        <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
-                    </Transitions>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style Selector="Button.ToolCard:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource FluentSubtleHoverBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource FluentAccentBrush}" />
-        </Style>
-        <Style Selector="Button.ToolCard:pressed /template/ ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource FluentSubtlePressedBrush}" />
-        </Style>
-        <Style Selector="TextBlock.ToolName">
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="FontWeight" Value="Medium" />
-            <Setter Property="Foreground" Value="{DynamicResource FluentColorText0}" />
-        </Style>
         <Style Selector="u|Badge.ToolStatus">
             <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="8,0,0,0" />
         </Style>
     </UserControl.Styles>
 
-    <Panel>
-        <!-- 空状态提示 -->
-        <TextBlock
-            IsVisible="{Binding HasNoResults}"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Margin="0,48"
-            FontSize="16"
-            Foreground="{DynamicResource FluentColorText2}"
-            Text="{DynamicResource SEARCH_NO_RESULTS}"
-            ZIndex="1" />
-        <!-- ElasticWrapPanel 设置 ItemHeight 后，panel 可基于固定行高正确计算
-             换行后的总高度（rows × ItemHeight + (rows-1) × LineSpacing），
-             避免作为 ItemsPanel 时只报告单行高度导致换行按钮被裁剪。 -->
-    <ScrollViewer
-        HorizontalScrollBarVisibility="Disabled"
-        VerticalScrollBarVisibility="Auto">
-        <ItemsControl
-            ItemsSource="{Binding FilteredGroups}"
-            Padding="0,0,24,24"
-            HorizontalAlignment="Stretch"
-            VerticalAlignment="Top"
-            Background="Transparent">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:ToolGroup">
-                    <StackPanel HorizontalAlignment="Stretch" Margin="0,0,0,24">
-                        <TextBlock Classes="GroupHeader" Text="{Binding GroupName}" />
-                        <ItemsControl
-                            ItemsSource="{Binding Items}"
-                            HorizontalAlignment="Stretch">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <u:ElasticWrapPanel
-                                        IsFillHorizontal="True"
-                                        ItemHeight="56"
-                                        ItemSpacing="12"
-                                        LineSpacing="12" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:ToolItem">
-                                    <Button
-                                        Classes="ToolCard"
-                                        HorizontalAlignment="Stretch"
-                                        Command="{Binding NavigateCommand}"
-                                        CommandParameter="{Binding Key}">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <TextBlock
-                                                Grid.Column="0"
-                                                Classes="ToolName"
-                                                Text="{Binding Name}"
-                                                TextTrimming="CharacterEllipsis" />
+    <!-- 首页布局：顶部通栏 Hero（欢迎语 + 版本号），下方三列工具卡片网格 -->
+    <Grid RowDefinitions="Auto,*">
+        <Border Grid.Row="0" Classes="FluentHeroBanner">
+            <StackPanel
+                Orientation="Horizontal"
+                Spacing="10"
+                VerticalAlignment="Center">
+                <TextBlock Classes="FluentHeroTitle" Text="{Binding WelcomeTitle}" />
+                <TextBlock Classes="FluentHeroVersion" Text="{Binding VersionText}" />
+            </StackPanel>
+        </Border>
+
+        <Panel Grid.Row="1">
+            <!-- 空状态提示 -->
+            <TextBlock
+                IsVisible="{Binding HasNoResults}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Margin="0,48"
+                FontSize="16"
+                Foreground="{DynamicResource FluentColorText2}"
+                Text="{DynamicResource SEARCH_NO_RESULTS}"
+                ZIndex="1" />
+            <ScrollViewer
+                HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto">
+                <!-- 等宽三列网格；卡片自身带 16px 右下外边距作为间距，
+                     外层右侧只留 8px，与左侧 24px 内边距合成 24px 视觉边距 -->
+                <ItemsControl
+                    ItemsSource="{Binding FilteredItems}"
+                    Margin="24,20,8,8"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Top"
+                    Background="Transparent">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="3" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ToolItem">
+                            <Button
+                                Classes="FluentToolCard"
+                                Margin="0,0,16,16"
+                                Command="{Binding NavigateCommand}"
+                                CommandParameter="{Binding Key}"
+                                ToolTip.Tip="{Binding Description}">
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <!-- 左侧图标方块 -->
+                                    <Border Grid.Column="0" Classes="FluentToolIconTile">
+                                        <PathIcon
+                                            Width="26" Height="26"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Data="{Binding IconName, Converter={StaticResource IconConverter}}"
+                                            Foreground="{DynamicResource FluentColorText1}" />
+                                    </Border>
+                                    <!-- 中部：名称 + 描述 -->
+                                    <StackPanel
+                                        Grid.Column="1"
+                                        Margin="14,0,8,0"
+                                        VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Classes="FluentToolCardTitle" Text="{Binding Name}" />
                                             <u:Badge
-                                                Grid.Column="1"
                                                 Classes="ToolStatus"
                                                 Content="{Binding Status}"
                                                 IsVisible="{Binding Status, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                                        </Grid>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
-    </ScrollViewer>
-    </Panel>
+                                        </StackPanel>
+                                        <TextBlock
+                                            Classes="FluentToolCardDescription"
+                                            Text="{Binding Description}"
+                                            IsVisible="{Binding Description, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                                    </StackPanel>
+                                    <!-- 右上角固定（Pin）标记 -->
+                                    <PathIcon
+                                        Grid.Column="2"
+                                        Width="12" Height="12"
+                                        VerticalAlignment="Top"
+                                        Data="{DynamicResource FluentPin20Regular}"
+                                        Foreground="{DynamicResource FluentColorText3}" />
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Panel>
+    </Grid>
 </UserControl>

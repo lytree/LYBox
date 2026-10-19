@@ -55,10 +55,12 @@ public sealed class NavigationService : INavigationService
     private void RegisterDefaultNavigations()
     {
         RegisterNavigation("Introduction", () => new IntroductionDemoViewModel());
+        RegisterNavigation("FluentControls", () => new FluentNavigationDemoViewModel());
         RegisterNavigation("Settings", () => new SettingsPageViewModel(_settingsService, _localizationService));
         RegisterNavigation("PluginManagement", () => new PluginManagementViewModel(_pluginManagementService));
 
         ViewLocator.Register<IntroductionDemoViewModel, IntroductionDemo>();
+        ViewLocator.Register<FluentNavigationDemoViewModel, FluentNavigationDemo>();
         ViewLocator.Register<SettingsPageViewModel, SettingsPage>();
         ViewLocator.Register<PluginManagementViewModel, PluginManagementPage>();
     }

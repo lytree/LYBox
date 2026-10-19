@@ -1,0 +1,190 @@
+<UserControl
+    x:Class="LYBox.Layout.Ursa.Controls.FluentTopNavigation"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:LYBox.Layout.Ursa.Controls"
+    xmlns:converters="using:LYBox.Plugin.Shared.Converters"
+    x:Name="Root"
+    x:CompileBindings="True"
+    x:DataType="controls:FluentTopNavigation">
+
+    <UserControl.Resources>
+        <!-- 图标名 → StreamGeometry：与侧边导航（NavMenu）共用同一套图标键约定 -->
+        <converters:IconNameToPathConverter x:Key="TopNavIconConverter" />
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <!-- 导航项：透明按钮 + hover 微底色（WinUI NavigationView Top 模式） -->
+        <Style Selector="Button.FluentTopNavItem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource FluentTextSecondaryBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Transitions">
+                <Setter.Value>
+                    <Transitions>
+                        <BrushTransition Property="Background" Duration="0:0:0.083" />
+                        <BrushTransition Property="Foreground" Duration="0:0:0.083" />
+                    </Transitions>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style Selector="Button.FluentTopNavItem:pointerover">
+            <Setter Property="Background" Value="{DynamicResource FluentSubtleHoverBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource FluentTextPrimaryBrush}" />
+        </Style>
+        <Style Selector="Button.FluentTopNavItem:pressed">
+            <Setter Property="Background" Value="{DynamicResource FluentSubtlePressedBrush}" />
+        </Style>
+        <!-- 选中项：accent 文字 + 半粗体 -->
+        <Style Selector="Button.FluentTopNavItem.selected">
+            <Setter Property="Foreground" Value="{DynamicResource FluentAccentBrush}" />
+        </Style>
+        <Style Selector="Button.FluentTopNavItem.selected TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button.FluentTopNavItem PathIcon">
+            <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
+        </Style>
+
+        <!-- 「更多」按钮 -->
+        <Style Selector="Button.FluentTopNavMore">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.FluentTopNavMore:pointerover">
+            <Setter Property="Background" Value="{DynamicResource FluentSubtleHoverBrush}" />
+        </Style>
+        <Style Selector="Button.FluentTopNavMore:pressed">
+            <Setter Property="Background" Value="{DynamicResource FluentSubtlePressedBrush}" />
+        </Style>
+
+        <!-- 溢出浮出面板 -->
+        <Style Selector="Border.FluentTopNavOverflowPanel">
+            <Setter Property="Background" Value="{DynamicResource FluentCardBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource FluentCardStrokeBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="MinWidth" Value="180" />
+            <Setter Property="BoxShadow" Value="0 8 24 0 #29000000" />
+        </Style>
+        <Style Selector="Button.FluentTopNavOverflowItem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Foreground" Value="{DynamicResource FluentTextSecondaryBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.FluentTopNavOverflowItem:pointerover">
+            <Setter Property="Background" Value="{DynamicResource FluentSubtleHoverBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource FluentTextPrimaryBrush}" />
+        </Style>
+        <Style Selector="Button.FluentTopNavOverflowItem.selected">
+            <Setter Property="Foreground" Value="{DynamicResource FluentAccentBrush}" />
+        </Style>
+        <Style Selector="Button.FluentTopNavOverflowItem PathIcon">
+            <Setter Property="Foreground" Value="{Binding $parent[Button].Foreground}" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid ColumnDefinitions="*,Auto" MinHeight="40">
+        <!-- 主导航项：单行，底部 1px 分隔线 -->
+        <Border
+            BorderBrush="{DynamicResource FluentCardStrokeBrush}"
+            BorderThickness="0,0,0,1">
+            <ScrollViewer
+                HorizontalScrollBarVisibility="Hidden"
+                VerticalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding #Root.VisibleItems}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="2" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="controls:FluentNavigationItem">
+                            <Grid>
+                                <Button
+                                    Classes="FluentTopNavItem"
+                                    Classes.selected="{Binding IsSelected}"
+                                    Command="{Binding $parent[controls:FluentTopNavigation].SelectCommand}"
+                                    CommandParameter="{Binding}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <PathIcon
+                                            Width="16" Height="16"
+                                            Data="{Binding IconName, Converter={StaticResource TopNavIconConverter}}" />
+                                        <TextBlock VerticalAlignment="Center" Text="{Binding Header}" />
+                                    </StackPanel>
+                                </Button>
+                                <!-- 选中指示条：2px accent -->
+                                <Border
+                                    Height="2"
+                                    Margin="10,0"
+                                    VerticalAlignment="Bottom"
+                                    Background="{DynamicResource FluentAccentBrush}"
+                                    CornerRadius="1"
+                                    IsVisible="{Binding IsSelected}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- 溢出入口 -->
+        <Button
+            Name="MoreButton"
+            Grid.Column="1"
+            Classes="FluentTopNavMore"
+            Margin="6,0,0,0"
+            IsVisible="{Binding #Root.HasOverflow}"
+            Click="OnMoreClick"
+            ToolTip.Tip="{DynamicResource TOOLTIP_MORE}">
+            <PathIcon Width="16" Height="16" Data="{DynamicResource FluentMoreHorizontal20Regular}" />
+        </Button>
+
+        <Popup
+            Name="PART_OverflowPopup"
+            Grid.Column="1"
+            Placement="BottomEdgeAlignedRight"
+            PlacementTarget="{Binding #MoreButton}"
+            IsLightDismissEnabled="True"
+            IsOpen="{Binding #Root.IsOverflowOpen, Mode=TwoWay}"
+            WindowManagerAddShadowHint="False">
+            <Border Classes="FluentTopNavOverflowPanel" Margin="0,4,0,0">
+                <ItemsControl ItemsSource="{Binding #Root.OverflowItems}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="controls:FluentNavigationItem">
+                            <Button
+                                Classes="FluentTopNavOverflowItem"
+                                Classes.selected="{Binding IsSelected}"
+                                Command="{Binding $parent[controls:FluentTopNavigation].SelectCommand}"
+                                CommandParameter="{Binding}">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <PathIcon
+                                        Width="16" Height="16"
+                                        Data="{Binding IconName, Converter={StaticResource TopNavIconConverter}}" />
+                                    <TextBlock VerticalAlignment="Center" Text="{Binding Header}" />
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Net;
+using System.Reflection;
 using LYBox.Plugin.Shared;
 using LYBox.Plugin.Shared.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -24,13 +24,19 @@ public partial class IntroductionDemoViewModel : ObservableObject
     [ObservableProperty] private TimeSpan _endTime = new TimeSpan(17, 0, 0);
 
     private readonly ILocalizationService? _localizationService;
-    private List<ToolGroup> _allGroups = [];
+    private List<ToolItem> _allItems = [];
 
     /// <summary>
-    /// 按目录分组的工具列表（已过滤），替换整组引用触发单次 PropertyChanged 通知，
-    /// 避免 ObservableCollection 逐项 Add 导致的多次布局刷新。
+    /// 首页工具卡片数据源（已过滤）。整体替换引用只触发一次 PropertyChanged，
+    /// 避免逐项增删导致网格反复重排。
     /// </summary>
-    [ObservableProperty] private IReadOnlyList<ToolGroup> _filteredGroups = [];
+    [ObservableProperty] private IReadOnlyList<ToolItem> _filteredItems = [];
+
+    /// <summary>头图主标题（欢迎语）。</summary>
+    [ObservableProperty] private string? _welcomeTitle;
+
+    /// <summary>头图版本后缀，形如 v2.3.0-preview.11。</summary>
+    [ObservableProperty] private string? _versionText;
 
     [ObservableProperty] private string? _searchText;
     [ObservableProperty] private bool _hasNoResults;
@@ -38,8 +44,26 @@ public partial class IntroductionDemoViewModel : ObservableObject
     public IntroductionDemoViewModel()
     {
         _localizationService = ServiceLocator.TryGetService<ILocalizationService>(out var loc) ? loc : null;
-        LoadToolGroups();
+        WelcomeTitle = _localizationService?.GetString("HOME_WELCOME_TITLE", "Welcome to LYBox") ?? "Welcome to LYBox";
+        VersionText = ResolveVersionText();
+        LoadTools();
         WeakReferenceMessenger.Default.Register<IntroductionDemoViewModel, string, string>(this, "SearchChanged", OnSearchChanged);
+    }
+
+    private static string ResolveVersionText()
+    {
+        var informational = (Assembly.GetEntryAssembly() ?? typeof(IntroductionDemoViewModel).Assembly)
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+        if (string.IsNullOrWhiteSpace(informational))
+            return string.Empty;
+
+        // 去掉 SourceLink 追加的 +commit 后缀，仅展示语义版本
+        var plusIndex = informational.IndexOf('+');
+        if (plusIndex > 0)
+            informational = informational[..plusIndex];
+
+        return informational.StartsWith('v') ? informational : "v" + informational;
     }
 
     private void OnSearchChanged(IntroductionDemoViewModel recipient, string message)
@@ -53,41 +77,67 @@ public partial class IntroductionDemoViewModel : ObservableObject
     }
 
     /// <summary>
-    /// 从菜单配置服务加载所有工具，按父级目录分组
+    /// 从菜单配置服务加载所有工具并拍平为单列表：首页网格不再按分组插入标题，
+    /// 分组名作为卡片的次级描述保留（插件未提供描述时的兜底）。
     /// </summary>
-    private void LoadToolGroups()
+    private void LoadTools()
     {
+        _allItems = [];
         if (!ServiceLocator.TryGetService<IMenuConfigurationService>(out var menuConfig) || menuConfig is null)
+        {
+            ApplyFilter(SearchText);
             return;
+        }
 
-        var menu = menuConfig.GetMenuStructure();
-        _allGroups.Clear();
         var navCmd = NavigateCommand;
-
-        foreach (var parent in menu)
+        foreach (var parent in menuConfig.GetMenuStructure())
         {
             if (parent.IsSeparator || string.IsNullOrEmpty(parent.Key)) continue;
 
-            var group = new ToolGroup
+            var category = ResolveHeader(parent.MenuHeader) ?? parent.Key ?? string.Empty;
+
+            // 一级条目若无子项（如「控件示例」），本身即一个可打开的页面，直接作为工具卡片展示；
+            // 首页自身（Introduction）排除，避免自引用。
+            if (parent.Children.Count == 0)
             {
-                GroupName = ResolveHeader(parent.MenuHeader) ?? parent.Key ?? string.Empty,
-                GroupKey = parent.Key ?? string.Empty
-            };
+                if (parent.Key != "Introduction")
+                {
+                    _allItems.Add(new ToolItem
+                    {
+                        Name = category,
+                        Key = parent.Key,
+                        Category = category,
+                        // 叶子页面没有独立描述，标题已表达含义，不再重复同名文案
+                        Description = string.IsNullOrWhiteSpace(parent.Description) ? null : parent.Description,
+                        IconName = string.IsNullOrWhiteSpace(parent.MenuIconName)
+                            ? FallbackIcons.For(parent.Key)
+                            : parent.MenuIconName,
+                        Status = parent.Status,
+                        NavigateCommand = navCmd
+                    });
+                }
+                continue;
+            }
 
             foreach (var child in parent.Children)
             {
                 if (child.IsSeparator || string.IsNullOrEmpty(child.Key)) continue;
-                group.Items.Add(new ToolItem
+                var name = ResolveHeader(child.MenuHeader) ?? child.Key ?? string.Empty;
+                _allItems.Add(new ToolItem
                 {
-                    Name = ResolveHeader(child.MenuHeader) ?? child.Key ?? string.Empty,
+                    Name = name,
                     Key = child.Key!,
+                    Category = category,
+                    Description = !string.IsNullOrWhiteSpace(child.Description)
+                        ? child.Description
+                        : string.Equals(category, name, StringComparison.Ordinal) ? null : category,
+                    IconName = string.IsNullOrWhiteSpace(child.MenuIconName)
+                        ? FallbackIcons.For(child.Key)
+                        : child.MenuIconName,
                     Status = child.Status,
                     NavigateCommand = navCmd
                 });
             }
-
-            if (group.Items.Count > 0)
-                _allGroups.Add(group);
         }
 
         ApplyFilter(SearchText);
@@ -101,50 +151,26 @@ public partial class IntroductionDemoViewModel : ObservableObject
 
     private void ApplyFilter(string? search)
     {
-        List<ToolGroup> result;
+        List<ToolItem> result;
         if (string.IsNullOrWhiteSpace(search))
         {
-            result = _allGroups;
+            result = _allItems;
         }
         else
         {
             var keyword = search.Trim();
-            result = new List<ToolGroup>();
-            foreach (var group in _allGroups)
+            result = [];
+            foreach (var item in _allItems)
             {
-                var groupMatched = group.GroupName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
-                                    || group.GroupKey.Contains(keyword, StringComparison.OrdinalIgnoreCase);
-
-                if (groupMatched)
+                if (item.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                    || item.Key.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                    || item.Category.Contains(keyword, StringComparison.OrdinalIgnoreCase))
                 {
-                    result.Add(group);
-                    continue;
-                }
-
-                List<ToolItem>? matched = null;
-                foreach (var item in group.Items)
-                {
-                    if (item.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase)
-                        || item.Key.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-                    {
-                        (matched ??= new List<ToolItem>()).Add(item);
-                    }
-                }
-
-                if (matched is { Count: > 0 })
-                {
-                    var filteredGroup = new ToolGroup
-                    {
-                        GroupName = group.GroupName,
-                        GroupKey = group.GroupKey
-                    };
-                    foreach (var m in matched)
-                        filteredGroup.Items.Add(m);
-                    result.Add(filteredGroup);
+                    result.Add(item);
                 }
             }
         }
-        FilteredGroups = result;
+        FilteredItems = result;
         HasNoResults = result.Count == 0;
     }
 
@@ -156,28 +182,28 @@ public partial class IntroductionDemoViewModel : ObservableObject
 
     public void RefreshGroups()
     {
-        LoadToolGroups();
+        LoadTools();
     }
 }
 
 /// <summary>
-/// 工具分组（对应一个插件目录）
-/// </summary>
-public sealed class ToolGroup
-{
-    public string GroupName { get; set; } = string.Empty;
-    public string GroupKey { get; set; } = string.Empty;
-    public ObservableCollection<ToolItem> Items { get; set; } = [];
-}
-
-/// <summary>
-/// 单个工具项
+/// 单个工具项（首页卡片数据源）
 /// </summary>
 public sealed class ToolItem
 {
     public string Name { get; set; } = string.Empty;
     public string Key { get; set; } = string.Empty;
+
+    /// <summary>所属分组（分类）名称，作为卡片次级描述的兜底。</summary>
+    public string Category { get; set; } = string.Empty;
+
+    public string? Description { get; set; }
+
+    /// <summary>卡片图标资源键（Fluent 图标名）。</summary>
+    public string? IconName { get; set; }
+
     public string? Status { get; set; }
+
     /// <summary>
     /// 导航命令（由 ViewModel 注入）
     /// </summary>

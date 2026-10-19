@@ -51,7 +51,9 @@ public interface IGeneratedPluginModule
 - `[GenerateMetadata]`：标记插件入口类。
 - `[ViewMap(typeof(View))]`：声明 ViewModel 到 View 的映射。
 - `[NavigationItem("key")]`：注册导航 key。
-- `[Menu(header, key, ParentKey = ..., IconName = ..., Status = ..., Order = ...)]`：注册菜单并由宿主组树。
+- `[Menu(header, key, ParentKey = ..., IconName = ..., Status = ..., Order = ..., Group = ...)]`：注册菜单并由宿主组树。
+  - `Group`：菜单分组标识。相邻两个菜单项的 `Group` 不同时，宿主侧边栏会在两者之间自动插入一条分隔线；`Group` 留空的项不参与分组（不会产生分隔线）。
+  - 导航侧栏在展开/折叠（`FluentPaneExpandedWidth` / `FluentPaneCollapsedWidth`）之间切换，菜单项无需感知宽度。
 - `[RpcCommand]`：生成 Web RPC 绑定、JS 客户端和 TypeScript 声明。
 
 ## 宿主服务

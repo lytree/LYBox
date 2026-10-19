@@ -28,20 +28,62 @@
                 <Setter Property="Effect" Value="blur(10)" />
             </Style>
         </Panel.Styles>
-        <!-- WinUI 风格布局：左侧 Ursa NavMenu + 右侧内容区。
-             顶部 Margin=48 让出 UrsaWindow TitleBar 高度，避免 NavMenu 与汉堡按钮重合。 -->
+        <!-- 工具坞布局：左侧通高侧边栏（折叠/返回 + 搜索 + 导航 + 底部入口），右侧内容区贴边铺满。
+             顶部 Margin=48 让出 UrsaWindow TitleBar 高度，避免与标题栏重合。 -->
         <Grid Classes.Blur="{Binding $parent[u:UrsaWindow].(u:OverlayDialogHost.IsInModalStatus)}"
               Margin="0,48,0,0"
               Background="{DynamicResource FluentShellBackgroundBrush}"
               ColumnDefinitions="Auto,*">
-            <!-- 左侧导航栏：汉堡按钮已移至 UrsaWindow.LeftContent（TitleBar 左侧），
-                 避免 TitleBar 覆盖 MainView 顶部 48px 拦截点击。 -->
             <Border Classes="FluentNavPane" Grid.Column="0">
-                <Grid RowDefinitions="*,Auto">
+                <Grid RowDefinitions="Auto,Auto,*,Auto">
+                    <!-- 顶部：折叠按钮（有历史时左侧出现返回按钮） -->
+                    <StackPanel
+                        Grid.Row="0"
+                        Orientation="Horizontal"
+                        Spacing="2"
+                        Margin="10,4,10,4">
+                        <Button
+                            Classes="FluentRailButton"
+                            Command="{Binding BackCommand}"
+                            IsVisible="{Binding CanGoBack}"
+                            ToolTip.Tip="{DynamicResource TOOLTIP_BACK}">
+                            <PathIcon
+                                Width="16" Height="16"
+                                Data="{DynamicResource FluentArrowLeft20Regular}"
+                                Foreground="{DynamicResource FluentColorText1}" />
+                        </Button>
+                        <Button
+                            Classes="FluentRailButton"
+                            Command="{Binding ToggleCollapseCommand}"
+                            ToolTip.Tip="{DynamicResource TOOLTIP_TOGGLE_NAV}">
+                            <PathIcon
+                                Width="16" Height="16"
+                                Data="{DynamicResource FluentLineHorizontal320Regular}"
+                                Foreground="{DynamicResource FluentColorText1}" />
+                        </Button>
+                    </StackPanel>
+                    <!-- 搜索框：位于侧边栏顶部（折叠态隐藏） -->
+                    <TextBox
+                        Grid.Row="1"
+                        Name="SearchBox"
+                        Classes="FluentSearchBox"
+                        Margin="10,0,10,10"
+                        HorizontalAlignment="Stretch"
+                        PlaceholderText="{DynamicResource SEARCH_PLACEHOLDER}"
+                        Text="{Binding SearchText, Mode=TwoWay}"
+                        IsVisible="{Binding !IsCollapsed}">
+                        <TextBox.InnerLeftContent>
+                            <Path
+                                Width="14" Height="14"
+                                Margin="0,0,6,0"
+                                Data="{DynamicResource FluentSearch20Regular}"
+                                Fill="{DynamicResource FluentColorText2}" />
+                        </TextBox.InnerLeftContent>
+                    </TextBox>
                     <!-- NavMenu 菜单列表（无 Header/Footer，纯菜单项） -->
                     <u:NavMenu
                         Name="NavMenu"
-                        Grid.Row="0"
+                        Grid.Row="2"
                         Background="Transparent"
                         IsHorizontalCollapsed="{Binding IsCollapsed}"
                         ItemsSource="{Binding Menus.MenuItems}"
@@ -64,34 +106,9 @@
                             </DataTemplate>
                         </u:NavMenu.IconTemplate>
                     </u:NavMenu>
-                    <!-- 底部：设置 + 插件管理 -->
-                    <StackPanel Grid.Row="1" HorizontalAlignment="Stretch" Margin="0,0,0,8">
-                        <Border Classes="FluentDivider" Margin="8,0,8,8" />
-                        <Button
-                            Classes="FluentNavFooterItem"
-                            HorizontalAlignment="Stretch"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Padding="0"
-                            CornerRadius="4"
-                            ToolTip.Tip="{DynamicResource TOOLTIP_SETTINGS}"
-                            Command="{Binding ActivateCommand}"
-                            CommandParameter="Settings">
-                            <Grid ColumnDefinitions="Auto,*">
-                                <PathIcon
-                                    Width="20" Height="20"
-                                    Margin="14,8,8,8"
-                                    Data="{DynamicResource FluentSettings20Regular}"
-                                    Foreground="{DynamicResource FluentTextSecondaryBrush}" />
-                                <TextBlock
-                                    Grid.Column="1"
-                                    Margin="0,8,8,8"
-                                    VerticalAlignment="Center"
-                                    FontSize="14"
-                                    Text="{Binding SettingText}"
-                                    IsVisible="{Binding !IsCollapsed}" />
-                            </Grid>
-                        </Button>
+                    <!-- 底部：管理扩展 + 设置 -->
+                    <StackPanel Grid.Row="3" HorizontalAlignment="Stretch" Margin="0,0,0,8">
+                        <Border Classes="FluentDivider" Margin="10,0,10,6" />
                         <Button
                             Classes="FluentNavFooterItem"
                             HorizontalAlignment="Stretch"
@@ -117,15 +134,38 @@
                                     IsVisible="{Binding !IsCollapsed}" />
                             </Grid>
                         </Button>
+                        <Button
+                            Classes="FluentNavFooterItem"
+                            HorizontalAlignment="Stretch"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"
+                            CornerRadius="4"
+                            ToolTip.Tip="{DynamicResource TOOLTIP_SETTINGS}"
+                            Command="{Binding ActivateCommand}"
+                            CommandParameter="Settings">
+                            <Grid ColumnDefinitions="Auto,*">
+                                <PathIcon
+                                    Width="20" Height="20"
+                                    Margin="14,8,8,8"
+                                    Data="{DynamicResource FluentSettings20Regular}"
+                                    Foreground="{DynamicResource FluentTextSecondaryBrush}" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Margin="0,8,8,8"
+                                    VerticalAlignment="Center"
+                                    FontSize="14"
+                                    Text="{Binding SettingText}"
+                                    IsVisible="{Binding !IsCollapsed}" />
+                            </Grid>
+                        </Button>
                     </StackPanel>
                 </Grid>
             </Border>
 
-            <!-- 右侧内容区：主内容表面（WinUI MainContent 风格外壳），内边距 36,24 -->
+            <!-- 右侧内容区：贴边铺满（页面自行负责内边距），首页由 Hero 头图 + 工具卡片网格组成 -->
             <Border Grid.Column="1" Classes="FluentMainContentSurface">
-                <ContentControl
-                    Margin="36,24"
-                    Content="{Binding Content}">
+                <ContentControl Content="{Binding Content}">
                     <ContentControl.ContentTemplate>
                         <plugin:ViewLocator />
                     </ContentControl.ContentTemplate>

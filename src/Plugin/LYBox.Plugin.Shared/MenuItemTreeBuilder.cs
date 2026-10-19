@@ -24,9 +24,26 @@ public static class MenuItemTreeBuilder
                 .Select(x => x.Item.MenuIconName)
                 .FirstOrDefault(n => !string.IsNullOrEmpty(n));
 
-            var virtualParent = new MenuItemViewModel { MenuHeader = pHeader!, Key = pHeader!, MenuIconName = iconName };
+            var virtualParent = new MenuItemViewModel
+            {
+                MenuHeader = pHeader!,
+                Key = pHeader!,
+                // 无显式图标时按分组 Key 取稳定回退图标，避免侧边栏出现空白图标位
+                MenuIconName = string.IsNullOrEmpty(iconName) ? FallbackIcons.For(pHeader) : iconName
+            };
             itemLookup[pHeader!] = virtualParent;
             allItems.Add((null, virtualParent, 0));
+        }
+
+        // 一级叶子菜单（无子项、未显式声明图标）同样补回退图标，保证侧边栏图标列对齐
+        foreach (var entry in allItems)
+        {
+            if (string.IsNullOrEmpty(entry.Parent)
+                && string.IsNullOrEmpty(entry.Item.MenuIconName)
+                && !string.IsNullOrEmpty(entry.Item.Key))
+            {
+                entry.Item.MenuIconName = FallbackIcons.For(entry.Item.Key);
+            }
         }
 
         foreach (var entry in allItems)

@@ -155,13 +155,16 @@
     <value>Home</value>
   </data>
   <data name="NAV_Introduction" xml:space="preserve">
-    <value>Introduction</value>
+    <value>All tools</value>
+  </data>
+  <data name="NAV_FluentControls" xml:space="preserve">
+    <value>Controls</value>
   </data>
   <data name="NAV_Settings" xml:space="preserve">
     <value>Settings</value>
   </data>
   <data name="NAV_Plugins" xml:space="preserve">
-    <value>Plugins</value>
+    <value>Manage extensions</value>
   </data>
   <data name="NAV_PluginManagement" xml:space="preserve">
     <value>Plugin Management</value>
@@ -365,11 +368,20 @@
     <value>Toggle Sidebar</value>
   </data>
   <data name="TOOLTIP_TOGGLE_NAV" xml:space="preserve"><value>Toggle navigation pane</value></data>
+  <data name="TOOLTIP_BACK" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="TOOLTIP_MORE" xml:space="preserve">
+    <value>More</value>
+  </data>
   <data name="SEARCH_PLACEHOLDER" xml:space="preserve">
-    <value>Search</value>
+    <value>Search tools...</value>
   </data>
   <data name="SEARCH_NO_RESULTS" xml:space="preserve">
     <value>No results found</value>
+  </data>
+  <data name="HOME_WELCOME_TITLE" xml:space="preserve">
+    <value>Welcome to LYBox</value>
   </data>
   <data name="WINDOW_TITLE" xml:space="preserve"><value>LYBox</value></data>
   <data name="SPLASH_STARTING" xml:space="preserve">

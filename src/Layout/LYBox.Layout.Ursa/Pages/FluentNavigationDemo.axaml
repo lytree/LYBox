@@ -1,0 +1,234 @@
+<UserControl
+    x:Class="LYBox.Layout.Ursa.Pages.FluentNavigationDemo"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:LYBox.Layout.Ursa.Controls"
+    xmlns:converters="using:LYBox.Plugin.Shared.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:u="https://irihi.tech/ursa"
+    xmlns:vm="using:LYBox.Layout.Ursa.ViewModels"
+    x:CompileBindings="True"
+    x:DataType="vm:FluentNavigationDemoViewModel"
+    d:DesignHeight="900"
+    d:DesignWidth="1200"
+    mc:Ignorable="d">
+    <Design.DataContext>
+        <vm:FluentNavigationDemoViewModel />
+    </Design.DataContext>
+
+    <UserControl.Resources>
+        <converters:IconNameToPathConverter x:Key="IconConverter" />
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.DemoTitle">
+            <Setter Property="FontSize" Value="28" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource FluentColorText0}" />
+        </Style>
+        <Style Selector="TextBlock.DemoSectionTitle">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource FluentColorText0}" />
+        </Style>
+        <Style Selector="TextBlock.DemoDesc">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource FluentTextTertiaryBrush}" />
+        </Style>
+        <Style Selector="TextBlock.DemoStatus">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource FluentAccentBrush}" />
+        </Style>
+        <Style Selector="Border.DemoCard">
+            <Setter Property="Background" Value="{DynamicResource FluentCardBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource FluentCardStrokeBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="16" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="0,0,0,32" Spacing="28">
+
+            <!-- ===== 页头 ===== -->
+            <StackPanel Spacing="6">
+                <TextBlock Classes="DemoTitle" Text="Fluent 组件" />
+                <TextBlock
+                    Classes="DemoDesc"
+                    Text="命令栏、顶部菜单栏、顶部导航与侧边导航视图，全部由当前主题（Ursa 控件 + Fluent Design 样式）实现，未引入额外 UI 依赖。" />
+            </StackPanel>
+
+            <!-- ===== 1. 命令栏 CommandBar ===== -->
+            <StackPanel Spacing="10">
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="DemoSectionTitle" Text="命令栏 CommandBar" />
+                    <TextBlock
+                        Classes="DemoDesc"
+                        Text="FluentCommandBar：图标+文字主命令、分隔线、切换按钮；命令数超过 MaxVisibleItems 时自动收进右侧「…」溢出菜单。" />
+                </StackPanel>
+
+                <Border Classes="DemoCard" Padding="4">
+                    <controls:FluentCommandBar
+                        ItemsSource="{Binding CommandBarItems}"
+                        LabelPosition="Right"
+                        MaxVisibleItems="7" />
+                </Border>
+
+                <TextBlock Classes="DemoStatus" Text="{Binding LastCommandText}" />
+            </StackPanel>
+
+            <!-- ===== 2. 顶部菜单栏 MenuBar ===== -->
+            <StackPanel Spacing="10">
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="DemoSectionTitle" Text="顶部菜单栏 MenuBar" />
+                    <TextBlock
+                        Classes="DemoDesc"
+                        Text="Avalonia Menu + Ursa 菜单主题（Menu.FluentMenuBar）：顶层菜单项、级联子菜单、快捷键提示与分隔线。" />
+                </StackPanel>
+
+                <Border Classes="DemoCard" Padding="2,0">
+                    <Menu Classes="FluentMenuBar">
+                        <MenuItem Header="文件">
+                            <MenuItem Header="新建" InputGesture="Ctrl+N" Command="{Binding ExecuteCommandCommand}" CommandParameter="菜单·新建" />
+                            <MenuItem Header="打开…" InputGesture="Ctrl+O" Command="{Binding ExecuteCommandCommand}" CommandParameter="菜单·打开" />
+                            <MenuItem Header="最近打开">
+                                <MenuItem Header="设计稿.psd" Command="{Binding ExecuteCommandCommand}" CommandParameter="最近·设计稿.psd" />
+                                <MenuItem Header="需求文档.md" Command="{Binding ExecuteCommandCommand}" CommandParameter="最近·需求文档.md" />
+                                <MenuItem Header="构建日志.txt" Command="{Binding ExecuteCommandCommand}" CommandParameter="最近·构建日志.txt" />
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem Header="保存" InputGesture="Ctrl+S" Command="{Binding ExecuteCommandCommand}" CommandParameter="菜单·保存" />
+                            <MenuItem Header="另存为…" Command="{Binding ExecuteCommandCommand}" CommandParameter="菜单·另存为" />
+                            <Separator />
+                            <MenuItem Header="退出" />
+                        </MenuItem>
+                        <MenuItem Header="编辑">
+                            <MenuItem Header="撤销" InputGesture="Ctrl+Z" Command="{Binding ExecuteCommandCommand}" CommandParameter="菜单·撤销" />
+                            <MenuItem Header="重做" InputGesture="Ctrl+Y" Command="{Binding ExecuteCommandCommand}" CommandParameter="菜单·重做" />
+                            <Separator />
+                            <MenuItem Header="剪切" InputGesture="Ctrl+X" Command="{Binding ExecuteCommandCommand}" CommandParameter="菜单·剪切" />
+                            <MenuItem Header="复制" InputGesture="Ctrl+C" Command="{Binding ExecuteCommandCommand}" CommandParameter="菜单·复制" />
+                            <MenuItem Header="粘贴" InputGesture="Ctrl+V" Command="{Binding ExecuteCommandCommand}" CommandParameter="菜单·粘贴" />
+                        </MenuItem>
+                        <MenuItem Header="视图">
+                            <MenuItem Header="放大" Command="{Binding ZoomInCommand}" />
+                            <MenuItem Header="缩小" Command="{Binding ZoomOutCommand}" />
+                            <Separator />
+                            <MenuItem Header="侧边栏" ToggleType="CheckBox" IsChecked="True" />
+                            <MenuItem Header="状态栏" ToggleType="CheckBox" />
+                        </MenuItem>
+                        <MenuItem Header="帮助">
+                            <MenuItem Header="使用文档" Command="{Binding ExecuteCommandCommand}" CommandParameter="菜单·使用文档" />
+                            <MenuItem Header="关于 LYBox" Command="{Binding ExecuteCommandCommand}" CommandParameter="菜单·关于" />
+                        </MenuItem>
+                    </Menu>
+                </Border>
+            </StackPanel>
+
+            <!-- ===== 3. 顶部导航 Top Navigation ===== -->
+            <StackPanel Spacing="10">
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="DemoSectionTitle" Text="顶部导航 Top Navigation" />
+                    <TextBlock
+                        Classes="DemoDesc"
+                        Text="FluentTopNavigation：选中项 2px accent 指示条；超过 MaxVisibleItems 的项自动收进「更多」浮出菜单。" />
+                </StackPanel>
+
+                <Border Classes="DemoCard" Padding="8,2">
+                    <controls:FluentTopNavigation
+                        ItemsSource="{Binding TopNavigationItems}"
+                        MaxVisibleItems="5"
+                        SelectedItem="{Binding SelectedTopNavigationItem, Mode=TwoWay}" />
+                </Border>
+
+                <TextBlock Classes="DemoStatus" Text="{Binding TopNavigationStatus}" />
+            </StackPanel>
+
+            <!-- ===== 4. 侧边导航视图 Side NavigationView ===== -->
+            <StackPanel Spacing="10">
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="DemoSectionTitle" Text="侧边导航视图 Side NavigationView" />
+                    <TextBlock
+                        Classes="DemoDesc"
+                        Text="Ursa NavMenu + Fluent 导航面板样式：分组分隔线、可展开子项、底部固定入口与折叠/展开。" />
+                </StackPanel>
+
+                <Border Classes="DemoCard" Padding="0" ClipToBounds="True">
+                    <Grid ColumnDefinitions="Auto,*" Height="420">
+                        <!-- 侧边导航面板 -->
+                        <Border Grid.Column="0" Classes="FluentNavPane">
+                            <Grid RowDefinitions="Auto,*,Auto">
+                                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="12,10,8,4">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Text="导航"
+                                        IsVisible="{Binding !IsSidePaneCollapsed}" />
+                                    <Button
+                                        Grid.Column="1"
+                                        Classes="FluentHamburger"
+                                        Width="32" Height="32"
+                                        Command="{Binding ToggleSidePaneCommand}"
+                                        ToolTip.Tip="{DynamicResource TOOLTIP_TOGGLE_NAV}">
+                                        <PathIcon Width="16" Height="16" Data="{DynamicResource FluentNavigation20Regular}" />
+                                    </Button>
+                                </Grid>
+
+                                <u:NavMenu
+                                    Grid.Row="1"
+                                    Background="Transparent"
+                                    IsHorizontalCollapsed="{Binding IsSidePaneCollapsed}"
+                                    ItemsSource="{Binding SideNavigationItems}"
+                                    SelectedItem="{Binding SelectedSideNavigationItem, Mode=TwoWay}"
+                                    ExpandWidth="232"
+                                    CollapseWidth="48"
+                                    HeaderBinding="{Binding MenuHeader}"
+                                    IconBinding="{Binding MenuIconName}"
+                                    SubMenuBinding="{Binding Children}">
+                                    <u:NavMenu.IconTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <u:TwoTonePathIcon
+                                                Width="20" Height="20"
+                                                Data="{Binding Converter={StaticResource IconConverter}}"
+                                                Foreground="{DynamicResource FluentTextSecondaryBrush}"
+                                                StrokeBrush="{DynamicResource FluentTextSecondaryBrush}"
+                                                ActiveForeground="{DynamicResource FluentAccentBrush}"
+                                                ActiveStrokeBrush="{DynamicResource FluentAccentBrush}"
+                                                IsActive="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=u:NavMenuItem}, Path=IsHighlighted, Mode=TwoWay}" />
+                                        </DataTemplate>
+                                    </u:NavMenu.IconTemplate>
+                                </u:NavMenu>
+
+                                <StackPanel Grid.Row="2" Margin="0,0,0,8">
+                                    <Border Classes="FluentDivider" Margin="8,0,8,8" />
+                                    <Button Classes="FluentNavFooterItem" HorizontalAlignment="Stretch">
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <PathIcon Width="20" Height="20" Data="{DynamicResource FluentSettings20Regular}" />
+                                            <TextBlock VerticalAlignment="Center" Text="设置" IsVisible="{Binding !IsSidePaneCollapsed}" />
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- 内容区 -->
+                        <Border Grid.Column="1" Background="{DynamicResource FluentPageBackgroundBrush}">
+                            <StackPanel Margin="24" Spacing="8">
+                                <TextBlock FontSize="14" FontWeight="SemiBold" Text="内容区" />
+                                <TextBlock Classes="DemoDesc" Text="{Binding SideNavigationStatus}" />
+                                <TextBlock
+                                    Classes="DemoDesc"
+                                    Text="侧边导航与主内容区同属一个组件体系：导航面板用 FluentNavPane，内容区用页面背景色，二者通过 1px 分隔线区分。" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
