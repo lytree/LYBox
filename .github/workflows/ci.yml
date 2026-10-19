@@ -1,18 +1,15 @@
 name: CI
 
-# 持续集成：push / PR 时自动构建全部目标（host + SDK + plugin），
-# 仅验证编译通过，不发布产物、不推送 NuGet。
-# 发布请使用 release-host.yml / release-plugins.yml。
+# 持续集成：
+#   - 每次 push 到 main 都执行「全量构建」（宿主 launcher + console + SDK NuGet 打包 + 测试），
+#     不再按文件路径跳过（文档改动同样触发，保证主分支每个提交都有构建记录）。
+#   - 四平台发布矩阵（win-x64 / win-arm64 / linux-x64 / linux-arm64）默认不跑，
+#     仅在手动 workflow_dispatch 时追加执行，用于发版前的跨平台预演。
+#   - 真正的发布（NuGet 推送 / 四平台 zip / GitHub Release）仍由 release-host.yml 负责。
 
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - '**.md'
-      - '**.mdx'
-      - 'docs/**'
-      - '.gitignore'
-      - 'LICENSE'
   pull_request:
     branches: [main]
     paths-ignore:
@@ -33,7 +30,7 @@ env:
 
 jobs:
   build:
-    name: Build All Targets
+    name: Build All Targets (full)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -42,10 +39,12 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Build all (host + SDK)
+      # --build=all：清理整个 artifacts 目录后，构建宿主（launcher + console）、
+      # 构建 SDK 四件套并打包 NuGet，属于脚本层面的「全量」目标。
+      - name: Build all (host + console + SDK + pack)
         run: |
           dotnet build/build.cs \
-            --build=bin \
+            --build=all \
             --configuration=Release
 
       - name: Test core
@@ -78,3 +77,40 @@ jobs:
           path: artifacts/test-results/**
           if-no-files-found: warn
           retention-days: 3
+
+  # 手动触发时的跨平台预演：与 release-host.yml 的矩阵保持一致，
+  # 只验证各 RID 能否成功发布，不推送 NuGet、不生成 Release。
+  build_matrix:
+    name: Publish Launcher (${{ matrix.rid }})
+    if: github.event_name == 'workflow_dispatch'
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, rid: win-x64 }
+          - { os: windows-latest, rid: win-arm64 }
+          - { os: ubuntu-latest,  rid: linux-x64 }
+          - { os: ubuntu-latest,  rid: linux-arm64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish launcher
+        shell: bash
+        run: |
+          dotnet build/build.cs \
+            --build=bin \
+            --configuration=Release \
+            --runtime-identifier=${{ matrix.rid }} \
+            --self-contained=true
+
+      - name: Verify publish output
+        shell: bash
+        run: |
+          echo "=== ${{ matrix.rid }} publish output ==="
+          find artifacts/publish/launcher/${{ matrix.rid }} -maxdepth 2 -type f | sort | head -40
