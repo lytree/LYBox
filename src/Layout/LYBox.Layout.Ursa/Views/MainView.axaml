@@ -52,7 +52,9 @@
                                 Foreground="{DynamicResource FluentColorText1}" />
                         </Button>
                     </StackPanel>
-                    <!-- 搜索框：位于侧边栏顶部（折叠态隐藏），放大镜靠右 -->
+                    <!-- 搜索框：位于侧边栏顶部（折叠态隐藏）。
+                         右侧内嵌「清除 + 搜索」两个按钮：搜索按钮常驻（输入过程中也不消失），
+                         清除按钮仅在有输入时出现，且两个按钮占位固定，避免输入时文本区宽度跳动。 -->
                     <TextBox
                         Grid.Row="1"
                         Name="SearchBox"
@@ -62,12 +64,38 @@
                         PlaceholderText="{DynamicResource SEARCH_PLACEHOLDER}"
                         Text="{Binding SearchText, Mode=TwoWay}"
                         IsVisible="{Binding !IsCollapsed}">
+                        <TextBox.KeyBindings>
+                            <KeyBinding Gesture="Enter" Command="{Binding SubmitSearchCommand}" />
+                            <KeyBinding Gesture="Escape" Command="{Binding ClearSearchCommand}" />
+                        </TextBox.KeyBindings>
                         <TextBox.InnerRightContent>
-                            <Path
-                                Width="14" Height="14"
-                                Margin="0,0,2,0"
-                                Data="{DynamicResource FluentSearch20Regular}"
-                                Fill="{DynamicResource FluentColorText2}" />
+                            <!-- 负外边距抵消模板给 InnerRightContent 预留的 12px 左间距，
+                                 让按钮贴近输入框右缘（约 8px），与 WinUI 搜索框观感一致 -->
+                            <Grid ColumnDefinitions="22,22" Margin="0,0,-4,0" VerticalAlignment="Center">
+                                <Button
+                                    Grid.Column="0"
+                                    Classes="FluentSearchActionButton"
+                                    Command="{Binding ClearSearchCommand}"
+                                    Focusable="False"
+                                    IsVisible="{Binding SearchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                    ToolTip.Tip="{DynamicResource TOOLTIP_SEARCH_CLEAR}">
+                                    <Path
+                                        Width="10" Height="10"
+                                        Data="{DynamicResource FluentDismiss20Regular}"
+                                        Fill="{DynamicResource FluentColorText2}" />
+                                </Button>
+                                <Button
+                                    Grid.Column="1"
+                                    Classes="FluentSearchActionButton"
+                                    Command="{Binding SubmitSearchCommand}"
+                                    Focusable="False"
+                                    ToolTip.Tip="{DynamicResource TOOLTIP_SEARCH}">
+                                    <Path
+                                        Width="14" Height="14"
+                                        Data="{DynamicResource FluentSearch20Regular}"
+                                        Fill="{DynamicResource FluentColorText2}" />
+                                </Button>
+                            </Grid>
                         </TextBox.InnerRightContent>
                     </TextBox>
                     <!-- NavMenu 菜单列表（无 Header/Footer，纯菜单项） -->

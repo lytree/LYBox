@@ -225,6 +225,33 @@
         <Setter Property="Padding" Value="11,6" />
     </Style>
 
+    <!-- 搜索框内嵌动作按钮（清除 / 搜索）：22x22 透明按钮，常驻在输入框右侧。
+         搜索按钮不随输入显隐，保证「搜索时」仍然可点；清除按钮只在其左侧出现。 -->
+    <Style Selector="Button.FluentSearchActionButton">
+        <Setter Property="Width" Value="22" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Transitions">
+            <Setter.Value>
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.083" />
+                </Transitions>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style Selector="Button.FluentSearchActionButton:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource FluentSubtleHoverBrush}" />
+    </Style>
+    <Style Selector="Button.FluentSearchActionButton:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource FluentSubtlePressedBrush}" />
+    </Style>
+
     <!-- ===== 工具坞布局（参考 DevToys 布局结构，配色仍走 Fluent 令牌） ===== -->
 
     <!-- 侧边栏顶部图标按钮（汉堡/返回）— 32x32 透明按钮 -->

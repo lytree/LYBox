@@ -380,6 +380,12 @@
   <data name="SEARCH_NO_RESULTS" xml:space="preserve">
     <value>No results found</value>
   </data>
+  <data name="TOOLTIP_SEARCH" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="TOOLTIP_SEARCH_CLEAR" xml:space="preserve">
+    <value>Clear search</value>
+  </data>
   <data name="HOME_WELCOME_TITLE" xml:space="preserve">
     <value>Welcome to LYBox</value>
   </data>

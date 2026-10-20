@@ -158,6 +158,8 @@
   <data name="TOOLTIP_MORE" xml:space="preserve"><value>更多</value></data>
   <data name="SEARCH_PLACEHOLDER" xml:space="preserve"><value>输入以搜索工具...</value></data>
   <data name="SEARCH_NO_RESULTS" xml:space="preserve"><value>未找到相关功能</value></data>
+  <data name="TOOLTIP_SEARCH" xml:space="preserve"><value>搜索</value></data>
+  <data name="TOOLTIP_SEARCH_CLEAR" xml:space="preserve"><value>清除搜索</value></data>
   <data name="HOME_WELCOME_TITLE" xml:space="preserve"><value>欢迎使用 LYBox</value></data>
   <data name="HOME_NO_TOOLS" xml:space="preserve"><value>尚未安装任何工具</value></data>
   <data name="HOME_OPEN_TOOL" xml:space="preserve"><value>打开</value></data>

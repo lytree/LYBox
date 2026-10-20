@@ -52,13 +52,42 @@ public partial class MainViewViewModel : ViewModelBase
     private void OnSearchDebounce(object? sender, EventArgs e)
     {
         _searchDebounceTimer!.Stop();
+        ExecuteSearch();
+    }
+
+    /// <summary>
+    /// 搜索按钮 / 回车：跳过防抖，立即执行一次搜索。
+    /// </summary>
+    [RelayCommand]
+    public void SubmitSearch()
+    {
+        _searchDebounceTimer?.Stop();
+        ExecuteSearch();
+    }
+
+    /// <summary>
+    /// 清除按钮 / Esc：清空关键字并立即恢复完整列表。
+    /// 先赋值再停表，避免 OnSearchTextChanged 重新启动防抖导致重复派发。
+    /// </summary>
+    [RelayCommand]
+    public void ClearSearch()
+    {
+        SearchText = string.Empty;
+        _searchDebounceTimer?.Stop();
+        ExecuteSearch();
+    }
+
+    /// <summary>
+    /// 执行搜索：非空关键字时先跳到首页（确保首页已创建并注册消息接收器），
+    /// 再把关键字广播给首页做卡片过滤。
+    /// </summary>
+    private void ExecuteSearch()
+    {
         var value = SearchText;
-        // 搜索时自动跳转到首页，确保首页已创建并注册消息接收器
         if (!string.IsNullOrWhiteSpace(value) && Content is not IntroductionDemoViewModel)
         {
             OnNavigation(this, "Introduction");
         }
-        // 将搜索文本发送到首页（IntroductionDemoViewModel），用于过滤工具卡片
         WeakReferenceMessenger.Default.Send(value ?? string.Empty, "SearchChanged");
     }
 
