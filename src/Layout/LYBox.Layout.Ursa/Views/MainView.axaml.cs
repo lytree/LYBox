@@ -1,5 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
+using CommunityToolkit.Mvvm.Input;
 using System;
 using Ursa.Controls;
 using LYBox.Layout.Ursa.ViewModels;
@@ -18,6 +22,76 @@ public partial class MainView : UserControl
         // Ursa NavMenu 只通过 Header/Icon/SubMenu/Command 四个 Binding 做数据映射，
         // IsSeparator 需要在这里手动从数据项同步到容器，否则分隔项会渲染成空白行。
         NavMenu.ContainerPrepared += OnNavContainerPrepared;
+
+        // 参考 DevToys NavBar：Ctrl+F 聚焦侧边栏搜索框（折叠态会先展开侧边栏再聚焦）。
+        KeyBindings.Add(new KeyBinding
+        {
+            Gesture = new KeyGesture(Key.F, KeyModifiers.Control),
+            Command = new RelayCommand(OpenSearch)
+        });
+    }
+
+    /// <summary>
+    /// 折叠态侧边栏的放大镜入口：展开侧边栏并聚焦搜索框，与 Ctrl+F 行为一致。
+    /// </summary>
+    private void OnSearchRailButtonClick(object? sender, RoutedEventArgs e) => OpenSearch();
+
+    /// <summary>
+    /// 展开侧边栏并把焦点交给搜索框。展开时 NavMenu 有约 250ms 的宽度过渡，
+    /// 等动画结束再聚焦，避免焦点落进仍在塌缩中的控件。
+    /// </summary>
+    private void OpenSearch()
+    {
+        var alreadyExpanded = true;
+        if (DataContext is MainViewViewModel viewModel)
+        {
+            alreadyExpanded = !viewModel.IsCollapsed;
+            viewModel.IsCollapsed = false;
+        }
+
+        if (alreadyExpanded)
+        {
+            FocusSearchBox();
+            return;
+        }
+
+        DispatcherTimer.RunOnce(FocusSearchBox, TimeSpan.FromMilliseconds(220));
+    }
+
+    private void FocusSearchBox()
+    {
+        SearchBox.Focus();
+        SearchBox.SelectAll();
+    }
+
+    /// <summary>侧边栏自动折叠阈值，取自 DevToys NavBarThresholds.NavBarWidthSidebarCollapseThreshold。</summary>
+    private const double SidebarCollapseThreshold = 1008;
+
+    protected override void OnSizeChanged(SizeChangedEventArgs e)
+    {
+        base.OnSizeChanged(e);
+        ApplySidebarWidthPolicy(e.NewSize.Width);
+    }
+
+    /// <summary>
+    /// 参考 DevToys 的自适应侧边栏：窗口宽度小于 1008px 时自动收成图标栏；
+    /// 回到阈值以上时，若用户没有手动折叠过则自动展开。
+    /// </summary>
+    private void ApplySidebarWidthPolicy(double width)
+    {
+        if (_viewModel is null || width <= 0)
+            return;
+
+        if (width < SidebarCollapseThreshold)
+        {
+            // 用户在窄窗下明确点开过侧边栏就不再强制收起
+            if (_viewModel.UserPreferredCollapsed != false)
+                _viewModel.IsCollapsed = true;
+        }
+        else if (_viewModel.UserPreferredCollapsed != true)
+        {
+            _viewModel.IsCollapsed = false;
+        }
     }
 
     /// <summary>
@@ -42,12 +116,35 @@ public partial class MainView : UserControl
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
+        AttachViewModel();
+    }
+
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        AttachViewModel();
+    }
+
+    /// <summary>
+    /// 绑定 ViewModel 依赖的宿主服务（通知管理器）并按窗口宽度摆正侧边栏。
+    /// DataContext 可能在挂在可视化树之前/之后才赋值，两条路径都要走一遍。
+    /// </summary>
+    private void AttachViewModel()
+    {
         _viewModel = DataContext as MainViewViewModel;
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is null || _viewModel is null)
+        if (_viewModel is null)
             return;
-        _viewModel.NotificationManager = WindowNotificationManager.TryGetNotificationManager(topLevel, out var manager)
-            ? manager
-            : new WindowNotificationManager(topLevel);
+
+        if (TopLevel.GetTopLevel(this) is { } topLevel && _viewModel.NotificationManager is null)
+        {
+            _viewModel.NotificationManager = WindowNotificationManager.TryGetNotificationManager(topLevel, out var manager)
+                ? manager
+                : new WindowNotificationManager(topLevel);
+        }
+
+        // 首次挂载时 Bounds 可能还是 0（窗口尺寸在附加之后才定下来），
+        // 因此再延后到布局完成时补一次。
+        ApplySidebarWidthPolicy(Bounds.Width);
+        Dispatcher.UIThread.Post(() => ApplySidebarWidthPolicy(Bounds.Width), DispatcherPriority.Loaded);
     }
 }

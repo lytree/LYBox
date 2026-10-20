@@ -59,12 +59,13 @@
         <Setter Property="BoxShadow" Value="{DynamicResource FluentPaneBoxShadow}" />
     </Style>
 
-    <!-- 主内容表面 (Border) — 与侧边栏贴合的扁平内容区（工具坞布局：无圆角、无外边距），
-         不使用阴影/描边，仅靠底色层级区分侧边栏与内容 -->
+    <!-- 主内容表面 (Border) — 参考 DevToys 的 main 区域：内容以「卡片层」形式贴在侧边栏右侧，
+         仅左上角 8px 圆角 + 1px 描边，形成与侧边栏的视觉接缝；右侧/底部贴窗口边缘故不可见 -->
     <Style Selector="Border.FluentMainContentSurface">
         <Setter Property="Background" Value="{DynamicResource FluentPageBackgroundBrush}" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="BorderBrush" Value="{DynamicResource FluentCardStrokeBrush}" />
+        <Setter Property="BorderThickness" Value="1,1,0,0" />
+        <Setter Property="CornerRadius" Value="8,0,0,0" />
         <Setter Property="Margin" Value="0" />
         <Setter Property="BoxShadow" Value="{DynamicResource FluentPaneBoxShadow}" />
     </Style>
@@ -205,9 +206,11 @@
         <Setter Property="BorderBrush" Value="{DynamicResource FluentCardStrokeBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="4" />
-        <Setter Property="Padding" Value="12,7" />
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="Padding" Value="10,3" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Transitions">
             <Setter.Value>
                 <Transitions>
@@ -222,18 +225,18 @@
     <Style Selector="TextBox.FluentSearchBox:focus">
         <Setter Property="BorderBrush" Value="{DynamicResource FluentAccentBrush}" />
         <Setter Property="BorderThickness" Value="2" />
-        <Setter Property="Padding" Value="11,6" />
+        <Setter Property="Padding" Value="9,2" />
     </Style>
 
     <!-- 搜索框内嵌动作按钮（清除 / 搜索）：22x22 透明按钮，常驻在输入框右侧。
          搜索按钮不随输入显隐，保证「搜索时」仍然可点；清除按钮只在其左侧出现。 -->
     <Style Selector="Button.FluentSearchActionButton">
-        <Setter Property="Width" Value="22" />
-        <Setter Property="Height" Value="22" />
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="20" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="CornerRadius" Value="3" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -290,7 +293,8 @@
         <Setter Property="Background" Value="{DynamicResource FluentHeroGradientBrush}" />
         <Setter Property="Padding" Value="24,0" />
         <Setter Property="MinHeight" Value="90" />
-        <Setter Property="CornerRadius" Value="4,4,0,0" />
+        <!-- 与内容区左上角 8px 圆角对齐，避免 Hero 直角盖住卡片圆角 -->
+        <Setter Property="CornerRadius" Value="8,0,0,0" />
     </Style>
     <!-- 头图主标题 — 30px Bold（品牌底色上恒为白字） -->
     <Style Selector="TextBlock.FluentHeroTitle">
@@ -441,21 +445,30 @@
 
     <!-- ===== Ursa NavMenuItem Fluent 风格覆盖 ===== -->
 
-    <!-- NavMenuItem: 选中项 accent-tint 背景 + 左侧 accent 指示竖条（WinUI NavigationViewItem 选中态） -->
+    <!-- NavMenuItem: 选中项 accent-tint 背景 + 左侧 3px 圆角指示条（参考 DevToys ListBoxItem 选中态） -->
     <Style Selector="u|NavMenuItem:selected /template/ Border#PART_Border">
         <Setter Property="Background" Value="{DynamicResource FluentNavItemSelectedBackgroundBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource FluentAccentBrush}" />
-        <Setter Property="BorderThickness" Value="2,0,0,0" />
+        <Setter Property="BorderThickness" Value="0" />
     </Style>
     <Style Selector="u|NavMenuItem:selected:pointerover /template/ Border#PART_Border">
         <Setter Property="Background" Value="{DynamicResource FluentNavItemSelectedHoverBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource FluentAccentBrush}" />
-        <Setter Property="BorderThickness" Value="2,0,0,0" />
     </Style>
     <Style Selector="u|NavMenuItem:selected:focus /template/ Border#PART_Border">
         <Setter Property="Background" Value="{DynamicResource FluentNavItemSelectedBackgroundBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource FluentAccentBrush}" />
-        <Setter Property="BorderThickness" Value="2,0,0,0" />
+    </Style>
+
+    <!-- 选中指示条：3px 宽、16 高、圆角，选中时淡入（DevToys 用 scaleY 动画，这里用透明度过渡） -->
+    <Style Selector="u|NavMenuItem /template/ Rectangle#PART_SelectionIndicator">
+        <Setter Property="Transitions">
+            <Setter.Value>
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.167" Easing="CubicEaseOut" />
+                </Transitions>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style Selector="u|NavMenuItem:selected /template/ Rectangle#PART_SelectionIndicator">
+        <Setter Property="Opacity" Value="1" />
     </Style>
 
     <!-- NavMenuItem: 选中图标 accent 色 -->
@@ -476,15 +489,17 @@
         <Setter Property="Background" Value="{DynamicResource FluentSubtleHoverBrush}" />
     </Style>
 
-    <!-- NavMenuItem: 图标位置一致（折叠/展开均左对齐） -->
+    <!-- NavMenuItem: 图标位置一致（折叠/展开均左对齐）。
+         左侧缩进对齐 DevToys 的 12px item padding（item 自身 margin 3 + 图标 9），
+         图标与文字间距 12px，20px 图标落位后文字起始约 44px。 -->
     <Style Selector="u|NavMenuItem:first-level /template/ ContentPresenter#PART_IconPresenter">
-        <Setter Property="Padding" Value="14,8,8,8" />
+        <Setter Property="Padding" Value="9,8,12,8" />
         <Setter Property="HorizontalAlignment" Value="Left" />
     </Style>
     <Style Selector="u|NavMenuItem:horizontal-collapsed:first-level /template/ ContentPresenter#PART_IconPresenter">
         <Setter Property="Grid.ColumnSpan" Value="1" />
         <Setter Property="Margin" Value="0" />
-        <Setter Property="Padding" Value="14,8,8,8" />
+        <Setter Property="Padding" Value="11,8,11,8" />
         <Setter Property="HorizontalAlignment" Value="Left" />
     </Style>
 

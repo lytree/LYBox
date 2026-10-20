@@ -16,6 +16,7 @@ public partial class MainViewViewModel : ViewModelBase
 {
     private readonly INavigationService _navigationService;
     private readonly IMenuConfigurationService _menuConfigurationService;
+    private readonly ISettingsService? _settingsService;
     private ILocalizationService? _localizationService;
 
     public WindowNotificationManager? NotificationManager { get; set; }
@@ -97,10 +98,20 @@ public partial class MainViewViewModel : ViewModelBase
         IsSidebarHidden = !IsSidebarHidden;
     }
 
+    /// <summary>
+    /// 用户是否显式切换过侧边栏折叠态。null 表示从未手动切换，此时允许按窗口宽度自适应
+    /// （窄窗自动收成图标栏，参考 DevToys 的 NavBarThresholds）。
+    /// </summary>
+    public bool? UserPreferredCollapsed { get; private set; }
+
     [RelayCommand]
     public void ToggleCollapse()
     {
         IsCollapsed = !IsCollapsed;
+        // 记下用户意图，避免后续窗口尺寸变化覆盖手动选择
+        UserPreferredCollapsed = IsCollapsed;
+        // 参考 DevToys 记住侧边栏状态：写入设置项，下次启动沿用
+        _settingsService?.SetValue("App.SidebarCollapsed", IsCollapsed);
     }
 
     [RelayCommand]
@@ -122,6 +133,16 @@ public partial class MainViewViewModel : ViewModelBase
 
         UpdateLocalizedStrings();
         Menus.RefreshHeaders();
+
+        // 恢复上次的侧边栏状态（设置页「折叠侧边栏」开关写的就是这个键）。
+        // 有持久化值时视为用户已作选择，避免被窗口宽度自适应逻辑改回去。
+        _settingsService = ServiceLocator.GetService<ISettingsService>();
+        if (_settingsService?.GetValue<bool>("App.SidebarCollapsed") is true)
+        {
+            IsCollapsed = true;
+            UserPreferredCollapsed = true;
+        }
+
         WeakReferenceMessenger.Default.Register<MainViewViewModel, string, string>(this, "JumpTo", OnNavigation);
         OnNavigation(this, "Introduction");
     }

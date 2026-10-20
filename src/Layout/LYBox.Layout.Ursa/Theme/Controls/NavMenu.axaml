@@ -55,74 +55,90 @@
             <Border
                 Name="PART_Border"
                 Grid.Row="0"
-                MinHeight="36"
+                MinHeight="34"
+                Margin="3,1"
                 HorizontalAlignment="Stretch"
                 Background="{TemplateBinding Background}"
                 BorderBrush="{TemplateBinding BorderBrush}"
-                CornerRadius="{DynamicResource NavigationMenuItemDefaultCornerRadius}"
+                CornerRadius="4"
                 Cursor="Hand">
-                <Grid
-                    Name="PART_RootGrid"
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Center">
-                    <Grid.Margin>
-                        <MultiBinding Converter="{converters:NavMenuMarginConverter}">
-                            <Binding Path="SubMenuIndent" RelativeSource="{RelativeSource TemplatedParent}" />
-                            <Binding Path="Level" RelativeSource="{RelativeSource TemplatedParent}" />
-                            <Binding Path="IsHorizontalCollapsed" RelativeSource="{RelativeSource TemplatedParent}" />
-                        </MultiBinding>
-                    </Grid.Margin>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="Icon" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="Expander" />
-                    </Grid.ColumnDefinitions>
-                    <ContentPresenter
-                        Name="PART_IconPresenter"
-                        Padding="8"
+                <Panel>
+                    <!-- 选中指示条：参考 DevToys ListBoxItem 的 3px 圆角竖条（垂直居中、16 高），
+                         由 FluentDesignStyles 中的 :selected 样式控制显隐 -->
+                    <Rectangle
+                        Name="PART_SelectionIndicator"
+                        Width="3" Height="16"
+                        Margin="2,0,0,0"
                         HorizontalAlignment="Left"
-                        Background="Transparent"
-                        Content="{Binding Icon, RelativeSource={RelativeSource TemplatedParent}}"
-                        ContentTemplate="{Binding IconTemplate, RelativeSource={RelativeSource TemplatedParent}}" />
-                    <ContentPresenter
-                        Name="PART_HeaderPresenter"
-                        Grid.Column="1"
-                        Padding="0,8, 8, 8"
-                        Background="Transparent"
-                        Content="{Binding Header, RelativeSource={RelativeSource TemplatedParent}}"
-                        ContentTemplate="{Binding HeaderTemplate, RelativeSource={RelativeSource TemplatedParent}}" />
-                    <PathIcon
-                        Name="PART_ExpanderIcon"
-                        Grid.Column="2"
-                        Theme="{StaticResource InnerPathIcon}"
-                        Margin="4,0, 8 0"
-                        Data="{DynamicResource NavigationMenuItemExpandIconGlyph}"
-                        Foreground="{DynamicResource NavigationMenuItemExpandIconForeground}">
-                        <PathIcon.Transitions>
-                            <Transitions>
-                                <TransformOperationsTransition Property="RenderTransform" Duration="0.2" />
-                            </Transitions>
-                        </PathIcon.Transitions>
-                    </PathIcon>
-                    <Popup
-                        Name="PART_Popup"
-                        Grid.Column="0"
-                        IsLightDismissEnabled="True"
-                        Placement="RightEdgeAlignedTop"
-                        PlacementTarget="{Binding #PART_Border}">
-                        <Border
-                            Margin="{DynamicResource NavigationMenuItemFlyoutMargin}"
-                            Padding="{DynamicResource MenuFlyoutPadding}"
-                            HorizontalAlignment="Stretch"
-                            Background="{DynamicResource MenuFlyoutBackground}"
-                            BorderBrush="{DynamicResource MenuFlyoutBorderBrush}"
-                            BorderThickness="{DynamicResource MenuFlyoutBorderThickness}"
-                            BoxShadow="{DynamicResource MenuFlyoutBorderBoxShadow}"
-                            CornerRadius="{DynamicResource MenuFlyoutCornerRadius}">
-                            <StackPanel Name="PART_OverflowPanel" />
-                        </Border>
-                    </Popup>
-                </Grid>
+                        VerticalAlignment="Center"
+                        Fill="{DynamicResource FluentAccentBrush}"
+                        IsHitTestVisible="False"
+                        Opacity="0"
+                        RadiusX="1.5"
+                        RadiusY="1.5" />
+                    <Grid
+                        Name="PART_RootGrid"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Center">
+                        <Grid.Margin>
+                            <MultiBinding Converter="{converters:NavMenuMarginConverter}">
+                                <Binding Path="SubMenuIndent" RelativeSource="{RelativeSource TemplatedParent}" />
+                                <Binding Path="Level" RelativeSource="{RelativeSource TemplatedParent}" />
+                                <Binding Path="IsHorizontalCollapsed" RelativeSource="{RelativeSource TemplatedParent}" />
+                            </MultiBinding>
+                        </Grid.Margin>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="Icon" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="Expander" />
+                        </Grid.ColumnDefinitions>
+                        <ContentPresenter
+                            Name="PART_IconPresenter"
+                            Padding="8"
+                            HorizontalAlignment="Left"
+                            Background="Transparent"
+                            Content="{Binding Icon, RelativeSource={RelativeSource TemplatedParent}}"
+                            ContentTemplate="{Binding IconTemplate, RelativeSource={RelativeSource TemplatedParent}}" />
+                        <ContentPresenter
+                            Name="PART_HeaderPresenter"
+                            Grid.Column="1"
+                            Padding="0,8, 8, 8"
+                            Background="Transparent"
+                            Content="{Binding Header, RelativeSource={RelativeSource TemplatedParent}}"
+                            ContentTemplate="{Binding HeaderTemplate, RelativeSource={RelativeSource TemplatedParent}}" />
+                        <PathIcon
+                            Name="PART_ExpanderIcon"
+                            Grid.Column="2"
+                            Theme="{StaticResource InnerPathIcon}"
+                            Margin="4,0, 8 0"
+                            Data="{DynamicResource NavigationMenuItemExpandIconGlyph}"
+                            Foreground="{DynamicResource NavigationMenuItemExpandIconForeground}">
+                            <PathIcon.Transitions>
+                                <Transitions>
+                                    <TransformOperationsTransition Property="RenderTransform" Duration="0.2" />
+                                </Transitions>
+                            </PathIcon.Transitions>
+                        </PathIcon>
+                        <Popup
+                            Name="PART_Popup"
+                            Grid.Column="0"
+                            IsLightDismissEnabled="True"
+                            Placement="RightEdgeAlignedTop"
+                            PlacementTarget="{Binding #PART_Border}">
+                            <Border
+                                Margin="{DynamicResource NavigationMenuItemFlyoutMargin}"
+                                Padding="{DynamicResource MenuFlyoutPadding}"
+                                HorizontalAlignment="Stretch"
+                                Background="{DynamicResource MenuFlyoutBackground}"
+                                BorderBrush="{DynamicResource MenuFlyoutBorderBrush}"
+                                BorderThickness="{DynamicResource MenuFlyoutBorderThickness}"
+                                BoxShadow="{DynamicResource MenuFlyoutBorderBoxShadow}"
+                                CornerRadius="{DynamicResource MenuFlyoutCornerRadius}">
+                                <StackPanel Name="PART_OverflowPanel" />
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </Panel>
             </Border>
             <LayoutTransformControl Grid.Row="1" RenderTransformOrigin="0.5,0">
                 <ItemsPresenter

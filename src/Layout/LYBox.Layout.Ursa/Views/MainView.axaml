@@ -35,23 +35,39 @@
               Background="{DynamicResource FluentShellBackgroundBrush}"
               ColumnDefinitions="Auto,*">
             <Border Classes="FluentNavPane" Grid.Column="0">
+                <!-- 侧边栏四行：导航开关 /（折叠态放大镜入口 或 展开态搜索框）/ 导航项 / 底部入口
+                     行高刻意对齐：折叠态 36+14=50，展开态 32+18=50，切换时导航列表不跳动 -->
                 <Grid RowDefinitions="Auto,Auto,*,Auto">
-                    <!-- 顶部：折叠按钮（返回入口在标题栏，参考 DevToys 布局） -->
-                    <StackPanel
+                    <!-- 顶部：导航开关（DevToys sidebar-header 的 36 高 stealth 按钮，40x36） -->
+                    <Button
                         Grid.Row="0"
-                        Orientation="Horizontal"
-                        Spacing="2"
-                        Margin="10,4,10,4">
-                        <Button
-                            Classes="FluentRailButton"
-                            Command="{Binding ToggleCollapseCommand}"
-                            ToolTip.Tip="{DynamicResource TOOLTIP_TOGGLE_NAV}">
-                            <PathIcon
-                                Width="16" Height="16"
-                                Data="{DynamicResource FluentLineHorizontal320Regular}"
-                                Foreground="{DynamicResource FluentColorText1}" />
-                        </Button>
-                    </StackPanel>
+                        Classes="FluentRailButton"
+                        Width="40" Height="36"
+                        Margin="4,0,4,0"
+                        HorizontalAlignment="Left"
+                        Command="{Binding ToggleCollapseCommand}"
+                        ToolTip.Tip="{DynamicResource TOOLTIP_TOGGLE_NAV}">
+                        <PathIcon
+                            Width="16" Height="16"
+                            Data="{DynamicResource FluentLineHorizontal320Regular}"
+                            Foreground="{DynamicResource FluentColorText1}" />
+                    </Button>
+                    <!-- 折叠态：放大镜入口，点击展开侧边栏并聚焦搜索框（与 Ctrl+F 等价） -->
+                    <Button
+                        Grid.Row="1"
+                        Name="SearchRailButton"
+                        Classes="FluentRailButton"
+                        Width="40" Height="36"
+                        Margin="4,6,4,8"
+                        HorizontalAlignment="Left"
+                        IsVisible="{Binding IsCollapsed}"
+                        Click="OnSearchRailButtonClick"
+                        ToolTip.Tip="{DynamicResource TOOLTIP_SEARCH}">
+                        <PathIcon
+                            Width="16" Height="16"
+                            Data="{DynamicResource FluentSearch20Regular}"
+                            Foreground="{DynamicResource FluentColorText1}" />
+                    </Button>
                     <!-- 搜索框：位于侧边栏顶部（折叠态隐藏）。
                          右侧内嵌「清除 + 搜索」两个按钮：搜索按钮常驻（输入过程中也不消失），
                          清除按钮仅在有输入时出现，且两个按钮占位固定，避免输入时文本区宽度跳动。 -->
@@ -59,7 +75,7 @@
                         Grid.Row="1"
                         Name="SearchBox"
                         Classes="FluentSearchBox"
-                        Margin="10,0,10,10"
+                        Margin="15,4,15,10"
                         HorizontalAlignment="Stretch"
                         PlaceholderText="{DynamicResource SEARCH_PLACEHOLDER}"
                         Text="{Binding SearchText, Mode=TwoWay}"
@@ -71,7 +87,7 @@
                         <TextBox.InnerRightContent>
                             <!-- 负外边距抵消模板给 InnerRightContent 预留的 12px 左间距，
                                  让按钮贴近输入框右缘（约 8px），与 WinUI 搜索框观感一致 -->
-                            <Grid ColumnDefinitions="22,22" Margin="0,0,-4,0" VerticalAlignment="Center">
+                            <Grid ColumnDefinitions="20,20" Margin="0,0,-5,0" VerticalAlignment="Center">
                                 <Button
                                     Grid.Column="0"
                                     Classes="FluentSearchActionButton"
@@ -80,7 +96,7 @@
                                     IsVisible="{Binding SearchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                                     ToolTip.Tip="{DynamicResource TOOLTIP_SEARCH_CLEAR}">
                                     <Path
-                                        Width="10" Height="10"
+                                        Width="9" Height="9"
                                         Data="{DynamicResource FluentDismiss20Regular}"
                                         Fill="{DynamicResource FluentColorText2}" />
                                 </Button>
@@ -91,7 +107,7 @@
                                     Focusable="False"
                                     ToolTip.Tip="{DynamicResource TOOLTIP_SEARCH}">
                                     <Path
-                                        Width="14" Height="14"
+                                        Width="12" Height="12"
                                         Data="{DynamicResource FluentSearch20Regular}"
                                         Fill="{DynamicResource FluentColorText2}" />
                                 </Button>
@@ -124,14 +140,21 @@
                             </DataTemplate>
                         </u:NavMenu.IconTemplate>
                     </u:NavMenu>
-                    <!-- 底部：管理扩展 + 设置 -->
-                    <StackPanel Grid.Row="3" HorizontalAlignment="Stretch" Margin="0,0,0,8">
+                    <!-- 底部：分隔线 + 管理扩展 + 设置（行高与导航项一致：34 项高 + 3 左右内缩） -->
+                    <StackPanel Grid.Row="3" HorizontalAlignment="Stretch" Margin="0,0,0,4">
+                        <Rectangle
+                            Height="1"
+                            Margin="7,2"
+                            Fill="{DynamicResource FluentCardStrokeBrush}"
+                            IsVisible="{Binding !IsCollapsed}" />
                         <Button
                             Classes="FluentNavFooterItem"
+                            Margin="3,1"
                             HorizontalAlignment="Stretch"
                             Background="Transparent"
                             BorderThickness="0"
                             Padding="0"
+                            MinHeight="34"
                             CornerRadius="4"
                             ToolTip.Tip="{DynamicResource TOOLTIP_PLUGIN_MANAGEMENT}"
                             Command="{Binding ActivateCommand}"
@@ -139,7 +162,7 @@
                             <Grid ColumnDefinitions="Auto,*">
                                 <PathIcon
                                     Width="20" Height="20"
-                                    Margin="14,8,8,8"
+                                    Margin="9,7,12,7"
                                     Data="{DynamicResource FluentPuzzlePiece20Regular}"
                                     Foreground="{DynamicResource FluentTextSecondaryBrush}" />
                                 <TextBlock
@@ -153,10 +176,12 @@
                         </Button>
                         <Button
                             Classes="FluentNavFooterItem"
+                            Margin="3,1"
                             HorizontalAlignment="Stretch"
                             Background="Transparent"
                             BorderThickness="0"
                             Padding="0"
+                            MinHeight="34"
                             CornerRadius="4"
                             ToolTip.Tip="{DynamicResource TOOLTIP_SETTINGS}"
                             Command="{Binding ActivateCommand}"
@@ -164,7 +189,7 @@
                             <Grid ColumnDefinitions="Auto,*">
                                 <PathIcon
                                     Width="20" Height="20"
-                                    Margin="14,8,8,8"
+                                    Margin="9,7,12,7"
                                     Data="{DynamicResource FluentSettings20Regular}"
                                     Foreground="{DynamicResource FluentTextSecondaryBrush}" />
                                 <TextBlock
