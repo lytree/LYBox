@@ -62,7 +62,11 @@ jobs:
           echo "=== SDK NuGet packages ==="
           ls -lh artifacts/packages/sdk/*.nupkg 2>/dev/null || echo "(none)"
           echo "=== Launcher publish ==="
-          find artifacts/publish/launcher -maxdepth 3 -type f | sort | head -50
+          # 先排序落盘、再从文件截断。不要写 `find | sort | head`：head 读满行数即关闭管道，
+          # sort 收到 EPIPE 会以退出码 2 结束，叠加 GitHub Actions 默认的 `-o pipefail` 会让整步失败。
+          find artifacts/publish/launcher -maxdepth 3 -type f 2>/dev/null | sort > /tmp/launcher-publish-files.txt || true
+          echo "total: $(wc -l < /tmp/launcher-publish-files.txt) files (showing first 50)"
+          head -n 50 /tmp/launcher-publish-files.txt
 
       - name: Upload SDK NuGet artifacts
         if: always()
@@ -118,7 +122,10 @@ jobs:
         shell: bash
         run: |
           echo "=== ${{ matrix.rid }} publish output ==="
-          find artifacts/publish/launcher/${{ matrix.rid }} -maxdepth 2 -type f | sort | head -40
+          # 同 build job：用临时文件承载排序结果，避免 head 提前关管道让 sort 以 EPIPE(2) 退出。
+          find "artifacts/publish/launcher/${{ matrix.rid }}" -maxdepth 2 -type f 2>/dev/null | sort > /tmp/publish-files.txt || true
+          echo "total: $(wc -l < /tmp/publish-files.txt) files (showing first 40)"
+          head -n 40 /tmp/publish-files.txt
 
       - name: Upload publish output
         uses: actions/upload-artifact@v7
