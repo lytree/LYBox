@@ -3,8 +3,10 @@ name: CI
 # 持续集成：
 #   - 每次 push 到 main 都执行「全量构建」（宿主 launcher + console + SDK NuGet 打包 + 测试），
 #     不再按文件路径跳过（文档改动同样触发，保证主分支每个提交都有构建记录）。
-#   - 四平台发布矩阵（win-x64 / win-arm64 / linux-x64 / linux-arm64）默认不跑，
-#     仅在手动 workflow_dispatch 时追加执行，用于发版前的跨平台预演。
+#   - 四平台发布矩阵（win-x64 / win-arm64 / linux-x64 / linux-arm64）在每次 push 到 main
+#     以及手动 workflow_dispatch 时都执行，与 release-host.yml 的 RID 矩阵保持一致，
+#     用于在合并前发现跨平台编译/发布回归。
+#   - PR 只跑基础构建（Ubuntu 编译 + 测试），避免重复消耗跨平台 runner。
 #   - 真正的发布（NuGet 推送 / 四平台 zip / GitHub Release）仍由 release-host.yml 负责。
 
 on:
@@ -20,9 +22,11 @@ on:
       - 'LICENSE'
   workflow_dispatch:
 
+# PR：按 ref 分组并取消过期运行，节省 runner
+# 主分支 push：按 commit 分组，互不取消，保证每次 push 都完整跑完多平台构建
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   DOTNET_NOLOGO: 'true'
@@ -78,11 +82,12 @@ jobs:
           if-no-files-found: warn
           retention-days: 3
 
-  # 手动触发时的跨平台预演：与 release-host.yml 的矩阵保持一致，
+  # 跨平台构建矩阵：与 release-host.yml 的 RID 矩阵保持一致，
+  # 主分支每次 push 都跑（手动 workflow_dispatch 同样可跑），
   # 只验证各 RID 能否成功发布，不推送 NuGet、不生成 Release。
   build_matrix:
     name: Publish Launcher (${{ matrix.rid }})
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     needs: build
     strategy:
       fail-fast: false
@@ -114,3 +119,11 @@ jobs:
         run: |
           echo "=== ${{ matrix.rid }} publish output ==="
           find artifacts/publish/launcher/${{ matrix.rid }} -maxdepth 2 -type f | sort | head -40
+
+      - name: Upload publish output
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-launcher-${{ matrix.rid }}
+          path: artifacts/publish/launcher/${{ matrix.rid }}
+          if-no-files-found: warn
+          retention-days: 3
