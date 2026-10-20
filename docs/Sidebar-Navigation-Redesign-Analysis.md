@@ -221,3 +221,53 @@
 
 - `dotnet build Core.slnx`：0 错误。
 - 运行时（外部插件路径 `AVALONIA_EXTRA_PLUGINS_PATH`）目检：侧边栏仅「所有工具」+ 插件目录；首页 Hero 版本号取自 `AssemblyInformationalVersion`；三列卡片网格与搜索过滤正常。
+
+---
+
+## 9. 独立测试插件与首页卡片校验（2026-10-20 已落地）
+
+> 目标：用**主体程序之外**的独立插件产出真实菜单数据，目检首页卡片网格 / 侧边栏分组 / 状态徽标；
+> 演示案例一律不进主体程序（`MenuConfigurationService` 保持仅「主页」一项）。
+
+### 9.1 测试插件
+
+`tests/LYBox.DemoPlugin/`（不加入 `Core.slnx`，不随宿主发布）：
+
+| 文件 | 内容 |
+|---|---|
+| `LYBox.DemoPlugin.csproj` | `IsPluginProject=true` + `GeneratePluginManifest=true`；引用 `LYBox.Plugin.Generators`（analyzer）与 `LYBox.Plugin.Shared`（项目引用） |
+| `DemoPlugin.cs` | `[GenerateMetadata] partial class DemoPlugin : IPluginMetadata`（元数据由 csproj 注入） |
+| `ViewModels/DemoToolViewModels.cs` | 7 个 VM：父组「编码器」+ Base64 / URL / JSON 三个子项 + 时间戳 / 颜色 / 正则三个顶级项；分别带 `Beta` / `New` 状态与描述 |
+| `Views/DemoToolView.axaml` | 单一共享视图（标题 + 描述占位） |
+
+加载方式（本地开发）：
+
+```powershell
+dotnet publish tests/LYBox.DemoPlugin/LYBox.DemoPlugin.csproj -c Debug -o artifacts/publish/LYBox.DemoPlugin
+# 暂存目录必须「干净」：宿主会把插件目录下每个 *.dll 当作独立插件
+New-Item -ItemType Directory -Force artifacts/dev-plugins/LYBox.DemoPlugin
+Copy-Item artifacts/publish/LYBox.DemoPlugin/LYBox.DemoPlugin.dll, `
+          artifacts/publish/LYBox.DemoPlugin/LYBox.DemoPlugin.deps.json, `
+          artifacts/publish/LYBox.DemoPlugin/plugin.json, `
+          artifacts/publish/LYBox.DemoPlugin/shared-assemblies.txt artifacts/dev-plugins/LYBox.DemoPlugin/
+$env:AVALONIA_EXTRA_PLUGINS_PATH = "<repo>\artifacts\dev-plugins"
+dotnet run --project src/App/LYBox.Launcher.Desktop
+```
+
+### 9.2 本轮由测试插件暴露并修复的宿主缺陷
+
+| 缺陷 | 原因 | 修复 |
+|---|---|---|
+| 首页卡片挤在网格列左侧，右侧留大片空白 | `UniformGrid` 只给单元格尺寸，卡片自身未拉伸即按内容宽度收缩 | `FluentToolCard` 补 `HorizontalAlignment=Stretch` + `HorizontalContentAlignment=Stretch` |
+| 插件无法提供卡片次级文案 | `[Menu]` 缺 `Description`，attribute → 生成器 → 描述符链路断开 | `MenuAttribute.Description` → `MetadataGenerator` → `GeneratedMenuDescriptor.Description` → `MenuItemViewModel.Description` |
+| 插件状态徽标渲染为普通内联文字 | Ursa `u:Badge` 的胶囊容器仅在 `Header` / `Dot` 非空时可见，原实现绑的是 `Content` | 改绑 `Header` 并加 `Light Primary` 类；`ToolStatus` 样式覆写圆角 4、字号 11、胶囊内边距 |
+| `dotnet publish` 的插件产物缺 `plugin.json` | 构建期直接写盘的文件不属于 MSBuild 复制项集合 | `GeneratePluginManifest` 增补 `Publish` 到 `AfterTargets`，并显式写 `$(PublishDir)plugin.json` |
+
+兼容性：`GeneratedMenuDescriptor` 保留 6 参 / 7 参重载，旧插件程序集不受影响。
+
+### 9.3 验证
+
+- `dotnet build` 宿主与测试插件：0 错误。
+- 运行时目检：六张卡片三列撑满，描述与状态胶囊徽标可见，侧边栏「编码器」分组可展开并正确高亮，点击叶子项可导航到插件页面。
+- 无插件时首页显示「尚未安装任何工具」；有搜索词且无匹配时显示「无搜索结果」。
+- 深色 / 浅色主题下卡片与徽标均正常。
