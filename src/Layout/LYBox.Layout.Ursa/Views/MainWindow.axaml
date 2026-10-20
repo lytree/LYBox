@@ -24,15 +24,25 @@
     Background="Transparent"
     mc:Ignorable="d">
     <!-- 标题栏三段式布局（工具坞风格）：
-           左：应用图标 + 品牌名；右：主题切换。
-           折叠/返回按钮已迁入侧边栏顶部（MainView），标题栏中部留空作为窗口拖拽区域。
+           左：返回 + 应用图标 + 品牌名；右：主题切换。
+           返回入口常显（参考 DevToys 的「← DevToys」），无历史时点击回到首页；
+           折叠按钮在侧边栏顶部，标题栏中部留空作为窗口拖拽区域。
            Title 设为空字符串，避免 WindowDrawnDecorations 的左侧标题文本与品牌区重叠。 -->
     <u:UrsaWindow.LeftContent>
         <StackPanel
             Orientation="Horizontal"
-            Spacing="8"
-            Margin="12,0,0,0"
+            Spacing="6"
+            Margin="8,0,0,0"
             VerticalAlignment="Center">
+            <Button
+                Classes="FluentRailButton"
+                Command="{Binding MainViewViewModel.BackCommand}"
+                ToolTip.Tip="{DynamicResource TOOLTIP_BACK}">
+                <PathIcon
+                    Width="16" Height="16"
+                    Data="{DynamicResource FluentArrowLeft20Regular}"
+                    Foreground="{DynamicResource FluentColorText1}" />
+            </Button>
             <Image
                 Width="16" Height="16"
                 Source="/Assets/lybox-logo-256.png"

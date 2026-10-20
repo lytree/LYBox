@@ -23,7 +23,18 @@
     <UserControl.Styles>
         <Style Selector="u|Badge.ToolStatus">
             <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
             <Setter Property="Margin" Value="8,0,0,0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="BadgeFontSize" Value="11" />
+            <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+        </Style>
+        <!-- Ursa Badge 的胶囊内边距写在模板 Border 上，需按状态标签的紧凑尺寸覆写 -->
+        <Style Selector="u|Badge.ToolStatus /template/ Border#PART_BadgeContainer">
+            <Setter Property="Padding" Value="6,1" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="16" />
         </Style>
     </UserControl.Styles>
 
@@ -40,7 +51,17 @@
         </Border>
 
         <Panel Grid.Row="1">
-            <!-- 空状态提示 -->
+            <!-- 空状态提示：未安装任何工具 -->
+            <TextBlock
+                IsVisible="{Binding HasNoTools}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Margin="0,48"
+                FontSize="16"
+                Foreground="{DynamicResource FluentColorText2}"
+                Text="{DynamicResource HOME_NO_TOOLS}"
+                ZIndex="1" />
+            <!-- 空状态提示：搜索无结果 -->
             <TextBlock
                 IsVisible="{Binding HasNoResults}"
                 HorizontalAlignment="Center"
@@ -92,8 +113,8 @@
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Classes="FluentToolCardTitle" Text="{Binding Name}" />
                                             <u:Badge
-                                                Classes="ToolStatus"
-                                                Content="{Binding Status}"
+                                                Classes="ToolStatus Light Primary"
+                                                Header="{Binding Status}"
                                                 IsVisible="{Binding Status, Converter={x:Static ObjectConverters.IsNotNull}}" />
                                         </StackPanel>
                                         <TextBlock
@@ -101,13 +122,14 @@
                                             Text="{Binding Description}"
                                             IsVisible="{Binding Description, Converter={x:Static ObjectConverters.IsNotNull}}" />
                                     </StackPanel>
-                                    <!-- 右上角固定（Pin）标记 -->
+                                    <!-- 右上角「打开」指示（点击卡片即打开该工具） -->
                                     <PathIcon
                                         Grid.Column="2"
-                                        Width="12" Height="12"
+                                        Width="14" Height="14"
                                         VerticalAlignment="Top"
-                                        Data="{DynamicResource FluentPin20Regular}"
-                                        Foreground="{DynamicResource FluentColorText3}" />
+                                        Data="{DynamicResource FluentOpen20Regular}"
+                                        Foreground="{DynamicResource FluentColorText3}"
+                                        ToolTip.Tip="{DynamicResource HOME_OPEN_TOOL}" />
                                 </Grid>
                             </Button>
                         </DataTemplate>

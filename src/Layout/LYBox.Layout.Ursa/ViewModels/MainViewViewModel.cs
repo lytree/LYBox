@@ -176,12 +176,17 @@ public partial class MainViewViewModel : ViewModelBase
         _currentKey = key;
     }
 
-    /// <summary>标题栏返回按钮：回到上一页面。</summary>
+    /// <summary>标题栏返回按钮：回到上一页面；无历史时回到首页。</summary>
     [RelayCommand]
     public void Back()
     {
         if (_backStack.Count == 0)
+        {
+            // 标题栏返回入口常显，无历史时回到首页
+            if (!string.Equals(_currentKey, "Introduction", StringComparison.Ordinal))
+                NavigateTo("Introduction", recordHistory: false);
             return;
+        }
 
         var key = _backStack.Pop();
         CanGoBack = _backStack.Count > 0;

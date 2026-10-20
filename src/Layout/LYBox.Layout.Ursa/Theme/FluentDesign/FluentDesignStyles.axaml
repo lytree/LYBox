@@ -257,24 +257,26 @@
         <Setter Property="Cursor" Value="Arrow" />
     </Style>
 
-    <!-- 首页头图区（Banner）— 全宽、无圆角，内容区顶部通栏。
+    <!-- 首页头图区（Banner）— 全宽通栏，品牌渐变 + 左上/右上小圆角。
          左右内边距与卡片网格的 24px 外边距对齐，保证标题与卡片左边缘同一条竖线。 -->
     <Style Selector="Border.FluentHeroBanner">
-        <Setter Property="Background" Value="{DynamicResource FluentColorPrimaryLight}" />
+        <Setter Property="Background" Value="{DynamicResource FluentHeroGradientBrush}" />
         <Setter Property="Padding" Value="24,0" />
-        <Setter Property="MinHeight" Value="104" />
+        <Setter Property="MinHeight" Value="90" />
+        <Setter Property="CornerRadius" Value="4,4,0,0" />
     </Style>
-    <!-- 头图主标题 — 30px Bold -->
+    <!-- 头图主标题 — 30px Bold（品牌底色上恒为白字） -->
     <Style Selector="TextBlock.FluentHeroTitle">
         <Setter Property="FontSize" Value="30" />
         <Setter Property="FontWeight" Value="Bold" />
-        <Setter Property="Foreground" Value="{DynamicResource FluentColorText0}" />
+        <Setter Property="Foreground" Value="{DynamicResource FluentHeroTitleForeground}" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
     <!-- 头图版本后缀 — 主标题右侧基线对齐 -->
     <Style Selector="TextBlock.FluentHeroVersion">
         <Setter Property="FontSize" Value="14" />
-        <Setter Property="Foreground" Value="{DynamicResource FluentColorText2}" />
+        <Setter Property="Foreground" Value="{DynamicResource FluentHeroTitleForeground}" />
+        <Setter Property="Opacity" Value="0.75" />
         <Setter Property="VerticalAlignment" Value="Bottom" />
         <Setter Property="Margin" Value="0,0,0,7" />
     </Style>
@@ -282,37 +284,37 @@
     <!-- 工具卡片（Button）— 左侧图标方块 + 右侧标题/描述，三列网格使用 -->
     <Style Selector="Button.FluentToolCard">
         <Setter Property="Background" Value="{DynamicResource FluentCardBackgroundBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource FluentCardStrokeBrush}" />
-        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
         <Setter Property="CornerRadius" Value="8" />
         <Setter Property="Padding" Value="14" />
         <Setter Property="Height" Value="96" />
+        <!-- 卡片必须撑满所在网格列：UniformGrid 给的是单元格尺寸，
+             卡片自身不拉伸就会按内容宽度收缩（表现为卡片挤在列左侧）。 -->
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Transitions">
             <Setter.Value>
                 <Transitions>
                     <BrushTransition Property="Background" Duration="0:0:0.12" />
-                    <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
                 </Transitions>
             </Setter.Value>
         </Setter>
     </Style>
     <Style Selector="Button.FluentToolCard:pointerover /template/ ContentPresenter">
-        <Setter Property="Background" Value="{DynamicResource FluentCardBackgroundBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource FluentAccentBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FluentSubtleHoverBrush}" />
     </Style>
     <Style Selector="Button.FluentToolCard:pressed /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource FluentSubtlePressedBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource FluentAccentBrush}" />
     </Style>
 
     <!-- 工具卡片左侧图标方块 -->
     <Style Selector="Border.FluentToolIconTile">
-        <Setter Property="Width" Value="52" />
-        <Setter Property="Height" Value="52" />
+        <Setter Property="Width" Value="56" />
+        <Setter Property="Height" Value="56" />
         <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Background" Value="{DynamicResource FluentSubtleBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FluentIconTileBackgroundBrush}" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
     <Style Selector="TextBlock.FluentToolCardTitle">

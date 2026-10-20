@@ -39,7 +39,12 @@ public partial class IntroductionDemoViewModel : ObservableObject
     [ObservableProperty] private string? _versionText;
 
     [ObservableProperty] private string? _searchText;
+
+    /// <summary>搜索无结果（有搜索词但没有匹配项）。</summary>
     [ObservableProperty] private bool _hasNoResults;
+
+    /// <summary>未安装任何工具（没有搜索词且工具列表为空）。</summary>
+    [ObservableProperty] private bool _hasNoTools;
 
     public IntroductionDemoViewModel()
     {
@@ -171,7 +176,11 @@ public partial class IntroductionDemoViewModel : ObservableObject
             }
         }
         FilteredItems = result;
-        HasNoResults = result.Count == 0;
+
+        // 空状态区分两种语义：未装任何工具 vs. 搜索无匹配
+        var searching = !string.IsNullOrWhiteSpace(search);
+        HasNoResults = searching && result.Count == 0;
+        HasNoTools = !searching && result.Count == 0;
     }
 
     [RelayCommand]

@@ -383,6 +383,12 @@
   <data name="HOME_WELCOME_TITLE" xml:space="preserve">
     <value>Welcome to LYBox</value>
   </data>
+  <data name="HOME_NO_TOOLS" xml:space="preserve">
+    <value>No tools installed yet</value>
+  </data>
+  <data name="HOME_OPEN_TOOL" xml:space="preserve">
+    <value>Open</value>
+  </data>
   <data name="WINDOW_TITLE" xml:space="preserve"><value>LYBox</value></data>
   <data name="SPLASH_STARTING" xml:space="preserve">
     <value>Starting Ursa Demo...</value>
