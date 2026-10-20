@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:LYBox.DemoPlugin.ViewModels"
+             x:Class="LYBox.DemoPlugin.Views.DemoToolView"
+             x:CompileBindings="True"
+             x:DataType="vm:DemoToolViewModel"
+             mc:Ignorable="d">
+
+    <ScrollViewer>
+        <StackPanel Margin="24" Spacing="12">
+            <TextBlock FontSize="28" FontWeight="SemiBold" Text="{Binding Title}" />
+            <TextBlock Opacity="0.7" Text="{Binding Description}" />
+            <Border Classes="FluentSettingsCard" Padding="16">
+                <TextBlock Opacity="0.6" Text="演示插件占位页面" />
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    演示/测试插件（不属于主体程序）：
+    仅用于目检宿主的首页工具卡片网格、侧边栏分组折叠与图标渲染。
+    通过环境变量 AVALONIA_EXTRA_PLUGINS_PATH 加载到宿主，不参与宿主构建 / 发布 / 安装流程。
+  -->
+
+  <!--
+    复用 SDK 的 buildTransitive 逻辑（生成 plugin.json / shared-assemblies.txt、剔除共享程序集副本）。
+    本仓库内以 ProjectReference 引用 SDK 工程，不会走 NuGet 包的自动导入，故需显式 Import。
+    路径：src/Plugin/LYBox.Plugin.Shared/buildTransitive/
+  -->
+  <Import Project="..\..\src\Plugin\LYBox.Plugin.Shared\buildTransitive\LYBox.Plugin.Shared.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>Library</OutputType>
+    <IsPluginProject>true</IsPluginProject>
+    <GeneratePluginManifest>true</GeneratePluginManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+
+    <!-- 插件元数据：构建期由源生成器注入 IPluginMetadata，并写入 plugin.json -->
+    <PluginId>lybox.demo.tools</PluginId>
+    <PluginName>演示工具</PluginName>
+    <PluginAuthor>LYBox</PluginAuthor>
+    <PluginDescription>用于目检首页卡片网格与侧边栏分组的测试插件</PluginDescription>
+    <PluginVersion>1.0.0</PluginVersion>
+    <MinPluginSdkVersion>2.3.0</MinPluginSdkVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 与宿主同版本（src/Directory.Packages.props: AvaloniaVersion），避免共享程序集版本漂移 -->
+    <PackageReference Include="Avalonia" Version="12.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Plugin\LYBox.Plugin.Generators\LYBox.Plugin.Generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\src\Plugin\LYBox.Plugin.Shared\LYBox.Plugin.Shared.csproj" />
+  </ItemGroup>
+
+  <Import Project="..\..\src\Plugin\LYBox.Plugin.Shared\buildTransitive\LYBox.Plugin.Shared.targets" />
+
+</Project>
