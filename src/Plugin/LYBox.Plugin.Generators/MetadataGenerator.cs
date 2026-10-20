@@ -298,7 +298,7 @@ namespace {target.Namespace}
         foreach (var item in items)
         {
             builder.AppendLine(
-                $"                    new global::LYBox.Plugin.Shared.Generated.GeneratedMenuDescriptor({item.Header}, {item.Key}, {item.Parent}, {item.IconName ?? "null"}, {item.Status}, {item.Order}, {item.Group}),");
+                $"                    new global::LYBox.Plugin.Shared.Generated.GeneratedMenuDescriptor({item.Header}, {item.Key}, {item.Parent}, {item.IconName ?? "null"}, {item.Status}, {item.Order}, {item.Group}, {item.Description ?? "null"}),");
         }
         builder.AppendLine("                }");
     }
@@ -361,6 +361,7 @@ namespace {target.Namespace}
         var status = "null";
         var order = 100;
         var group = "null";
+        var description = "null";
 
         foreach (var argument in attribute.NamedArguments)
         {
@@ -373,10 +374,11 @@ namespace {target.Namespace}
                 case "Status": status = ToSourceExpression(argument.Value); break;
                 case "Order" when argument.Value.Value is int value: order = value; break;
                 case "Group": group = ToSourceExpression(argument.Value); break;
+                case "Description": description = ToSourceExpression(argument.Value); break;
             }
         }
 
-        return new MenuItemData(header, key, parent, iconName, status, order, group);
+        return new MenuItemData(header, key, parent, iconName, status, order, group, description);
     }
 
     private static string GetConstructorArgument(AttributeData attribute, int index, string fallback) =>
@@ -445,7 +447,8 @@ namespace {target.Namespace}
         string? iconName,
         string status,
         int order,
-        string group)
+        string group,
+        string? description)
     {
         public string Header { get; } = header;
         public string Key { get; } = key;
@@ -454,6 +457,7 @@ namespace {target.Namespace}
         public string Status { get; } = status;
         public int Order { get; } = order;
         public string Group { get; } = group;
+        public string? Description { get; } = description;
     }
 
     private readonly struct PluginMetadataInfo(

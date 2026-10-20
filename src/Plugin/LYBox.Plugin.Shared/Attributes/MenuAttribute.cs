@@ -37,6 +37,11 @@ public class MenuAttribute(string header, string key, string? parentKey = null) 
     public string? Status { get; set; } = null;
 
     /// <summary>
+    /// 菜单项描述。用于首页工具卡片的次级文案；为空时宿主回退为所属分组名。
+    /// </summary>
+    public string? Description { get; set; }
+
+    /// <summary>
     /// 菜单项顺序
     /// </summary>
     public int Order { get; set; } = 0;

@@ -80,7 +80,22 @@ public sealed class GeneratedMenuDescriptor
         string? iconName,
         string? status,
         int order)
-        : this(header, key, parentKey, iconName, status, order, null)
+        : this(header, key, parentKey, iconName, status, order, null, null)
+    {
+    }
+
+    /// <summary>
+    /// 兼容旧插件程序集（生成代码仍使用 7 参数构造）的保留重载。
+    /// </summary>
+    public GeneratedMenuDescriptor(
+        string header,
+        string key,
+        string? parentKey,
+        string? iconName,
+        string? status,
+        int order,
+        string? group)
+        : this(header, key, parentKey, iconName, status, order, group, null)
     {
     }
 
@@ -91,7 +106,8 @@ public sealed class GeneratedMenuDescriptor
         string? iconName,
         string? status,
         int order,
-        string? group)
+        string? group,
+        string? description)
     {
         Header = header ?? throw new ArgumentNullException(nameof(header));
         Key = key ?? throw new ArgumentNullException(nameof(key));
@@ -100,6 +116,7 @@ public sealed class GeneratedMenuDescriptor
         Status = status;
         Order = order;
         Group = group;
+        Description = description;
     }
 
     public string Header { get; }
@@ -111,4 +128,7 @@ public sealed class GeneratedMenuDescriptor
 
     /// <summary>菜单分组标识；相邻项分组不同时宿主插入分隔线。</summary>
     public string? Group { get; }
+
+    /// <summary>菜单项描述；宿主用它作为首页工具卡片的次级文案。</summary>
+    public string? Description { get; }
 }

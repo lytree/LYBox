@@ -43,6 +43,7 @@ public static class GeneratedUiDescriptorExtensions
                 Status = item.Status,
                 Order = item.Order,
                 Group = item.Group,
+                Description = item.Description,
             }, item.Order));
         }
         return MenuItemTreeBuilder.BuildTree(allItems);
