@@ -3,11 +3,11 @@ name: CI
 # 持续集成：
 #   - 每次 push 到 main 都执行「全量构建」（宿主 launcher + console + SDK NuGet 打包 + 测试），
 #     不再按文件路径跳过（文档改动同样触发，保证主分支每个提交都有构建记录）。
-#   - 四平台发布矩阵（win-x64 / win-arm64 / linux-x64 / linux-arm64）在每次 push 到 main
-#     以及手动 workflow_dispatch 时都执行，与 release-host.yml 的 RID 矩阵保持一致，
+#   - 六平台发布矩阵（win-x64 / win-arm64 / linux-x64 / linux-arm64 / osx-x64 / osx-arm64）
+#     在每次 push 到 main 以及手动 workflow_dispatch 时都执行，与 release-host.yml 的 RID 矩阵保持一致，
 #     用于在合并前发现跨平台编译/发布回归。
 #   - PR 只跑基础构建（Ubuntu 编译 + 测试），避免重复消耗跨平台 runner。
-#   - 真正的发布（NuGet 推送 / 四平台 zip / GitHub Release）仍由 release-host.yml 负责。
+#   - 真正的发布（NuGet 推送 / 六平台 zip / GitHub Release）仍由 release-host.yml 负责。
 
 on:
   push:
@@ -101,6 +101,11 @@ jobs:
           - { os: windows-latest, rid: win-arm64 }
           - { os: ubuntu-latest,  rid: linux-x64 }
           - { os: ubuntu-latest,  rid: linux-arm64 }
+          # macOS：GitHub 已退役 macos-13（2025-12），macos-14 将于 2026-11-02 退役。
+          # x64 用 macos-15-intel（官方最后一个 x86_64 镜像，可用至 2027-08），
+          # arm64 用 macos-15；两者均为对应架构的原生 runner，无需交叉发布。
+          - { os: macos-15-intel, rid: osx-x64 }
+          - { os: macos-15,       rid: osx-arm64 }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7

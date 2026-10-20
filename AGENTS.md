@@ -82,6 +82,11 @@ dotnet run --project src/App/LYBox.Launcher.Desktop -- --web-vite
 
 - 本仓库：`.github/workflows/ci.yml`、`release-host.yml`
 - 插件仓库：`LYBox.Plugins/.github/workflows/ci.yml`、`release-plugins.yml`
+- 宿主发布矩阵为六平台：win-x64 / win-arm64 / linux-x64 / linux-arm64 / osx-x64 / osx-arm64
+- macOS runner 固定用 `macos-15-intel`（x64）与 `macos-15`（arm64），均为目标架构原生 runner：
+  `macos-13` 已于 2025-12 退役，`macos-14` 于 2026-11-02 退役，不要再引用
+- macOS 打包用 Info-ZIP（`zip`）而非 `Compress-Archive`：后者不保留 Unix 可执行位；
+  `Verify zip (macOS)` 步骤用 `zipinfo -l` 校验两个启动器在 zip 内仍带执行位
 
 ---
 

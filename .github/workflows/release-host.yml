@@ -4,7 +4,7 @@ name: Release Main
 # 触发标签：V*           例如 V1.2.3、V1.2.3-preview.1、V1.2.3-beta.1
 # 产物：
 #   - 主体 SDK NuGet 包（LYBox.Plugin.Generators / LYBox.Plugin.CommandLine / LYBox.Plugin.Shared / LYBox.Plugin.Shared.Web）
-#   - Launcher 自包含发布包（win-x64 / win-arm64 / linux-x64 / linux-arm64）
+#   - Launcher 自包含发布包（win-x64 / win-arm64 / linux-x64 / linux-arm64 / osx-x64 / osx-arm64）
 # NuGet 发布：使用 Trusted Publishing（OIDC 短期令牌），无需长期 API key。
 #   前置条件：
 #     1. nuget.org → 账户 → 受信任的发布 → 添加策略（Repository Owner=lytree, Repository=AvaloniaTemplate, Workflow File=release-host.yml, Environment=release）
@@ -146,6 +146,11 @@ jobs:
           - { os: windows-latest, rid: win-arm64 }
           - { os: ubuntu-latest,  rid: linux-x64 }
           - { os: ubuntu-latest,  rid: linux-arm64 }
+          # macOS：GitHub 已退役 macos-13（2025-12），macos-14 将于 2026-11-02 退役。
+          # x64 用 macos-15-intel（官方最后一个 x86_64 镜像，可用至 2027-08），
+          # arm64 用 macos-15；两者均为对应架构的原生 runner，无需交叉发布。
+          - { os: macos-15-intel, rid: osx-x64 }
+          - { os: macos-15,       rid: osx-arm64 }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -165,15 +170,53 @@ jobs:
             --self-contained=true \
             --host-version=${{ needs.resolve_context.outputs.version }}
 
-      - name: Zip published output
+      - name: Zip published output (Windows / Linux)
+        if: runner.os != 'macOS'
         shell: pwsh
         run: |
           Compress-Archive -Path 'artifacts/publish/launcher/${{ matrix.rid }}/*' -DestinationPath '${{ env.MAIN_PROJECT_NAME }}-${{ matrix.rid }}-${{ needs.resolve_context.outputs.version }}.zip' -Force
 
-      - name: Verify zip
+      - name: Verify zip (Windows / Linux)
+        if: runner.os != 'macOS'
         shell: pwsh
         run: |
           Get-Item "${{ env.MAIN_PROJECT_NAME }}-${{ matrix.rid }}-${{ needs.resolve_context.outputs.version }}.zip" | Format-List Name, Length, LastWriteTime
+
+      # macOS 改用 Info-ZIP：它会把 Unix 权限位写进 zip 的 external attributes，
+      # 解压后 LYBox.Launcher.Desktop 仍是可执行文件；PowerShell 的 Compress-Archive 会丢失该权限位。
+      - name: Zip published output (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/${{ env.MAIN_PROJECT_NAME }}-${{ matrix.rid }}-${{ needs.resolve_context.outputs.version }}.zip"
+          rm -f "$OUT"
+          pushd "artifacts/publish/launcher/${{ matrix.rid }}"
+          shopt -s dotglob
+          zip -r "$OUT" *
+          popd
+
+      - name: Verify zip (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/${{ env.MAIN_PROJECT_NAME }}-${{ matrix.rid }}-${{ needs.resolve_context.outputs.version }}.zip"
+          ls -lh "$OUT"
+          # 校验两个启动器在 zip 内仍带可执行位（Info-ZIP 权限位形如 -rwxr-xr-x）
+          for exe in LYBox.Launcher.Desktop LYBox.Launcher.Console; do
+            line="$(zipinfo -l "$OUT" | grep -E "[[:space:]]${exe}\$" || true)"
+            if [ -z "$line" ]; then
+              echo "::error::zip 中缺少 ${exe}"
+              exit 1
+            fi
+            perm="$(printf '%s' "$line" | awk '{print $1}')"
+            echo "${exe}: ${perm}"
+            case "$perm" in
+              -*x*) ;;
+              *) echo "::error::${exe} 在 zip 中丢失了可执行权限位（${perm}）"; exit 1 ;;
+            esac
+          done
 
       - name: Upload main artifact
         uses: actions/upload-artifact@v7
@@ -236,9 +279,21 @@ jobs:
 
             ### Launcher 自包含发布包
             解压对应平台的 zip 后直接运行 `LYBox.Launcher.Desktop`（无需安装 .NET 运行时）。
+
+            macOS 使用说明（未做代码签名与公证）：
+            ```bash
+            # 1) 移除 Gatekeeper 隔离属性（仅首次下载后需要）
+            xattr -dr com.apple.quarantine LYBox.Launcher.Desktop
+            # 2) 若提示权限不足，补上可执行位
+            chmod +x LYBox.Launcher.Desktop
+            ./LYBox.Launcher.Desktop
+            ```
+            控制台版本为 `LYBox.Launcher.Console`（用法相同）。
           files: |
             artifacts/main-sdk-nuget/*.nupkg
             artifacts/${{ env.MAIN_PROJECT_NAME }}-win-x64/*.zip
             artifacts/${{ env.MAIN_PROJECT_NAME }}-win-arm64/*.zip
             artifacts/${{ env.MAIN_PROJECT_NAME }}-linux-x64/*.zip
             artifacts/${{ env.MAIN_PROJECT_NAME }}-linux-arm64/*.zip
+            artifacts/${{ env.MAIN_PROJECT_NAME }}-osx-x64/*.zip
+            artifacts/${{ env.MAIN_PROJECT_NAME }}-osx-arm64/*.zip
