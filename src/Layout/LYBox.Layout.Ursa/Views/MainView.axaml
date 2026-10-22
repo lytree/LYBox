@@ -34,7 +34,25 @@
               Margin="0,48,0,0"
               Background="{DynamicResource FluentShellBackgroundBrush}"
               ColumnDefinitions="Auto,*">
-            <Border Classes="FluentNavPane" Grid.Column="0">
+            <!-- 预留列：为侧栏占位（展开 320 / 折叠 49 / 浮层与隐藏 0）。
+                 浮层态时占位为 0，侧栏改为覆盖在内容之上 -->
+            <Border Width="{Binding NavigationReservedWidth}" IsHitTestVisible="False" />
+            <!-- 浮层遮罩：窄窗打开导航时覆盖内容区，点击关闭 -->
+            <Button
+                Grid.ColumnSpan="2"
+                ZIndex="1"
+                Classes="FluentNavigationScrim"
+                Focusable="False"
+                IsVisible="{Binding IsNavigationOverlay}"
+                Command="{Binding CloseNavigationOverlayCommand}" />
+            <!-- 侧栏：展开/折叠时占用左侧预留宽度，浮层时左对齐覆盖内容；
+                 窄窗且未打开浮层时完全隐藏（Hidden），顶栏由 MainWindow 补汉堡按钮唤出 -->
+            <Border
+                Classes="FluentNavPane"
+                Grid.ColumnSpan="2"
+                ZIndex="2"
+                HorizontalAlignment="Left"
+                IsVisible="{Binding !IsSidebarHidden}">
                 <!-- 侧边栏四行：导航开关 /（折叠态放大镜入口 或 展开态搜索框）/ 导航项 / 底部入口
                      行高刻意对齐：折叠态 36+14=50，展开态 32+18=50，切换时导航列表不跳动 -->
                 <Grid RowDefinitions="Auto,Auto,*,Auto">
@@ -52,13 +70,15 @@
                             Data="{DynamicResource FluentLineHorizontal320Regular}"
                             Foreground="{DynamicResource FluentColorText1}" />
                     </Button>
+                    <!-- 搜索区：折叠态放大镜入口 / 展开态搜索框 + 搜索建议下拉。
+                         折叠态与展开态行高对齐（36+10=46 / 28+18=46），切换时导航列表不跳动 -->
+                    <Grid Grid.Row="1">
                     <!-- 折叠态：放大镜入口，点击展开侧边栏并聚焦搜索框（与 Ctrl+F 等价） -->
                     <Button
-                        Grid.Row="1"
                         Name="SearchRailButton"
                         Classes="FluentRailButton"
                         Width="40" Height="36"
-                        Margin="4,6,4,8"
+                        Margin="4,4,4,6"
                         HorizontalAlignment="Left"
                         IsVisible="{Binding IsCollapsed}"
                         Click="OnSearchRailButtonClick"
@@ -72,10 +92,9 @@
                          右侧内嵌「清除 + 搜索」两个按钮：搜索按钮常驻（输入过程中也不消失），
                          清除按钮仅在有输入时出现，且两个按钮占位固定，避免输入时文本区宽度跳动。 -->
                     <TextBox
-                        Grid.Row="1"
                         Name="SearchBox"
                         Classes="FluentSearchBox"
-                        Margin="15,4,15,10"
+                        Margin="16,6,17,12"
                         HorizontalAlignment="Stretch"
                         PlaceholderText="{DynamicResource SEARCH_PLACEHOLDER}"
                         Text="{Binding SearchText, Mode=TwoWay}"
@@ -114,6 +133,57 @@
                             </Grid>
                         </TextBox.InnerRightContent>
                     </TextBox>
+                    <!-- 搜索建议下拉（参考 DevToys AutoSuggestBox 的下拉结果）：
+                         命中项点击直达对应页面，回车等同选中第一条建议 -->
+                    <Popup
+                        Name="SearchSuggestionPopup"
+                        Placement="BottomEdgeAlignedLeft"
+                        PlacementTarget="{Binding #SearchBox}"
+                        IsOpen="{Binding IsSearchSuggestionOpen, Mode=TwoWay}"
+                        IsLightDismissEnabled="True">
+                        <Border
+                            MinWidth="240"
+                            MaxHeight="340"
+                            Margin="0,4,0,0"
+                            Padding="4"
+                            Background="{DynamicResource FluentCardBackgroundBrush}"
+                            BorderBrush="{DynamicResource FluentCardStrokeBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            BoxShadow="{DynamicResource FluentPaneBoxShadow}">
+                            <ScrollViewer
+                                MaxHeight="320"
+                                HorizontalScrollBarVisibility="Disabled"
+                                VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding FilteredSuggestions}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:SearchSuggestion">
+                                            <Button
+                                                Classes="FluentSearchSuggestionItem"
+                                                HorizontalAlignment="Stretch"
+                                                Command="{Binding ActivateCommand}">
+                                                <Grid ColumnDefinitions="Auto,*" Height="32">
+                                                    <PathIcon
+                                                        Width="16" Height="16"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        Data="{Binding IconName, Converter={StaticResource IconConverter}}"
+                                                        Foreground="{DynamicResource FluentColorText1}" />
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        Margin="10,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="13"
+                                                        Text="{Binding Name}" />
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+                    </Popup>
+                    </Grid>
                     <!-- NavMenu 菜单列表（无 Header/Footer，纯菜单项） -->
                     <u:NavMenu
                         Name="NavMenu"
@@ -129,42 +199,43 @@
                         SubMenuBinding="{Binding Children}">
                         <u:NavMenu.IconTemplate>
                             <DataTemplate x:DataType="x:String">
-                                <u:TwoTonePathIcon
-                                    Width="20" Height="20"
+                                <PathIcon
+                                    Width="16" Height="16"
                                     Data="{Binding Converter={StaticResource IconConverter}}"
-                                    Foreground="{DynamicResource FluentTextSecondaryBrush}"
-                                    StrokeBrush="{DynamicResource FluentTextSecondaryBrush}"
-                                    ActiveForeground="{DynamicResource FluentAccentBrush}"
-                                    ActiveStrokeBrush="{DynamicResource FluentAccentBrush}"
-                                    IsActive="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=u:NavMenuItem}, Path=IsHighlighted, Mode=TwoWay}" />
+                                    Foreground="{DynamicResource FluentTextPrimaryBrush}" />
                             </DataTemplate>
                         </u:NavMenu.IconTemplate>
                     </u:NavMenu>
-                    <!-- 底部：分隔线 + 管理扩展 + 设置（行高与导航项一致：34 项高 + 3 左右内缩） -->
+                    <!-- 底部：分隔线 + 管理扩展 + 设置（行高与导航项一致：34 项高 + 5,3 外边距） -->
                     <StackPanel Grid.Row="3" HorizontalAlignment="Stretch" Margin="0,0,0,4">
                         <Rectangle
                             Height="1"
-                            Margin="7,2"
+                            Margin="5,4"
                             Fill="{DynamicResource FluentCardStrokeBrush}"
                             IsVisible="{Binding !IsCollapsed}" />
                         <Button
                             Classes="FluentNavFooterItem"
-                            Margin="3,1"
+                            Classes.selected="{Binding IsPluginsSelected}"
                             HorizontalAlignment="Stretch"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Padding="0"
-                            MinHeight="34"
-                            CornerRadius="4"
                             ToolTip.Tip="{DynamicResource TOOLTIP_PLUGIN_MANAGEMENT}"
                             Command="{Binding ActivateCommand}"
                             CommandParameter="PluginManagement">
                             <Grid ColumnDefinitions="Auto,*">
+                                <!-- 选中指示条（与导航项一致：3×16 圆角强调色） -->
+                                <Border
+                                    Grid.ColumnSpan="2"
+                                    Width="3" Height="16"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource FluentAccentBrush}"
+                                    CornerRadius="3"
+                                    IsVisible="{Binding IsPluginsSelected}"
+                                    IsHitTestVisible="False" />
                                 <PathIcon
-                                    Width="20" Height="20"
-                                    Margin="9,7,12,7"
+                                    Width="16" Height="16"
+                                    Margin="12,8,16,8"
                                     Data="{DynamicResource FluentPuzzlePiece20Regular}"
-                                    Foreground="{DynamicResource FluentTextSecondaryBrush}" />
+                                    Foreground="{DynamicResource FluentTextPrimaryBrush}" />
                                 <TextBlock
                                     Grid.Column="1"
                                     Margin="0,8,8,8"
@@ -176,22 +247,27 @@
                         </Button>
                         <Button
                             Classes="FluentNavFooterItem"
-                            Margin="3,1"
+                            Classes.selected="{Binding IsSettingsSelected}"
                             HorizontalAlignment="Stretch"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Padding="0"
-                            MinHeight="34"
-                            CornerRadius="4"
                             ToolTip.Tip="{DynamicResource TOOLTIP_SETTINGS}"
                             Command="{Binding ActivateCommand}"
                             CommandParameter="Settings">
                             <Grid ColumnDefinitions="Auto,*">
+                                <!-- 选中指示条（与导航项一致：3×16 圆角强调色） -->
+                                <Border
+                                    Grid.ColumnSpan="2"
+                                    Width="3" Height="16"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource FluentAccentBrush}"
+                                    CornerRadius="3"
+                                    IsVisible="{Binding IsSettingsSelected}"
+                                    IsHitTestVisible="False" />
                                 <PathIcon
-                                    Width="20" Height="20"
-                                    Margin="9,7,12,7"
+                                    Width="16" Height="16"
+                                    Margin="12,8,16,8"
                                     Data="{DynamicResource FluentSettings20Regular}"
-                                    Foreground="{DynamicResource FluentTextSecondaryBrush}" />
+                                    Foreground="{DynamicResource FluentTextPrimaryBrush}" />
                                 <TextBlock
                                     Grid.Column="1"
                                     Margin="0,8,8,8"
@@ -207,11 +283,53 @@
 
             <!-- 右侧内容区：贴边铺满（页面自行负责内边距），首页由 Hero 头图 + 工具卡片网格组成 -->
             <Border Grid.Column="1" Classes="FluentMainContentSurface">
-                <ContentControl Content="{Binding Content}">
-                    <ContentControl.ContentTemplate>
-                        <plugin:ViewLocator />
-                    </ContentControl.ContentTemplate>
-                </ContentControl>
+                <Grid RowDefinitions="Auto,*">
+                    <!-- 面包屑导航（参考 DevToys）：首页 › 分组 › 当前页，仅层级页显示 -->
+                    <ScrollViewer
+                        IsVisible="{Binding ShowBreadcrumbs}"
+                        Margin="24,12,24,0"
+                        HorizontalScrollBarVisibility="Auto"
+                        VerticalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Breadcrumbs}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="2" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:NavigationBreadcrumb">
+                                    <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                                        <Button
+                                            Classes="FluentBreadcrumbItem"
+                                            Content="{Binding Title}"
+                                            Command="{Binding ActivateCommand}"
+                                            IsVisible="{Binding !IsCurrent}"
+                                            MaxWidth="280"
+                                            ToolTip.Tip="{Binding Title}" />
+                                        <TextBlock
+                                            Classes="FluentBreadcrumbCurrent"
+                                            Text="{Binding Title}"
+                                            IsVisible="{Binding IsCurrent}"
+                                            MaxWidth="280"
+                                            Margin="4,0"
+                                            VerticalAlignment="Center"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            Classes="FluentBreadcrumbSeparator"
+                                            Text="›"
+                                            IsVisible="{Binding !IsCurrent}"
+                                            VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <ContentControl Grid.Row="1" Content="{Binding Content}">
+                        <ContentControl.ContentTemplate>
+                            <plugin:ViewLocator />
+                        </ContentControl.ContentTemplate>
+                    </ContentControl>
+                </Grid>
             </Border>
         </Grid>
     </Panel>

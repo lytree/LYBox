@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace LYBox.DemoPlugin.ViewModels;
 
@@ -15,4 +16,12 @@ public abstract partial class DemoToolViewModel : ObservableObject
     /// <summary>工具说明（页面副标题）。</summary>
     [ObservableProperty]
     private string _description = string.Empty;
+
+    /// <summary>工具页输入内容（演示工具条的复制 / 重置动作）。</summary>
+    [ObservableProperty]
+    private string _input = string.Empty;
+
+    /// <summary>重置：清空输入内容。</summary>
+    [RelayCommand]
+    private void Reset() => Input = string.Empty;
 }

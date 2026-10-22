@@ -2,42 +2,45 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Fluent Design System - Dark Theme Color Overrides -->
+    <!-- DevToys Windows 配色（提交 2dbbc8aa594978d11165a0e8112243c96a277dbc）：
+         https://github.com/DevToys-app/DevToys/blob/2dbbc8aa594978d11165a0e8112243c96a277dbc/src/app/dev/DevToys.Blazor/Assets/sass/theme/windows/dark.scss
+         上游透明原生窗口背景用不透明中性外壳表示；内容区为合成层。
+         卡片悬停合成上游 GridView 6% 悬停滤镜；按下复用悬停（上游无 active 态）。 -->
 
-    <!-- Primary / Accent (Fluent Accent #60CDFF) -->
-    <SolidColorBrush x:Key="FluentColorPrimary" Color="#60CDFF" />
-    <SolidColorBrush x:Key="FluentColorPrimaryPointerover" Color="#78D4FF" />
-    <SolidColorBrush x:Key="FluentColorPrimaryActive" Color="#38B0F0" />
-    <SolidColorBrush x:Key="FluentColorPrimaryDisabled" Opacity="0.35" Color="#60CDFF" />
-    <SolidColorBrush x:Key="FluentColorPrimaryLight" Opacity="0.15" Color="#60CDFF" />
-    <SolidColorBrush x:Key="FluentColorPrimaryLightPointerover" Opacity="0.2" Color="#60CDFF" />
-    <SolidColorBrush x:Key="FluentColorPrimaryLightActive" Opacity="0.25" Color="#60CDFF" />
+    <!-- Primary / Accent (DevToys Windows #62CDFE) -->
+    <SolidColorBrush x:Key="FluentColorPrimary" Color="#62CDFE" />
+    <SolidColorBrush x:Key="FluentColorPrimaryPointerover" Color="#E662CDFE" />
+    <SolidColorBrush x:Key="FluentColorPrimaryActive" Color="#CC62CDFE" />
+    <SolidColorBrush x:Key="FluentColorPrimaryDisabled" Color="#28FFFFFF" />
+    <SolidColorBrush x:Key="FluentColorPrimaryLight" Color="#2662CDFE" />
+    <SolidColorBrush x:Key="FluentColorPrimaryLightPointerover" Color="#3362CDFE" />
+    <SolidColorBrush x:Key="FluentColorPrimaryLightActive" Color="#4062CDFE" />
 
     <!-- Secondary -->
-    <SolidColorBrush x:Key="FluentColorSecondary" Color="#60CDFF" />
-    <SolidColorBrush x:Key="FluentColorSecondaryPointerover" Color="#78D4FF" />
-    <SolidColorBrush x:Key="FluentColorSecondaryActive" Color="#38B0F0" />
-    <SolidColorBrush x:Key="FluentColorSecondaryDisabled" Opacity="0.35" Color="#60CDFF" />
-    <SolidColorBrush x:Key="FluentColorSecondaryLight" Opacity="0.15" Color="#60CDFF" />
-    <SolidColorBrush x:Key="FluentColorSecondaryLightPointerover" Opacity="0.2" Color="#60CDFF" />
-    <SolidColorBrush x:Key="FluentColorSecondaryLightActive" Opacity="0.25" Color="#60CDFF" />
+    <SolidColorBrush x:Key="FluentColorSecondary" Color="#62CDFE" />
+    <SolidColorBrush x:Key="FluentColorSecondaryPointerover" Color="#E662CDFE" />
+    <SolidColorBrush x:Key="FluentColorSecondaryActive" Color="#CC62CDFE" />
+    <SolidColorBrush x:Key="FluentColorSecondaryDisabled" Color="#28FFFFFF" />
+    <SolidColorBrush x:Key="FluentColorSecondaryLight" Color="#2662CDFE" />
+    <SolidColorBrush x:Key="FluentColorSecondaryLightPointerover" Color="#3362CDFE" />
+    <SolidColorBrush x:Key="FluentColorSecondaryLightActive" Color="#4062CDFE" />
 
     <!-- Tertiary (Fluent Subtle) -->
-    <SolidColorBrush x:Key="FluentColorTertiary" Color="#C5C5C5" />
-    <SolidColorBrush x:Key="FluentColorTertiaryPointerover" Color="#D4D4D4" />
-    <SolidColorBrush x:Key="FluentColorTertiaryActive" Color="#E8E8E8" />
-    <SolidColorBrush x:Key="FluentColorTertiaryLight" Opacity="0.2" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FluentColorTertiaryLightPointerover" Opacity="0.3" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FluentColorTertiaryLightActive" Opacity="0.4" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="FluentColorTertiary" Color="#C5FFFFFF" />
+    <SolidColorBrush x:Key="FluentColorTertiaryPointerover" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="FluentColorTertiaryActive" Color="#87FFFFFF" />
+    <SolidColorBrush x:Key="FluentColorTertiaryLight" Color="Transparent" />
+    <SolidColorBrush x:Key="FluentColorTertiaryLightPointerover" Color="#10FFFFFF" />
+    <SolidColorBrush x:Key="FluentColorTertiaryLightActive" Color="#0BFFFFFF" />
 
     <!-- Information -->
-    <SolidColorBrush x:Key="FluentColorInformation" Color="#60CDFF" />
-    <SolidColorBrush x:Key="FluentColorInformationPointerover" Color="#78D4FF" />
-    <SolidColorBrush x:Key="FluentColorInformationActive" Color="#38B0F0" />
-    <SolidColorBrush x:Key="FluentColorInformationDisabled" Opacity="0.35" Color="#60CDFF" />
-    <SolidColorBrush x:Key="FluentColorInformationLight" Opacity="0.15" Color="#60CDFF" />
-    <SolidColorBrush x:Key="FluentColorInformationLightPointerover" Opacity="0.2" Color="#60CDFF" />
-    <SolidColorBrush x:Key="FluentColorInformationLightActive" Opacity="0.25" Color="#60CDFF" />
+    <SolidColorBrush x:Key="FluentColorInformation" Color="#62CDFE" />
+    <SolidColorBrush x:Key="FluentColorInformationPointerover" Color="#E662CDFE" />
+    <SolidColorBrush x:Key="FluentColorInformationActive" Color="#CC62CDFE" />
+    <SolidColorBrush x:Key="FluentColorInformationDisabled" Color="#28FFFFFF" />
+    <SolidColorBrush x:Key="FluentColorInformationLight" Color="#2662CDFE" />
+    <SolidColorBrush x:Key="FluentColorInformationLightPointerover" Color="#3362CDFE" />
+    <SolidColorBrush x:Key="FluentColorInformationLightActive" Color="#4062CDFE" />
 
     <!-- Success (Fluent Success #6CCB5F) -->
     <SolidColorBrush x:Key="FluentColorSuccess" Color="#6CCB5F" />
@@ -64,11 +67,11 @@
     <SolidColorBrush x:Key="FluentColorDangerLightPointerover" Opacity="0.3" Color="#FF99A4" />
     <SolidColorBrush x:Key="FluentColorDangerLightActive" Opacity="0.4" Color="#FF99A4" />
 
-    <!-- Text and Icons (Fluent Text Colors) -->
+    <!-- Text and Icons (DevToys Windows 文本层级) -->
     <SolidColorBrush x:Key="FluentColorText0" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FluentColorText1" Opacity="0.9" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FluentColorText2" Opacity="0.7" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FluentColorText3" Opacity="0.5" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="FluentColorText1" Color="#C4FFFFFF" />
+    <SolidColorBrush x:Key="FluentColorText2" Color="#87FFFFFF" />
+    <SolidColorBrush x:Key="FluentColorText3" Color="#5CFFFFFF" />
 
     <!-- FluentTextPrimary/Secondary/TertiaryBrush 命名别名（兼容 F:\Code 项目引用） -->
     <StaticResource x:Key="FluentTextPrimaryBrush" ResourceKey="FluentColorText0" />
@@ -76,135 +79,138 @@
     <StaticResource x:Key="FluentTextTertiaryBrush" ResourceKey="FluentColorText2" />
 
     <!-- Link -->
-    <SolidColorBrush x:Key="FluentColorLink" Color="#60CDFF" />
-    <SolidColorBrush x:Key="FluentColorLinkPointerover" Color="#78D4FF" />
-    <SolidColorBrush x:Key="FluentColorLinkActive" Color="#38B0F0" />
-    <SolidColorBrush x:Key="FluentColorLinkVisited" Color="#60CDFF" />
+    <SolidColorBrush x:Key="FluentColorLink" Color="#9AECFE" />
+    <SolidColorBrush x:Key="FluentColorLinkPointerover" Color="#9AECFE" />
+    <SolidColorBrush x:Key="FluentColorLinkActive" Color="#9AECFE" />
+    <SolidColorBrush x:Key="FluentColorLinkVisited" Color="#9AECFE" />
 
-    <!-- Background (Fluent ApplicationBackground / Layer) -->
+    <!-- Background (封装层 / 内容层) -->
     <SolidColorBrush x:Key="FluentColorBackground0" Color="#202020" />
-    <SolidColorBrush x:Key="FluentColorBackground1" Color="#2C2C2C" />
-    <SolidColorBrush x:Key="FluentColorBackground2" Color="#323232" />
-    <SolidColorBrush x:Key="FluentColorBackground3" Color="#383838" />
-    <SolidColorBrush x:Key="FluentColorBackground4" Color="#454545" />
+    <SolidColorBrush x:Key="FluentColorBackground1" Color="#282828" />
+    <SolidColorBrush x:Key="FluentColorBackground2" Color="#282828" />
+    <SolidColorBrush x:Key="FluentColorBackground3" Color="#2C2C2C" />
+    <SolidColorBrush x:Key="FluentColorBackground4" Color="#202020" />
 
     <!-- Fill (Fluent Subtle Fill) -->
-    <SolidColorBrush x:Key="FluentColorFill0" Opacity="0.12" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FluentColorFill1" Opacity="0.16" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FluentColorFill2" Opacity="0.20" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="FluentColorFill0" Color="#19000000" />
+    <SolidColorBrush x:Key="FluentColorFill1" Color="#0BFFFFFF" />
+    <SolidColorBrush x:Key="FluentColorFill2" Color="#12FFFFFF" />
 
     <!-- Border (Fluent CardStroke / Divider) -->
-    <SolidColorBrush x:Key="FluentColorBorder" Opacity="0.08" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FluentColorFocusBorder" Color="#60CDFF" />
+    <SolidColorBrush x:Key="FluentColorBorder" Color="#1A000000" />
+    <SolidColorBrush x:Key="FluentColorFocusBorder" Color="#62CDFE" />
 
     <!-- Disabled -->
-    <SolidColorBrush x:Key="FluentColorDisabledText" Opacity="0.35" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FluentColorDisabledBorder" Opacity="0.08" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FluentColorDisabledBackground" Opacity="0.08" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FluentColorDisabledFill" Opacity="0.04" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="FluentColorDisabledText" Color="#5CFFFFFF" />
+    <SolidColorBrush x:Key="FluentColorDisabledBorder" Color="#12FFFFFF" />
+    <SolidColorBrush x:Key="FluentColorDisabledBackground" Color="#0BFFFFFF" />
+    <SolidColorBrush x:Key="FluentColorDisabledFill" Color="#0BFFFFFF" />
 
     <!-- Others -->
-    <SolidColorBrush x:Key="FluentColorNavBackground" Color="#2C2C2C" />
+    <SolidColorBrush x:Key="FluentColorNavBackground" Color="#202020" />
     <SolidColorBrush x:Key="FluentColorOverlayBackground" Opacity="0.6" Color="#202020" />
     <SolidColorBrush x:Key="FluentColorHighlightBackground" Opacity="0.2" Color="#FCE100" />
     <SolidColorBrush x:Key="FluentColorHighlight" Color="#FFFFFF" />
 
-    <!-- Shadow (Fluent Elevation 分层) -->
-    <BoxShadows x:Key="FluentColorShadow">0 0 #0A000000</BoxShadows>
+    <!-- Shadow (DevToys 卡片无阴影) -->
+    <BoxShadows x:Key="FluentColorShadow">0 0 0 0 Transparent</BoxShadows>
     <BoxShadows x:Key="FluentShadowSunken">0 0 0 0 #00000000</BoxShadows>
     <BoxShadows x:Key="FluentShadowSoft">0 1 3 0 #2E000000</BoxShadows>
     <BoxShadows x:Key="FluentShadowRaised">0 2 6 0 #3D000000, 0 6 12 0 #26000000</BoxShadows>
     <BoxShadows x:Key="FluentShadowElevated">inset 0 0 0 1 #1AFFFFFF, 0 4 14 #40000000</BoxShadows>
 
     <!-- Fluent Background Colors for direct use -->
-    <Color x:Key="FluentAccentColor">#60CDFF</Color>
-    <Color x:Key="FluentAccentPointeroverColor">#78D4FF</Color>
-    <Color x:Key="FluentAccentPressedColor">#38B0F0</Color>
-    <SolidColorBrush x:Key="FluentAccentBrush" Color="#60CDFF" />
-    <SolidColorBrush x:Key="FluentAccentPointeroverBrush" Color="#78D4FF" />
-    <SolidColorBrush x:Key="FluentAccentPressedBrush" Color="#38B0F0" />
-    <SolidColorBrush x:Key="FluentAccentDisabledBrush" Opacity="0.35" Color="#60CDFF" />
+    <Color x:Key="FluentAccentColor">#62CDFE</Color>
+    <Color x:Key="FluentAccentPointeroverColor">#E662CDFE</Color>
+    <Color x:Key="FluentAccentPressedColor">#CC62CDFE</Color>
+    <SolidColorBrush x:Key="FluentAccentBrush" Color="#62CDFE" />
+    <SolidColorBrush x:Key="FluentAccentPointeroverBrush" Color="#E662CDFE" />
+    <SolidColorBrush x:Key="FluentAccentPressedBrush" Color="#CC62CDFE" />
+    <SolidColorBrush x:Key="FluentAccentDisabledBrush" Opacity="0.35" Color="#62CDFE" />
     <SolidColorBrush x:Key="FluentAccentForegroundBrush" Color="#000000" />
-    <SolidColorBrush x:Key="FluentCardBackgroundBrush" Color="#2C2C2C" />
-    <SolidColorBrush x:Key="FluentCardStrokeBrush" Opacity="0.08" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FluentCardStrokePointeroverBrush" Opacity="0.15" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="FluentCardBackgroundBrush" Color="#0DFFFFFF" />
+    <SolidColorBrush x:Key="FluentCardSecondaryBackgroundBrush" Color="#08FFFFFF" />
+    <SolidColorBrush x:Key="FluentCardStrokeBrush" Color="#1A000000" />
+    <SolidColorBrush x:Key="FluentCardStrokePointeroverBrush" Color="#1A000000" />
+    <SolidColorBrush x:Key="FluentCardBackgroundPointeroverBrush" Color="#3F3F3F" />
+    <SolidColorBrush x:Key="FluentCardBackgroundPressedBrush" Color="#3F3F3F" />
     <!-- Layer background (nav pane + title bar, same layer for visual consistency) -->
     <SolidColorBrush x:Key="FluentSubtleBrush" Color="#202020" />
-    <SolidColorBrush x:Key="FluentSubtleHoverBrush" Opacity="0.08" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FluentSubtlePressedBrush" Opacity="0.12" Color="#FFFFFF" />
-    <!-- NavItem 选中态 accent-tint 背景（WinUI NavigationViewItem 选中效果） -->
-    <SolidColorBrush x:Key="FluentNavItemSelectedBackgroundBrush" Color="#2A3B4C" />
-    <SolidColorBrush x:Key="FluentNavItemSelectedHoverBrush" Color="#31465B" />
-    <SolidColorBrush x:Key="FluentNavItemSelectedPressedBrush" Color="#3A5270" />
+    <SolidColorBrush x:Key="FluentSubtleHoverBrush" Color="#10FFFFFF" />
+    <SolidColorBrush x:Key="FluentSubtlePressedBrush" Color="#0BFFFFFF" />
+    <!-- NavItem 选中态背景（DevToys 使用中性底色，命令条复用该 token） -->
+    <SolidColorBrush x:Key="FluentNavItemSelectedBackgroundBrush" Color="#10FFFFFF" />
+    <SolidColorBrush x:Key="FluentNavItemSelectedHoverBrush" Color="#10FFFFFF" />
+    <SolidColorBrush x:Key="FluentNavItemSelectedPressedBrush" Color="#0BFFFFFF" />
 
-    <!-- ===== WinUI 3 shell / surface 语义 brush（对齐 F:\Code Avalonia.UI 参考） ===== -->
+    <!-- ===== shell / surface 语义 brush ===== -->
     <SolidColorBrush x:Key="FluentShellBackgroundBrush" Color="#202020" />
-    <SolidColorBrush x:Key="FluentPageBackgroundBrush" Color="#272727" />
+    <SolidColorBrush x:Key="FluentPageBackgroundBrush" Color="#282828" />
     <SolidColorBrush x:Key="FluentNavPaneBackgroundBrush" Color="#202020" />
     <SolidColorBrush x:Key="FluentTitleBarBackgroundBrush" Color="#202020" />
-    <SolidColorBrush x:Key="FluentSearchBoxBackgroundBrush" Opacity="0.06" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FluentDividerBrush" Opacity="0.10" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FluentShellContentBorderBrush" Opacity="0.10" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="FluentShellTitleBarBorderBrush" Opacity="0.08" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="FluentSearchBoxBackgroundBrush" Color="#0FFFFFFF" />
+    <SolidColorBrush x:Key="FluentDividerBrush" Color="#0FFFFFFF" />
+    <SolidColorBrush x:Key="FluentShellContentBorderBrush" Color="#1A000000" />
+    <SolidColorBrush x:Key="FluentShellTitleBarBorderBrush" Color="#0FFFFFFF" />
     <BoxShadows x:Key="FluentPaneBoxShadow">0 0 0 0 Transparent</BoxShadows>
-    <BoxShadows x:Key="FluentShellContentBoxShadow">0 1 3 0 #66000000</BoxShadows>
+    <BoxShadows x:Key="FluentShellContentBoxShadow">0 0 0 0 Transparent</BoxShadows>
     <!-- WinUI 3 Mica 材质半透明 shell — 窗口 ActualTransparencyLevel==Mica 时由 MainWindow 运行时换入，
          透出系统桌面壁纸采样；不满足 Mica 时回退上方不透明 brush（Dark 模式需更高不透明度保证可读性） -->
     <SolidColorBrush x:Key="FluentShellMicaBrush" Color="#D9202020" />
-    <BoxShadows x:Key="FluentCardBoxShadow">inset 0 0 0 1 #08FFFFFF, 0 1 2 0 #52000000</BoxShadows>
-    <BoxShadows x:Key="FluentCardPointeroverBoxShadow">inset 0 0 0 1 #12FFFFFF, 0 2 6 0 #70000000</BoxShadows>
+    <BoxShadows x:Key="FluentCardBoxShadow">0 0 0 0 Transparent</BoxShadows>
+    <BoxShadows x:Key="FluentCardPointeroverBoxShadow">0 0 0 0 Transparent</BoxShadows>
 
-    <!-- ===== 首页头图（Hero）品牌渐变 =====
-         GradientStop.Color 只能取 Color 字面量（无法引用 brush），故此处颜色取自本主题
-         Fluent 主色系：Dark 主色 #60CDFF 派生为 #1E6E96 → #0B3F58（同 ControlElevationBorderBrush 惯例）。 -->
-    <LinearGradientBrush x:Key="FluentHeroGradientBrush" StartPoint="0,0" EndPoint="0,1">
-        <LinearGradientBrush.GradientStops>
-            <GradientStop Offset="0" Color="#1E6E96" />
-            <GradientStop Offset="1" Color="#0B3F58" />
-        </LinearGradientBrush.GradientStops>
-    </LinearGradientBrush>
-    <SolidColorBrush x:Key="FluentHeroTitleForeground" Color="#FFFFFF" />
-    <!-- 工具卡片图标方块底色（比卡片底色略亮，形成图标与卡片的层次） -->
-    <SolidColorBrush x:Key="FluentIconTileBackgroundBrush" Color="#333333" />
+    <!-- ===== 主机表面：DevToys 首页 Hero 配色与主题文字；不复刻上游品牌图案 ===== -->
+    <SolidColorBrush x:Key="FluentHeroBackgroundBrush" Color="#805B2A86" />
+    <SolidColorBrush x:Key="FluentHeroDecorationBrush" Color="#1A9AECFE" />
+    <SolidColorBrush x:Key="FluentHeroTextPrimaryBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="FluentHeroTextSecondaryBrush" Color="#C4FFFFFF" />
+    <SolidColorBrush x:Key="FluentHeroTextTertiaryBrush" Color="#87FFFFFF" />
+    <SolidColorBrush x:Key="FluentIconSurfaceBrush" Color="#0DFFFFFF" />
+    <SolidColorBrush x:Key="FluentTextDisabledBrush" Color="#5CFFFFFF" />
+    <SolidColorBrush x:Key="FluentControlStrokeSecondaryBrush" Color="#8BFFFFFF" />
 
-    <!-- 布局尺寸 token -->
-    <x:Double x:Key="FluentPaneExpandedWidth">260</x:Double>
-    <x:Double x:Key="FluentPaneCollapsedWidth">48</x:Double>
+    <!-- ===== 布局尺寸 token ===== -->
+    <x:Double x:Key="FluentPaneExpandedWidth">320</x:Double>
+    <x:Double x:Key="FluentPaneCollapsedWidth">49</x:Double>
     <x:Double x:Key="FluentTitleBarHeight">48</x:Double>
+
+    <!-- 浮层导航遮罩（40% 黑，参考 DevToys NavigationScrim） -->
+    <SolidColorBrush x:Key="FluentNavigationScrimBrush" Color="#66000000" />
 
     <!-- ===== Avalonia-Fluent-UI semantic color tokens (WinUI 3 token mapping) ===== -->
     <!-- Text fill -->
     <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Opacity="0.9" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="TextFillColorTertiaryBrush" Opacity="0.7" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="TextFillColorDisabledBrush" Opacity="0.35" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Color="#C4FFFFFF" />
+    <SolidColorBrush x:Key="TextFillColorTertiaryBrush" Color="#87FFFFFF" />
+    <SolidColorBrush x:Key="TextFillColorDisabledBrush" Color="#5CFFFFFF" />
     <!-- Text on accent (foreground on top of accent fills) -->
     <SolidColorBrush x:Key="TextOnAccentFillColorPrimaryBrush" Color="#000000" />
     <SolidColorBrush x:Key="TextOnAccentFillColorSecondaryBrush" Opacity="0.9" Color="#000000" />
     <SolidColorBrush x:Key="TextOnAccentFillColorDisabledBrush" Opacity="0.6" Color="#000000" />
     <!-- Control fill (semi-transparent layering) -->
-    <SolidColorBrush x:Key="ControlFillColorDefaultBrush" Opacity="0.7" Color="#1F1F1F" />
-    <SolidColorBrush x:Key="ControlFillColorSecondaryBrush" Opacity="0.5" Color="#1F1F1F" />
-    <SolidColorBrush x:Key="ControlFillColorTertiaryBrush" Opacity="0.3" Color="#1F1F1F" />
-    <SolidColorBrush x:Key="ControlFillColorDisabledBrush" Opacity="0.3" Color="#1F1F1F" />
+    <SolidColorBrush x:Key="ControlFillColorDefaultBrush" Color="#0FFFFFFF" />
+    <SolidColorBrush x:Key="ControlFillColorSecondaryBrush" Color="#15FFFFFF" />
+    <SolidColorBrush x:Key="ControlFillColorTertiaryBrush" Color="#08FFFFFF" />
+    <SolidColorBrush x:Key="ControlFillColorDisabledBrush" Color="#08FFFFFF" />
     <SolidColorBrush x:Key="ControlFillColorTransparentBrush" Color="Transparent" />
     <!-- Accent fill (button backgrounds) -->
-    <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#60CDFF" />
-    <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#78D4FF" />
-    <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#38B0F0" />
-    <SolidColorBrush x:Key="AccentFillColorDisabledBrush" Opacity="0.35" Color="#60CDFF" />
+    <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#62CDFE" />
+    <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#E662CDFE" />
+    <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#CC62CDFE" />
+    <SolidColorBrush x:Key="AccentFillColorDisabledBrush" Opacity="0.35" Color="#62CDFE" />
     <!-- Subtle fill (hover/press backgrounds) -->
-    <SolidColorBrush x:Key="SubtleFillColorSecondaryBrush" Opacity="0.18" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="SubtleFillColorTertiaryBrush" Opacity="0.12" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="SubtleFillColorDisabledBrush" Opacity="0.04" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="SubtleFillColorSecondaryBrush" Color="#10FFFFFF" />
+    <SolidColorBrush x:Key="SubtleFillColorTertiaryBrush" Color="#0BFFFFFF" />
+    <SolidColorBrush x:Key="SubtleFillColorDisabledBrush" Color="#08FFFFFF" />
     <!-- Strokes -->
-    <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush" Opacity="0.08" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush" Opacity="0.18" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Opacity="0.06" Color="#000000" />
-    <SolidColorBrush x:Key="DividerStrokeColorDefaultBrush" Opacity="0.08" Color="#FFFFFF" />
-    <SolidColorBrush x:Key="ControlStrongStrokeColorDefaultBrush" Opacity="0.36" Color="#000000" />
+    <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush" Color="#12FFFFFF" />
+    <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush" Color="#8BFFFFFF" />
+    <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="#1A000000" />
+    <SolidColorBrush x:Key="DividerStrokeColorDefaultBrush" Color="#0FFFFFFF" />
+    <SolidColorBrush x:Key="ControlStrongStrokeColorDefaultBrush" Color="#8BFFFFFF" />
     <!-- Smoke / overlay (modal dimming) -->
-    <SolidColorBrush x:Key="SmokeFillColorDefaultBrush" Color="#80000000" />
+    <SolidColorBrush x:Key="SmokeFillColorDefaultBrush" Color="#4D000000" />
 
     <!-- Control elevation border (gradient) — top darker, bottom lighter.
          GradientStop.Color requires a Color literal (cannot use brush resource). -->

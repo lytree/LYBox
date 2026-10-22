@@ -33,9 +33,12 @@
         <Border Grid.Row="2" IsVisible="{Binding NeedsRestart}"
                 Classes="FluentInfoBar FluentInfoBarSeverityWarning" Margin="0 0 0 12">
             <StackPanel Orientation="Horizontal" Spacing="12">
-                <TextBlock Text="&#x26A0;" FontSize="18" VerticalAlignment="Center"
-                           Foreground="{DynamicResource FluentColorWarning}"/>
-                <TextBlock Text="{DynamicResource RESTART_REQUIRED}" Classes="FluentBody" VerticalAlignment="Center"/>
+                <PathIcon
+                    Width="20" Height="20"
+                    VerticalAlignment="Center"
+                    Data="{DynamicResource FluentWarning20Regular}"
+                    Foreground="{DynamicResource FluentColorWarning}"/>
+                <TextBlock Text="{DynamicResource RESTART_REQUIRED}" Classes="FluentInfoBarMessage" VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
 

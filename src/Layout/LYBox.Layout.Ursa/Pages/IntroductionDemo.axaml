@@ -38,16 +38,27 @@
         </Style>
     </UserControl.Styles>
 
-    <!-- 首页布局：顶部通栏 Hero（欢迎语 + 版本号），下方三列工具卡片网格 -->
+    <!-- 首页布局：顶部通栏 Hero（欢迎语 + 版本号），下方自适应列宽的工具卡片网格 -->
     <Grid RowDefinitions="Auto,*">
         <Border Grid.Row="0" Classes="FluentHeroBanner">
-            <StackPanel
-                Orientation="Horizontal"
-                Spacing="10"
-                VerticalAlignment="Center">
-                <TextBlock Classes="FluentHeroTitle" Text="{Binding WelcomeTitle}" />
-                <TextBlock Classes="FluentHeroVersion" Text="{Binding VersionText}" />
-            </StackPanel>
+            <Grid>
+                <!-- 装饰圆环：DevToys Hero 背景右上大圆环 + 右下实心圆，不参与命中测试 -->
+                <Canvas IsHitTestVisible="False">
+                    <Ellipse
+                        Width="260" Height="260"
+                        Canvas.Right="-52" Canvas.Top="-84"
+                        Stroke="{DynamicResource FluentHeroDecorationBrush}"
+                        StrokeThickness="28" />
+                    <Ellipse
+                        Width="112" Height="112"
+                        Canvas.Right="148" Canvas.Top="124"
+                        Fill="{DynamicResource FluentHeroDecorationBrush}" />
+                </Canvas>
+                <StackPanel VerticalAlignment="Center" Spacing="8">
+                    <TextBlock Classes="FluentHeroTitle" Text="{Binding WelcomeTitle}" />
+                    <TextBlock Classes="FluentHeroVersion" Text="{Binding VersionText}" />
+                </StackPanel>
+            </Grid>
         </Border>
 
         <Panel Grid.Row="1">
@@ -74,17 +85,22 @@
             <ScrollViewer
                 HorizontalScrollBarVisibility="Disabled"
                 VerticalScrollBarVisibility="Auto">
-                <!-- 等宽三列网格；卡片自身带 16px 右下外边距作为间距，
+                <!-- 自适应列宽网格：列数按可用宽度与 330px 最小列宽推算（DevToys GridView ItemMinWidth=330）。
+                     卡片自身带 16px 右下外边距作为间距，
                      外层右侧只留 8px，与左侧 24px 内边距合成 24px 视觉边距 -->
                 <ItemsControl
+                    Name="ToolGrid"
                     ItemsSource="{Binding FilteredItems}"
                     Margin="24,20,8,8"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Top"
-                    Background="Transparent">
+                    Background="Transparent"
+                    SizeChanged="OnToolGridSizeChanged">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <UniformGrid Columns="3" />
+                            <UniformGrid
+                                x:DataType="vm:IntroductionDemoViewModel"
+                                Columns="{Binding GridColumns}" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
@@ -99,16 +115,17 @@
                                     <!-- 左侧图标方块 -->
                                     <Border Grid.Column="0" Classes="FluentToolIconTile">
                                         <PathIcon
-                                            Width="26" Height="26"
+                                            Width="42" Height="42"
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center"
                                             Data="{Binding IconName, Converter={StaticResource IconConverter}}"
-                                            Foreground="{DynamicResource FluentColorText1}" />
+                                            Foreground="{DynamicResource FluentTextPrimaryBrush}" />
                                     </Border>
                                     <!-- 中部：名称 + 描述 -->
                                     <StackPanel
                                         Grid.Column="1"
-                                        Margin="14,0,8,0"
+                                        Margin="16,0,8,0"
+                                        Spacing="9"
                                         VerticalAlignment="Center">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Classes="FluentToolCardTitle" Text="{Binding Name}" />
@@ -125,10 +142,11 @@
                                     <!-- 右上角「打开」指示（点击卡片即打开该工具） -->
                                     <PathIcon
                                         Grid.Column="2"
-                                        Width="14" Height="14"
+                                        Width="12" Height="12"
+                                        Margin="0,3,0,0"
                                         VerticalAlignment="Top"
-                                        Data="{DynamicResource FluentOpen20Regular}"
-                                        Foreground="{DynamicResource FluentColorText3}"
+                                        Data="{DynamicResource FluentChevronRight16Regular}"
+                                        Foreground="{DynamicResource FluentTextSecondaryBrush}"
                                         ToolTip.Tip="{DynamicResource HOME_OPEN_TOOL}" />
                                 </Grid>
                             </Button>

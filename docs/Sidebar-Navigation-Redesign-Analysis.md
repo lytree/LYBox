@@ -271,3 +271,94 @@ dotnet run --project src/App/LYBox.Launcher.Desktop
 - 运行时目检：六张卡片三列撑满，描述与状态胶囊徽标可见，侧边栏「编码器」分组可展开并正确高亮，点击叶子项可导航到插件页面。
 - 无插件时首页显示「尚未安装任何工具」；有搜索词且无匹配时显示「无搜索结果」。
 - 深色 / 浅色主题下卡片与徽标均正常。
+
+---
+
+## 10. DevToys 源码级布局对比（2026-10-21）
+
+> 基准：DevToys v2 真实 UI 源码 `src/app/dev/DevToys.Blazor`（Blazor + WinUI3 混合），
+> 而非截图推测。本节只做**对比与结论**，不含代码改动。
+
+### 10.1 DevToys 布局骨架
+
+| 层级 | 文件 | 事实 |
+|---|---|---|
+| 外壳 | `Components/Menu/NavBar/NavBar.razor` + `.razor.scss` | `.nav-bar-root` 为 CSS Grid，`grid-template-areas: "header header" / "sidebar content"`；顶栏行高 48px（`--sidebar-top-bar-height-hard`） |
+| 侧栏 | 同上 | `nav` 为三段栅格 `grid-template-rows: auto 1fr auto` → `sidebar-header` / `sidebar-body`（ScrollViewer + `ul.sidebar-items`）/ `sidebar-footer`（`li.sidebar-item-separator` + `FooterMenuItemsSource` + `custom-footer` 插槽） |
+| 宽度 token | `NavBar.razor.scss` | `$sidebar-expanded-width: 320px` / `$sidebar-collapsed-width: 49px` / `$sidebar-hidden-width: 0px` |
+| 状态机 | `NavBarState.cs` | 三态 `Hidden` / `Collapsed` / `Expanded` + `ExpandedOverlay`（折叠态汉堡唤出浮层覆盖内容区）；`UserPreferredState` 记录用户意图，`WidthUpdated()` 按宽度自动切换 |
+| 阈值 | `NavBarThresholds.cs` | `NavBarWidthSidebarHiddenThreshold = 640`、`NavBarWidthSidebarCollapseThreshold = 1008` |
+| 侧栏项 | `NavBarItem.razor` + `.scss` | ListBoxItem 形态，`grid-template-columns: auto 1fr auto`，gap `0 16px`；图标 16×16；子项 `padding-left: 42px`；展开按钮 32 宽 × 34 高；分隔线 `height:1px; margin:4px 0` |
+| 内容区 | `NavBar.razor.scss` | `main` 仅左上圆角 `border-top-left-radius: var(--overlay-corner-radius)` + `navigation-view-content-grid-border` |
+| 首页 | `SubPages/ToolGroup.razor` + `.scss` | Hero 250px 高、mask 渐隐、`rotateX(15deg) rotateZ(-15deg) skewX(15deg)` 3D 视差；`GridView ItemMinWidth=330` 自适应列宽；工具卡片 `height:134px`，栅格 `grid-template-areas: "icon title buttons" / "icon description description"`；图标瓦片 100×100（padding 12，内含 64px 字体图标）；描述 5 行 clamp；右上 24×24「在新窗口打开」按钮；页脚 `InfoBar` |
+| 工具页 | `SubPages/ToolPage.razor` + `.scss` | 标题 24px + 右上工具条（收藏按钮），页面内边距 `--tool-page-padding` |
+| 搜索 | `Index.razor` / `NavBar.razor.ts` | `AutoSuggestBox` 带下拉结果（图标 + 匹配文本高亮），提交/变更双回调；`Ctrl/Cmd+F` → `ForceExpand()` + 200ms 后聚焦 |
+
+### 10.2 逐区差异清单
+
+| 区域 | 维度 | DevToys | LYBox 现状 | 差异级别 |
+|---|---|---|---|---|
+| 侧栏 | 展开宽度 | 320px | `FluentPaneExpandedWidth` = 260 | 中 |
+| 侧栏 | 折叠宽度 | 49px | `FluentPaneCollapsedWidth` = 48 | 低 |
+| 侧栏 | 状态机 | Hidden / Collapsed / Expanded(+Overlay) 四态 | 仅 Expanded / Collapsed 两态；`IsSidebarHidden` + `ToggleSidebar()` 为**死代码**（无任何 UI 绑定） | 高 |
+| 侧栏 | 窄窗行为 | <640px 侧栏完全隐藏，顶栏补汉堡 | 无 Hidden 态，窄窗仅自动折叠 | 高 |
+| 侧栏 | 顶段结构 | `sidebar-header` 内汉堡 + 折叠态搜索按钮 + AutoSuggestBox 同段 | 汉堡独占 Row0，搜索独占 Row1 | 低 |
+| 侧栏 | 搜索控件 | `AutoSuggestBox` + 下拉结果列表 | 普通 `TextBox` + 清除/搜索双按钮，仅过滤首页网格 | 高 |
+| 侧栏 | 导航项图标 | 16×16 | `TwoTonePathIcon` 20×20 | 低 |
+| 侧栏 | 子项缩进 | `padding-left: 42px` | `SubMenuIndent = 24` | 中 |
+| 侧栏 | 展开按钮 | 32 宽 × 34 高 | 沿用 Ursa 模板默认 | 低 |
+| 侧栏 | 底部区 | 复用 `NavBarItem` 列表 + 标准分隔线 + 可插拔 footer 插槽 | 两个独立 `FluentNavFooterItem` 按钮 + 自绘 `Rectangle` 分隔线 | 中 |
+| 顶栏 | 返回按钮 | `IsEnabled="@CanGoBack"`，无历史时禁用 | 常显可点，无历史时回首页 | 中 |
+| 顶栏 | 折叠唤出 | Hidden/Collapsed 态顶栏出现汉堡唤出 Overlay | 顶栏无汉堡 | 中 |
+| 内容区 | 边框 | 四边 `navigation-view-content-grid-border` + 左上圆角 | `FluentMainContentSurface` `BorderThickness="1,1,0,0"` + `CornerRadius="8,0,0,0"` | 低 |
+| 首页 | Hero | 250px 背景图 + mask 渐隐 + 3D 视差动画 | `FluentHeroBanner` MinHeight 90 纯渐变条，无动画 | 高 |
+| 首页 | 网格 | `GridView ItemMinWidth=330` 自适应列 | `UniformGrid Columns="3"` 固定三列 | 中 |
+| 首页 | 卡片高度 | 134px | `FluentToolCard` Height 96 | 中 |
+| 首页 | 卡片栅格 | `icon / title+buttons / description` 三区 | 标题 + 徽标同行、描述另起行，右上仅图标 | 低 |
+| 首页 | 图标瓦片 | 100×100（内含 64px 字体图标） | `FluentToolIconTile` 56×56（内含 26×26 PathIcon） | 中 |
+| 首页 | 描述 | 5 行 clamp | `MaxLines=2` | 中 |
+| 首页 | 卡片动作 | 右上 24×24「在新窗口打开」按钮 | 右上 20×20 `FluentOpen20Regular` 静态图标 | 低 |
+| 首页 | 页脚 | `InfoBar` 提示条 | 无 | 低 |
+| 工具页 | 规范 | 标题 24px + 右上工具条 + `--tool-page-padding` | 插件页无统一标题/内边距规范 | 高 |
+
+### 10.3 结论与建议落地顺序
+
+本轮对比确认：LYBox 的**骨架已与 DevToys 同源**（48px 顶栏 + 侧栏 + 内容区的栅格分层、1008px 折叠阈值、Ctrl+F 聚焦、选中指示条均已对齐），
+剩余差异集中在**尺寸规格**、**第三态（Hidden）**、**搜索交互形态**与**首页视觉规格**四处。
+
+建议按以下顺序落地（每步独立可回滚）：
+
+1. **侧栏尺寸与状态机**：展开宽 260 → 320、折叠 48 → 49；补 Hidden 态（<640px 隐藏侧栏并在顶栏补汉堡），清理 `IsSidebarHidden` / `ToggleSidebar()` 死代码，改为真正驱动 `NavBarState` 三态。
+2. **顶栏返回按钮语义**：改为绑定 `CanGoBack`，无历史时禁用；Hidden 态顶栏补汉堡按钮。
+3. **搜索 AutoSuggest 化**：侧栏搜索框换成带下拉结果的组合控件，命中项点击直接导航；保留 Ctrl+F 行为。
+4. **首页视觉规格**：Hero 提到 250px 并加渐隐遮罩；卡片 96 → 134、瓦片 56 → 100、描述 2 → 5 行；网格改自适应列宽（最小 330）。
+5. **工具页规范**：统一 24px 标题 + 右上工具条 + 页面内边距，落到插件页模板上。
+
+第 1、2 步属结构级、影响面小；第 3、4 步是观感差异的主要来源；第 5 步涉及插件模板，需先定契约。
+
+---
+
+## 11. 落地实施记录（2026-10-22）
+
+按 10.3 的 5 步顺序实施，每步独立可回滚。涉及文件：
+
+| 步骤 | 主题 | 主要改动 |
+|---|---|---|
+| 1 | 侧栏尺寸与状态机 | 展开宽 260→320、折叠 48→49（`Light.axaml` / `Dark.axaml` 的 `FluentPaneExpandedWidth` / `FluentPaneCollapsedWidth`）；新增 `IsSidebarHidden` + 双阈值策略（<640 隐藏、<1008 折叠，`UserPreferredCollapsed` 记录用户意图）；删除死代码 `ToggleSidebar()`，改为 `ShowSidebarCommand`；`SubMenuIndent` 24→42；`MainWindow.MinWidth` 640→480（否则 Hidden 态不可达） |
+| 2 | 顶栏语义 | 返回按钮绑定 `CanGoBack` 置灰禁用；Hidden 态顶栏补汉堡按钮唤出侧栏 |
+| 3 | 搜索 AutoSuggest 化 | 新增 `SearchSuggestion` + `FilteredSuggestions` 下拉（TextBox + Popup + ItemsControl，回车选中第一条、点击直达）；保留 Ctrl+F 展开聚焦 |
+| 4 | 首页视觉规格 | Hero 90→250px 并叠渐隐遮罩 `FluentHeroMaskBrush`；卡片 96→134、图标瓦片 56→100（图标 26→64）、描述 2→5 行；网格改自适应列（最小 330，页面按宽度回写 `GridColumns`） |
+| 5 | 工具页规范 | 宿主新增 `FluentToolPage*` 样式契约（页面容器 / 24px 标题 / 副标题 / 右上工具条 / 32×32 动作按钮），落在独立测试插件 `tests/LYBox.DemoPlugin` 作参考实现 |
+
+### 11.1 关键取舍
+
+- **AutoSuggest 实现**：Avalonia `AutoCompleteBox` 依赖主题模板、API 不确定；`TextBlock.Inlines` 是 DirectProperty 不可绑定（无法做匹配高亮）。最终采用 `TextBox + Popup + ItemsControl`，规避主题依赖，代价是暂不做 per-run 高亮。
+- **自适应网格**：`UniformGrid` 无 `ItemMinWidth` 能力（仅 Rows/Columns/Spacing），改为页面按 `floor((width + 16) / (330 + 16))` 计算列数并回写 VM。
+- **工具页契约落点**：本机无 `..\LYBox.Plugins` 仓库，插件模板无法直接改；改为「宿主提供 Application 级样式契约 + 独立测试插件作参考实现」，插件页直接引用类名即可。
+- **Hidden 态可达性**：原 `MinWidth=640` 使 `width < 640` 永不成立，Hidden 态仍是死代码；降到 480 后第三态真实可达。
+
+### 11.2 验证
+
+- `dotnet build src/App/LYBox.Launcher.Desktop` 与 `dotnet build tests/LYBox.DemoPlugin`：0 错误。
+- 启动冒烟：无异常日志，插件页样式与下拉未触发运行时错误。
+- 待补：界面目检（本机无桌面自动化工具，`orca` CLI 不可用）。

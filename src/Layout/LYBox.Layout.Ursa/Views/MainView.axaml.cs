@@ -42,20 +42,17 @@ public partial class MainView : UserControl
     /// </summary>
     private void OpenSearch()
     {
-        var alreadyExpanded = true;
-        if (DataContext is MainViewViewModel viewModel)
-        {
-            alreadyExpanded = !viewModel.IsCollapsed;
-            viewModel.IsCollapsed = false;
-        }
+        if (DataContext is not MainViewViewModel viewModel)
+            return;
+
+        // 浮层态下侧边栏已经展开，直接聚焦；否则等宽度过渡结束再聚焦
+        var alreadyExpanded = !viewModel.IsCollapsed && !viewModel.IsNavigationOverlay;
+        viewModel.ExpandNavigation();
 
         if (alreadyExpanded)
-        {
             FocusSearchBox();
-            return;
-        }
-
-        DispatcherTimer.RunOnce(FocusSearchBox, TimeSpan.FromMilliseconds(220));
+        else
+            DispatcherTimer.RunOnce(FocusSearchBox, TimeSpan.FromMilliseconds(220));
     }
 
     private void FocusSearchBox()
@@ -64,34 +61,19 @@ public partial class MainView : UserControl
         SearchBox.SelectAll();
     }
 
-    /// <summary>侧边栏自动折叠阈值，取自 DevToys NavBarThresholds.NavBarWidthSidebarCollapseThreshold。</summary>
-    private const double SidebarCollapseThreshold = 1008;
-
     protected override void OnSizeChanged(SizeChangedEventArgs e)
     {
         base.OnSizeChanged(e);
-        ApplySidebarWidthPolicy(e.NewSize.Width);
+        _viewModel?.UpdateNavigationLayout(e.NewSize.Width);
     }
 
     /// <summary>
-    /// 参考 DevToys 的自适应侧边栏：窗口宽度小于 1008px 时自动收成图标栏；
-    /// 回到阈值以上时，若用户没有手动折叠过则自动展开。
+    /// 初始化/布局完成后按窗口宽度应用导航三态（Hidden / Overlay / Expanded），
+    /// 阈值与状态机由 ViewModel 的 UpdateNavigationLayout 统一维护。
     /// </summary>
     private void ApplySidebarWidthPolicy(double width)
     {
-        if (_viewModel is null || width <= 0)
-            return;
-
-        if (width < SidebarCollapseThreshold)
-        {
-            // 用户在窄窗下明确点开过侧边栏就不再强制收起
-            if (_viewModel.UserPreferredCollapsed != false)
-                _viewModel.IsCollapsed = true;
-        }
-        else if (_viewModel.UserPreferredCollapsed != true)
-        {
-            _viewModel.IsCollapsed = false;
-        }
+        _viewModel?.UpdateNavigationLayout(width);
     }
 
     /// <summary>

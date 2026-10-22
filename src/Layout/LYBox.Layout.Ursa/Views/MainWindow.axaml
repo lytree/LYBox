@@ -15,7 +15,9 @@
     ExtendClientAreaToDecorationsHint="True"
     x:DataType="viewModels:MainWindowViewModel"
     WindowStartupLocation="CenterScreen"
-    MinWidth="640"
+    Width="1180"
+    Height="780"
+    MinWidth="480"
     MinHeight="480"
     Icon="/Assets/lybox.ico"
     IsFullScreenButtonVisible="{OnPlatform {x:False}, Linux={x:True}}"
@@ -25,8 +27,9 @@
     mc:Ignorable="d">
     <!-- 标题栏三段式布局（工具坞风格）：
            左：返回 + 应用图标 + 品牌名；右：主题切换。
-           返回入口常显（参考 DevToys 的「← DevToys」），无历史时点击回到首页；
-           折叠按钮在侧边栏顶部，标题栏中部留空作为窗口拖拽区域。
+           侧边栏被窄窗隐藏（DevToys Hidden 态）时，左侧补一个汉堡按钮用于唤出侧边栏。
+           返回入口按 CanGoBack 置灰（无历史时不可用），折叠按钮在侧边栏顶部，
+           标题栏中部留空作为窗口拖拽区域。
            Title 设为空字符串，避免 WindowDrawnDecorations 的左侧标题文本与品牌区重叠。 -->
     <u:UrsaWindow.LeftContent>
         <StackPanel
@@ -34,8 +37,20 @@
             Spacing="6"
             Margin="8,0,0,0"
             VerticalAlignment="Center">
+            <!-- Hidden 态唤出入口：仅在侧边栏被隐藏时出现，点击以浮层展开 -->
             <Button
                 Classes="FluentRailButton"
+                IsVisible="{Binding MainViewViewModel.IsSidebarHidden}"
+                Command="{Binding MainViewViewModel.ToggleCollapseCommand}"
+                ToolTip.Tip="{DynamicResource TOOLTIP_TOGGLE_NAV}">
+                <PathIcon
+                    Width="16" Height="16"
+                    Data="{DynamicResource FluentLineHorizontal320Regular}"
+                    Foreground="{DynamicResource FluentColorText1}" />
+            </Button>
+            <Button
+                Classes="FluentRailButton"
+                IsEnabled="{Binding MainViewViewModel.CanGoBack}"
                 Command="{Binding MainViewViewModel.BackCommand}"
                 ToolTip.Tip="{DynamicResource TOOLTIP_BACK}">
                 <PathIcon

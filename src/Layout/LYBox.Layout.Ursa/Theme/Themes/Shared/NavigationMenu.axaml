@@ -30,7 +30,7 @@
     <Thickness x:Key="NavigationMenuItemExpandIconMargin">12,0</Thickness>
     <Thickness x:Key="NavigationMenuItemFlyoutMargin">8</Thickness>
 
-    <Thickness x:Key="NavigationMenuSeparatorMargin">4,0</Thickness>
+    <Thickness x:Key="NavigationMenuSeparatorMargin">0,4</Thickness>
     <Thickness x:Key="NavigationMenuSeparatorHeaderMargin">4,0</Thickness>
-    <Thickness x:Key="NavigationMenuSeparatorBorderMargin">0,2</Thickness>
+    <Thickness x:Key="NavigationMenuSeparatorBorderMargin">0</Thickness>
 </ResourceDictionary>

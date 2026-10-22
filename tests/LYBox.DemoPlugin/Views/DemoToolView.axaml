@@ -8,13 +8,39 @@
              x:DataType="vm:DemoToolViewModel"
              mc:Ignorable="d">
 
-    <ScrollViewer>
-        <StackPanel Margin="24" Spacing="12">
-            <TextBlock FontSize="28" FontWeight="SemiBold" Text="{Binding Title}" />
-            <TextBlock Opacity="0.7" Text="{Binding Description}" />
-            <Border Classes="FluentSettingsCard" Padding="16">
-                <TextBlock Opacity="0.6" Text="演示插件占位页面" />
+    <!-- 工具页参考实现（宿主提供的 FluentToolPage* 样式契约，Application 级可被插件直接引用）：
+         页面内边距 + 24px 标题 + 右上工具条 -->
+    <Border Classes="FluentToolPage">
+        <Grid RowDefinitions="Auto,*">
+            <Grid Grid.Row="0" Classes="FluentToolPageHeader" ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Margin="0,0,16,0" Spacing="4">
+                    <TextBlock Classes="FluentToolPageTitle" Text="{Binding Title}" />
+                    <TextBlock Classes="FluentToolPageSubtitle" Text="{Binding Description}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Classes="FluentToolPageToolbar">
+                    <Button Classes="FluentToolPageAction" Click="OnCopyClick" ToolTip.Tip="复制">
+                        <PathIcon
+                            Width="16" Height="16"
+                            Data="{DynamicResource FluentCopy20Regular}"
+                            Foreground="{DynamicResource FluentColorText1}" />
+                    </Button>
+                    <Button Classes="FluentToolPageAction" Command="{Binding ResetCommand}" ToolTip.Tip="重置">
+                        <PathIcon
+                            Width="16" Height="16"
+                            Data="{DynamicResource FluentArrowReset20Regular}"
+                            Foreground="{DynamicResource FluentColorText1}" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+            <Border Grid.Row="1" Classes="FluentSettingsCard">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="FluentSubtitle" Text="输入内容" />
+                    <TextBox Text="{Binding Input}" PlaceholderText="在此输入文本…" />
+                    <TextBlock
+                        Classes="FluentCaption"
+                        Text="演示插件占位页面：用于目检工具页规范的标题尺寸、右上工具条与页面内边距。" />
+                </StackPanel>
             </Border>
-        </StackPanel>
-    </ScrollViewer>
+        </Grid>
+    </Border>
 </UserControl>

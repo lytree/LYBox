@@ -46,6 +46,12 @@ public partial class IntroductionDemoViewModel : ObservableObject
     /// <summary>未安装任何工具（没有搜索词且工具列表为空）。</summary>
     [ObservableProperty] private bool _hasNoTools;
 
+    /// <summary>
+    /// 工具卡片网格的列数。参考 DevToys GridView 的 ItemMinWidth=330：
+    /// 由页面按可用宽度推算后回写，宽度不足时自动降列。
+    /// </summary>
+    [ObservableProperty] private int _gridColumns = 3;
+
     public IntroductionDemoViewModel()
     {
         _localizationService = ServiceLocator.TryGetService<ILocalizationService>(out var loc) ? loc : null;
