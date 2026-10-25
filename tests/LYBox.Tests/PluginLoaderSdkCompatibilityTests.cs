@@ -7,10 +7,33 @@ namespace LYBox.Tests;
 
 /// <summary>
 /// PluginLoader.IsPluginSdkCompatible 的单元测试。
-/// 宿主 SDK 版本由 PluginSdkContract.CurrentVersion 编译时注入（当前为 "2.3.0-preview.3"，剥离预发布后为 2.3.0）。
+/// 宿主 SDK 版本由 PluginSdkContract.CurrentVersion 编译时注入（见 LYBox.Plugin.Shared.csproj 的
+/// GeneratePluginSdkContract target），值取自仓库根 version.props 的 HostVersion。
+///
+/// 重要：本测试中所有「更高 / 更低 / 精确」用例的版本号均基于 <see cref="Host"/> 动态派生，
+/// 因此 version.props 的版本 bump 后测试语义仍然成立，无需人工同步硬编码的宿主版本。
 /// </summary>
 public class PluginLoaderSdkCompatibilityTests
 {
+    /// <summary>宿主 SDK 稳定版本三段（已剥离预发布标签）。</summary>
+    private static readonly (int Major, int Minor, int Build) Host =
+        ParseStable(PluginSdkContract.CurrentVersion);
+
+    private static (int Major, int Minor, int Build) ParseStable(string version)
+    {
+        var core = version;
+        var dash = core.IndexOf('-', StringComparison.Ordinal);
+        if (dash >= 0) core = core[..dash];
+
+        var parts = core.Split('.');
+        return (
+            int.Parse(parts[0]),
+            parts.Length > 1 ? int.Parse(parts[1]) : 0,
+            parts.Length > 2 ? int.Parse(parts[2]) : 0);
+    }
+
+    private static string Ver(int major, int minor, int build) => $"{major}.{minor}.{build}";
+
     #region null / 空字符串 → 通过（无约束）
 
     [Test]
@@ -61,10 +84,10 @@ public class PluginLoaderSdkCompatibilityTests
 
     public static IEnumerable<object[]> MajorMismatchCases() => new List<object[]>
     {
-        new object[] { "1.1.0" },     // 低于主版本
-        new object[] { "3.1.0" },     // 高于主版本
-        new object[] { "1.0.0" },     // 最低版本
-        new object[] { "10.0.0" },    // 远高版本
+        new object[] { Ver(Host.Major - 1, 1, 0) },   // 低于主版本
+        new object[] { Ver(Host.Major + 1, 1, 0) },   // 高于主版本
+        new object[] { Ver(Host.Major - 1, 0, 0) },   // 主版本不同且最低版本
+        new object[] { Ver(Host.Major + 8, 0, 0) },   // 远高主版本
     };
 
     #endregion
@@ -80,9 +103,9 @@ public class PluginLoaderSdkCompatibilityTests
 
     public static IEnumerable<object[]> MinorHigherCases() => new List<object[]>
     {
-        new object[] { "2.0.0" },     // 宿主次版本更高
-        new object[] { "2.0.5" },      // 宿主次版本更高，修订号也更
-        new object[] { "2.0.999" },    // 任意高修订号
+        new object[] { Ver(Host.Major, LowerMinor, 0) },    // 宿主次版本更高
+        new object[] { Ver(Host.Major, LowerMinor, 5) },    // 宿主次版本更高，修订号也更
+        new object[] { Ver(Host.Major, LowerMinor, 999) },  // 任意高修订号
     };
 
     #endregion
@@ -98,9 +121,9 @@ public class PluginLoaderSdkCompatibilityTests
 
     public static IEnumerable<object[]> MinorLowerCases() => new List<object[]>
     {
-        new object[] { "2.4.0" },     // 宿主次版本(3) < 要求(4) → 不兼容
-        new object[] { "2.6.0" },     // 远高次版本
-        new object[] { "2.5.0" },      // 次版本更高 + 修订号更高
+        new object[] { Ver(Host.Major, Host.Minor + 1, 0) },   // 宿主次版本 < 要求 → 不兼容
+        new object[] { Ver(Host.Major, Host.Minor + 3, 0) },   // 远高次版本
+        new object[] { Ver(Host.Major, Host.Minor + 2, 0) },   // 次版本更高 + 修订号更高
     };
 
     #endregion
@@ -116,8 +139,8 @@ public class PluginLoaderSdkCompatibilityTests
 
     public static IEnumerable<object[]> ExactMatchCases() => new List<object[]>
     {
-        new object[] { "2.1.0" },     // 精确匹配
-        new object[] { "2.1" },       // 缺省修订号 → 0
+        new object[] { Ver(Host.Major, Host.Minor, Host.Build) },  // 精确匹配
+        new object[] { $"{Host.Major}.{Host.Minor}" },             // 缺省修订号 → 0
     };
 
     #endregion
@@ -133,8 +156,8 @@ public class PluginLoaderSdkCompatibilityTests
 
     public static IEnumerable<object[]> BuildHigherCases() => new List<object[]>
     {
-        new object[] { "2.3.1" },     // 同主+次版本，修订号更高 → 不兼容
-        new object[] { "2.3.999" },   // 远高修订号
+        new object[] { Ver(Host.Major, Host.Minor, Host.Build + 1) },    // 同主+次版本，修订号更高 → 不兼容
+        new object[] { Ver(Host.Major, Host.Minor, Host.Build + 999) },  // 远高修订号
     };
 
     #endregion
@@ -145,15 +168,15 @@ public class PluginLoaderSdkCompatibilityTests
     [MethodDataSource(nameof(PreReleaseStrippedAndMatchesCases))]
     public async Task IsPluginSdkCompatible_PreReleaseTag_StrippedAndMatches(string required)
     {
-        // 预发布标签应被忽略，取 "2.1.0" 比较 → 兼容
+        // 预发布标签应被忽略，取核心版本比较 → 兼容
         await Assert.That(PluginLoader.IsPluginSdkCompatible(required)).IsTrue();
     }
 
     public static IEnumerable<object[]> PreReleaseStrippedAndMatchesCases() => new List<object[]>
     {
-        new object[] { "2.1.0-preview" },
-        new object[] { "2.1.0-alpha.1" },
-        new object[] { "2.1.0-rc.2+build.456" },
+        new object[] { Ver(Host.Major, Host.Minor, Host.Build) + "-preview" },
+        new object[] { Ver(Host.Major, Host.Minor, Host.Build) + "-alpha.1" },
+        new object[] { Ver(Host.Major, Host.Minor, Host.Build) + "-rc.2+build.456" },
     };
 
     [Test]
@@ -166,8 +189,8 @@ public class PluginLoaderSdkCompatibilityTests
 
     public static IEnumerable<object[]> PreReleaseStrippedAndRejectsWhenHigherCases() => new List<object[]>
     {
-        new object[] { "2.3.1-preview" },  // 剥离后 2.3.1 > 宿主 2.3.0 → 不兼容
-        new object[] { "2.4.0-beta" },     // 剥离后 2.4.0 > 宿主 2.3.0 → 不兼容
+        new object[] { Ver(Host.Major, Host.Minor, Host.Build + 1) + "-preview" },  // 剥离后修订号更高 → 不兼容
+        new object[] { Ver(Host.Major, Host.Minor + 1, 0) + "-beta" },              // 剥离后次版本更高 → 不兼容
     };
 
     #endregion
@@ -183,9 +206,12 @@ public class PluginLoaderSdkCompatibilityTests
 
     public static IEnumerable<object[]> PartialVersionCases() => new List<object[]>
     {
-        new object[] { "2" },     // 仅主版本 → 2.0.0，宿主更高 → 兼容
-        new object[] { "2.1" },   // 主+次 → 2.1.0，精确匹配 → 兼容
+        new object[] { Host.Major.ToString() },                          // 仅主版本 → major.0.0，宿主更高 → 兼容
+        new object[] { $"{Host.Major}.{LowerMinor}" },                    // 主+次，低于宿主 → 兼容
     };
 
     #endregion
+
+    /// <summary>比宿主次版本低一档（不低于 0），用于构造「宿主更高」的用例。</summary>
+    private static int LowerMinor => Math.Max(0, Host.Minor - 1);
 }
