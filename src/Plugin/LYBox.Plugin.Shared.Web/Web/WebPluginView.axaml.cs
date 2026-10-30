@@ -132,12 +132,14 @@ public partial class WebPluginView : UserControl
             top.ActualThemeVariantChanged += OnTopLevelThemeChanged;
         }
 
+        PluginWebViewLayerGuard.SuppressionChanged += OnLayerSuppressionChanged;
         _ = TryInitialize();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         _isAttached = false;
+        PluginWebViewLayerGuard.SuppressionChanged -= OnLayerSuppressionChanged;
 
         if (_topLevel is not null)
         {
@@ -187,6 +189,28 @@ public partial class WebPluginView : UserControl
         }
     }
 
+    private void OnLayerSuppressionChanged(object? sender, EventArgs e) => ApplyWebViewLayerVisibility();
+
+    /// <summary>
+    /// 宿主弹窗期间把原生 WebView 从宿主容器摘除：原生子窗口不参与 Avalonia 的层级合成，
+    /// 否则会盖住 Overlay 对话框。抑制结束后重新挂回同一个 WebView 实例。
+    /// </summary>
+    private void ApplyWebViewLayerVisibility()
+    {
+        if (_webView is null || this.FindControl<Border>("PART_WebHost") is not { } host)
+            return;
+
+        if (PluginWebViewLayerGuard.IsSuppressed)
+        {
+            if (ReferenceEquals(host.Child, _webView))
+                host.Child = null;
+            return;
+        }
+
+        if (!ReferenceEquals(host.Child, _webView))
+            host.Child = _webView;
+    }
+
     private async Task TryInitialize()
     {
         if (_initialized) return;
@@ -221,6 +245,7 @@ public partial class WebPluginView : UserControl
         if (!TryAttachWebView(pluginId, out var webView))
             return;
         _webView = webView;
+        ApplyWebViewLayerVisibility();
 
         // 4. 构造 IPC 传输层 + 主机（注入 SSE pusher + pluginId + webHost 以启用 SSE 推送 + HTTP RPC 桥）
         _transport = new WebViewIpcTransport(webView);

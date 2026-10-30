@@ -1,7 +1,7 @@
 /**
  * LYBox WebView IPC 浏览器 SDK —— TypeScript 类型声明
  *
- * @version 2.3.0-preview.7   ← 与 lybox-plugin-sdk.js 同源；CI 同步 version.props。
+ * 版本随 LYBox.Plugin.Shared.Web NuGet 包版本发布；文件本身不携带版本号。
  *
  * 与 lybox-plugin-sdk.js 一一对应；任一端升级必须同步修改。
  * Vite dev 与生产 WebView 均经由宿主 /sdk/lybox-plugin-sdk.d.ts 提供类型提示（dev 经 vite proxy）。

@@ -1,8 +1,8 @@
 /**
  * LYBox WebView IPC 浏览器 SDK（ES Module）
  *
- * @version 2.3.0-preview.7   ← 与 LYBox/version.props 的 <LyboxVersion> 保持一致；
- *                                 CI 通过 build.cs 的 ReplaceSdkVersionToken 在打包前同步。
+ * 版本随 LYBox.Plugin.Shared.Web NuGet 包版本发布（version.props 的 <LyboxVersion>），
+ * 文件本身不携带版本号；兼容性由包版本与插件 manifest 的 minPluginSdkVersion 保证。
  *
  * 为浏览器开发模式（无 WebView）提供与原生 LYBox 宿主一致的 RPC 调用体验。
  * 运行环境检测：
@@ -16,7 +16,6 @@
  * HTTP 请求走 lyboxRequest(path, options) / lyboxGetJson(path, options)。
  *
  * 与 templates/web-plugin-ui/src/lybox.ts 方法签名一一对应；两端任一升级必须同步修改。
- * 宿主侧运行时校验：WebHostService 启动时读取本资源，校验 @version 头是否与 <PluginSdkVersion> 一致。
  */
 
 const REQUEST_KIND = "lybox-ipc-request";
