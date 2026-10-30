@@ -151,10 +151,18 @@
                             BorderThickness="1"
                             CornerRadius="8"
                             BoxShadow="{DynamicResource FluentPaneBoxShadow}">
-                            <ScrollViewer
-                                MaxHeight="320"
-                                HorizontalScrollBarVisibility="Disabled"
-                                VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <!-- 无命中：保留下拉并提示，避免输入时下拉闪烁消失 -->
+                                <TextBlock
+                                    Margin="12,8"
+                                    FontSize="13"
+                                    Foreground="{DynamicResource FluentColorText2}"
+                                    Text="{DynamicResource SEARCH_NO_RESULTS}"
+                                    IsVisible="{Binding HasNoSuggestions}" />
+                                <ScrollViewer
+                                    MaxHeight="320"
+                                    HorizontalScrollBarVisibility="Disabled"
+                                    VerticalScrollBarVisibility="Auto">
                                 <ItemsControl ItemsSource="{Binding FilteredSuggestions}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:SearchSuggestion">
@@ -181,6 +189,7 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </ScrollViewer>
+                            </StackPanel>
                         </Border>
                     </Popup>
                     </Grid>
@@ -194,9 +203,27 @@
                         SelectedItem="{Binding SelectedMenuItem, Mode=TwoWay}"
                         ExpandWidth="{DynamicResource FluentPaneExpandedWidth}"
                         CollapseWidth="{DynamicResource FluentPaneCollapsedWidth}"
-                        HeaderBinding="{Binding MenuHeader}"
+                        HeaderBinding="{Binding}"
                         IconBinding="{Binding MenuIconName}"
                         SubMenuBinding="{Binding Children}">
+                        <!-- 导航项标题：状态徽章（New/Beta 等）来自插件清单，未声明时不占位 -->
+                        <u:NavMenu.HeaderTemplate>
+                            <DataTemplate x:DataType="viewmodels:MenuItemViewModel">
+                                <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                    <TextBlock
+                                        Grid.Column="0"
+                                        VerticalAlignment="Center"
+                                        Text="{Binding MenuHeader}" />
+                                    <Label
+                                        Grid.Column="1"
+                                        Margin="8,0,0,0"
+                                        VerticalAlignment="Center"
+                                        Classes="FluentStatusBadge"
+                                        Content="{Binding Status}"
+                                        IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                </Grid>
+                            </DataTemplate>
+                        </u:NavMenu.HeaderTemplate>
                         <u:NavMenu.IconTemplate>
                             <DataTemplate x:DataType="x:String">
                                 <PathIcon
@@ -324,11 +351,50 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
-                    <ContentControl Grid.Row="1" Content="{Binding Content}">
+                    <ContentControl
+                        Grid.Row="1"
+                        Content="{Binding Content}"
+                        IsEnabled="{Binding !IsPageLoading}">
                         <ContentControl.ContentTemplate>
                             <plugin:ViewLocator />
                         </ContentControl.ContentTemplate>
                     </ContentControl>
+                    <!-- 页面加载失败提示：浮在内容区顶部，不阻断侧栏继续切换页面 -->
+                    <Border
+                        Grid.Row="1"
+                        ZIndex="2"
+                        Classes="FluentInfoBar FluentInfoBarSeverityError"
+                        Margin="16"
+                        Padding="16,12"
+                        VerticalAlignment="Top"
+                        IsHitTestVisible="False"
+                        IsVisible="{Binding HasPageLoadError}">
+                        <TextBlock Classes="FluentInfoBarMessage" Text="{Binding PageLoadError}" TextWrapping="Wrap" />
+                    </Border>
+                    <!-- 页面切换加载覆盖层：内容创建期间替代空白，避免闪烁 -->
+                    <Grid Grid.Row="1" ZIndex="1" IsVisible="{Binding IsPageLoading}">
+                        <Border Background="{DynamicResource FluentPageBackgroundBrush}" Opacity="0.85" />
+                        <Border
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Padding="16,12"
+                            Background="{DynamicResource FluentCardBackgroundBrush}"
+                            BorderBrush="{DynamicResource FluentCardStrokeBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                                <u:LoadingIcon
+                                    Classes="Large"
+                                    HorizontalAlignment="Center"
+                                    Foreground="{DynamicResource FluentAccentBrush}"
+                                    IsLoading="{Binding IsPageLoading}" />
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    Foreground="{DynamicResource FluentColorText2}"
+                                    Text="{DynamicResource LOADING_PAGE}" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>

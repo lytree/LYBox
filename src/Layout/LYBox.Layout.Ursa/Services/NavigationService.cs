@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using LYBox.Plugin.Shared;
 using LYBox.Plugin.Shared.Models;
 using LYBox.Plugin.Shared.Services;
+using LYBox.Plugin.Shared.ViewModels;
 using LYBox.Layout.Core.Services;
 using LYBox.Layout.Core.ViewModels;
 using LYBox.Layout.Ursa.Pages;
@@ -12,6 +13,14 @@ namespace LYBox.Layout.Ursa.Services;
 public sealed class NavigationService : INavigationService
 {
     private const int MaxCacheSize = 5;
+
+    /// <summary>「最近使用」最多保留的工具数量。</summary>
+    private const int MaxRecentTools = 6;
+
+    /// <summary>宿主内置页面，不计入「最近使用」。</summary>
+    private static readonly HashSet<string> HostPageKeys = ["Introduction", "Settings", "PluginManagement"];
+
+    private readonly List<string> _recentKeys = [];
 
     private readonly Dictionary<string, ViewModelFactory> _viewModelFactories = [];
     // 导航 key → 归属插件 PluginId（宿主内置导航不记录，卸载事件不涉及宿主）
@@ -24,6 +33,7 @@ public sealed class NavigationService : INavigationService
     private readonly ISettingsService _settingsService;
     private readonly ILocalizationService _localizationService;
     private readonly IPluginManagementService _pluginManagementService;
+    private readonly IMenuConfigurationService _menuConfigurationService;
 
     private sealed class CacheEntry(string key, object viewModel)
     {
@@ -34,11 +44,13 @@ public sealed class NavigationService : INavigationService
     public NavigationService(
         ISettingsService settingsService,
         ILocalizationService localizationService,
-        IPluginManagementService pluginManagementService)
+        IPluginManagementService pluginManagementService,
+        IMenuConfigurationService menuConfigurationService)
     {
         _settingsService = settingsService;
         _localizationService = localizationService;
         _pluginManagementService = pluginManagementService;
+        _menuConfigurationService = menuConfigurationService;
         RegisterDefaultNavigations();
     }
 
@@ -55,12 +67,10 @@ public sealed class NavigationService : INavigationService
     private void RegisterDefaultNavigations()
     {
         RegisterNavigation("Introduction", () => new IntroductionDemoViewModel());
-        RegisterNavigation("FluentControls", () => new FluentNavigationDemoViewModel());
         RegisterNavigation("Settings", () => new SettingsPageViewModel(_settingsService, _localizationService));
         RegisterNavigation("PluginManagement", () => new PluginManagementViewModel(_pluginManagementService));
 
         ViewLocator.Register<IntroductionDemoViewModel, IntroductionDemo>();
-        ViewLocator.Register<FluentNavigationDemoViewModel, FluentNavigationDemo>();
         ViewLocator.Register<SettingsPageViewModel, SettingsPage>();
         ViewLocator.Register<PluginManagementViewModel, PluginManagementPage>();
     }
@@ -90,10 +100,21 @@ public sealed class NavigationService : INavigationService
             return node.Value.ViewModel;
         }
 
-        if (!_viewModelFactories.TryGetValue(key, out var factory))
+        object viewModel;
+        if (_viewModelFactories.TryGetValue(key, out var factory))
+        {
+            viewModel = factory();
+        }
+        else if (FindMenuItem(_menuConfigurationService.GetMenuStructure(), key) is { Children.Count: > 0 })
+        {
+            // 父级菜单没有注册真实页面：以该分类的工具目录页承接
+            // （参考 DevToys 分类页，复用首页卡片布局）
+            viewModel = new IntroductionDemoViewModel(key);
+        }
+        else
+        {
             throw new System.ArgumentOutOfRangeException(nameof(key), key, null);
-
-        var viewModel = factory();
+        }
 
         // 淘汰最久未使用的条目
         if (_lruList.Count >= MaxCacheSize)
@@ -108,6 +129,18 @@ public sealed class NavigationService : INavigationService
         var newNode = _lruList.AddFirst(new CacheEntry(key, viewModel));
         _viewModelCache[key] = newNode;
         return viewModel;
+    }
+
+    private static MenuItemViewModel? FindMenuItem(IEnumerable<MenuItemViewModel> items, string key)
+    {
+        foreach (var item in items)
+        {
+            if (item.Key == key)
+                return item;
+            if (FindMenuItem(item.Children, key) is { } match)
+                return match;
+        }
+        return null;
     }
 
     public void InvalidateCache(string key)
@@ -132,6 +165,10 @@ public sealed class NavigationService : INavigationService
             InvalidateCache(key);
             _factoryOwners.Remove(key);
         }
+
+        // 插件卸载后其工具不应再出现在「最近使用」中
+        _recentKeys.RemoveAll(key => !_viewModelFactories.ContainsKey(key));
+        RecentNavigationsChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void InvalidateAllCache()
@@ -149,4 +186,27 @@ public sealed class NavigationService : INavigationService
     {
         return _viewModelFactories.Keys;
     }
+
+    public IReadOnlyList<string> GetRecentNavigationKeys() => _recentKeys;
+
+    public void RecordNavigationVisit(string key)
+    {
+        if (string.IsNullOrEmpty(key) || HostPageKeys.Contains(key))
+            return;
+
+        // 只有真实工具的叶子节点才进入「最近使用」；父级分类节点没有独立页面
+        var item = FindMenuItem(_menuConfigurationService.GetMenuStructure(), key);
+        if (item is null || item.Children is { Count: > 0 })
+            return;
+
+        _recentKeys.Remove(key);
+        _recentKeys.Insert(0, key);
+
+        if (_recentKeys.Count > MaxRecentTools)
+            _recentKeys.RemoveRange(MaxRecentTools, _recentKeys.Count - MaxRecentTools);
+
+        RecentNavigationsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public event EventHandler? RecentNavigationsChanged;
 }

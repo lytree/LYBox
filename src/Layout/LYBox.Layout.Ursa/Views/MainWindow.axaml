@@ -81,5 +81,5 @@
                 Mode="Controller" />
         </StackPanel>
     </u:UrsaWindow.RightContent>
-    <views:MainView DataContext="{Binding MainViewViewModel}" />
+    <views:MainView x:Name="MainViewControl" DataContext="{Binding MainViewViewModel}" />
 </u:UrsaWindow>

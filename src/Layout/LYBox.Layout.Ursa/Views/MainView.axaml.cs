@@ -1,9 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
-using CommunityToolkit.Mvvm.Input;
 using System;
 using Ursa.Controls;
 using LYBox.Layout.Ursa.ViewModels;
@@ -22,17 +20,10 @@ public partial class MainView : UserControl
         // Ursa NavMenu 只通过 Header/Icon/SubMenu/Command 四个 Binding 做数据映射，
         // IsSeparator 需要在这里手动从数据项同步到容器，否则分隔项会渲染成空白行。
         NavMenu.ContainerPrepared += OnNavContainerPrepared;
-
-        // 参考 DevToys NavBar：Ctrl+F 聚焦侧边栏搜索框（折叠态会先展开侧边栏再聚焦）。
-        KeyBindings.Add(new KeyBinding
-        {
-            Gesture = new KeyGesture(Key.F, KeyModifiers.Control),
-            Command = new RelayCommand(OpenSearch)
-        });
     }
 
     /// <summary>
-    /// 折叠态侧边栏的放大镜入口：展开侧边栏并聚焦搜索框，与 Ctrl+F 行为一致。
+    /// 折叠态侧边栏的放大镜入口：展开侧边栏并聚焦搜索框，与 Ctrl+F / Ctrl+K 行为一致。
     /// </summary>
     private void OnSearchRailButtonClick(object? sender, RoutedEventArgs e) => OpenSearch();
 
@@ -40,7 +31,7 @@ public partial class MainView : UserControl
     /// 展开侧边栏并把焦点交给搜索框。展开时 NavMenu 有约 250ms 的宽度过渡，
     /// 等动画结束再聚焦，避免焦点落进仍在塌缩中的控件。
     /// </summary>
-    private void OpenSearch()
+    public void OpenSearch()
     {
         if (DataContext is not MainViewViewModel viewModel)
             return;

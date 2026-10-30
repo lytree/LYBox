@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using LYBox.Plugin.Shared;
 using LYBox.Plugin.Shared.Services;
 using LYBox.Plugin.Shared.ViewModels;
@@ -62,11 +64,28 @@ public partial class MainViewViewModel : ViewModelBase
     /// <summary>搜索建议全集（导航项拍平后的可打开页面）。</summary>
     public ObservableCollection<SearchSuggestion> SearchSuggestions { get; } = [];
 
+    // 菜单源观察：运行期插件注册/状态/文案变化时合并刷新一次侧栏与首页
+    private readonly List<INotifyCollectionChanged> _observedMenuCollections = [];
+    private readonly List<MenuItemViewModel> _observedMenuItems = [];
+    private bool _menuRefreshQueued;
+    private bool _pendingMenuReobserve;
+    // 自身刷新期间抑制观察回调：RefreshHeaders 每次都会发 MenuHeader 变更，
+    // 不屏蔽会形成「刷新 → 变更事件 → 再刷新」的死循环。
+    private bool _suppressMenuRefresh;
+
     /// <summary>当前关键字命中的建议项（搜索框下拉列表的数据源）。</summary>
     public ObservableCollection<SearchSuggestion> FilteredSuggestions { get; } = [];
 
     /// <summary>搜索建议下拉是否展开。</summary>
     [ObservableProperty] private bool _isSearchSuggestionOpen;
+
+    /// <summary>下拉已展开但没有任何命中项（显示空状态文案）。</summary>
+    public bool HasNoSuggestions => IsSearchSuggestionOpen && FilteredSuggestions.Count == 0;
+
+    partial void OnIsSearchSuggestionOpenChanged(bool value)
+    {
+        OnPropertyChanged(nameof(HasNoSuggestions));
+    }
 
     /// <summary>面包屑导航路径（首项为首页，末项为当前页）。</summary>
     public ObservableCollection<NavigationBreadcrumb> Breadcrumbs { get; } = [];
@@ -88,6 +107,19 @@ public partial class MainViewViewModel : ViewModelBase
 
     /// <summary>当前已显示的页面 Key，用于判断是否需要记录历史。</summary>
     private string? _currentKey;
+
+    /// <summary>当前进行中的页面切换；新一次导航或视图销毁时取消上一次。</summary>
+    private CancellationTokenSource? _navigationCancellation;
+
+    /// <summary>页面切换进行中（内容区显示加载覆盖层并暂时禁用交互）。</summary>
+    [ObservableProperty] private bool _isPageLoading;
+
+    /// <summary>页面加载失败提示；非空时内容区顶部显示错误横幅。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPageLoadError))]
+    private string? _pageLoadError;
+
+    public bool HasPageLoadError => !string.IsNullOrEmpty(PageLoadError);
 
     // 搜索防抖：避免每次击键都触发导航和过滤
     private DispatcherTimer? _searchDebounceTimer;
@@ -142,36 +174,74 @@ public partial class MainViewViewModel : ViewModelBase
     /// </summary>
     private void ExecuteSearch()
     {
+        _ = ExecuteSearchAsync();
+    }
+
+    /// <summary>
+    /// 首页尚未创建时先完成导航，再广播关键字——否则「搜索时自动跳首页」
+    /// 会让首页的 SearchChanged 订阅晚于消息，首次过滤被丢掉。
+    /// </summary>
+    private async Task ExecuteSearchAsync()
+    {
         var value = SearchText;
         if (!string.IsNullOrWhiteSpace(value) && Content is not IntroductionDemoViewModel)
         {
-            OnNavigation(this, "Introduction");
+            await NavigateAsync("Introduction", recordHistory: true);
         }
         WeakReferenceMessenger.Default.Send(value ?? string.Empty, "SearchChanged");
         ApplySearchSuggestions(value);
     }
 
     /// <summary>
-    /// 刷新搜索建议下拉：按名称 / Key / 分组过滤建议项，无命中时收起下拉。
+    /// 刷新搜索建议下拉：按命中程度排序（精确 &#8594; 前缀 &#8594; 包含 &#8594; Key &#8594; 分组），
+    /// 命中父级分类名时该分类下的工具全部列出（与 DevToys 搜索行为一致）。
+    /// 关键字非空即展开下拉，无命中时展示空状态文案。
     /// </summary>
     private void ApplySearchSuggestions(string? query)
     {
         FilteredSuggestions.Clear();
-        if (!string.IsNullOrWhiteSpace(query))
+        var keyword = query?.Trim();
+        if (string.IsNullOrEmpty(keyword))
         {
-            var keyword = query.Trim();
-            foreach (var suggestion in SearchSuggestions)
-            {
-                if (suggestion.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase)
-                    || suggestion.Key.Contains(keyword, StringComparison.OrdinalIgnoreCase)
-                    || (suggestion.Group?.Contains(keyword, StringComparison.OrdinalIgnoreCase) ?? false))
-                {
-                    FilteredSuggestions.Add(suggestion);
-                }
-            }
+            IsSearchSuggestionOpen = false;
+            OnPropertyChanged(nameof(HasNoSuggestions));
+            return;
         }
 
-        IsSearchSuggestionOpen = FilteredSuggestions.Count > 0;
+        var ranked = new List<(SearchSuggestion Item, int Rank)>();
+        foreach (var suggestion in SearchSuggestions)
+        {
+            var rank = GetMatchRank(suggestion, keyword);
+            if (rank >= 0)
+                ranked.Add((suggestion, rank));
+        }
+
+        foreach (var entry in ranked
+                     .OrderBy(entry => entry.Rank)
+                     .ThenBy(entry => entry.Item.Name, StringComparer.CurrentCultureIgnoreCase))
+        {
+            FilteredSuggestions.Add(entry.Item);
+        }
+
+        IsSearchSuggestionOpen = true;
+        // 关键字变化但下拉已打开时，IsSearchSuggestionOpen 不再触发属性变更事件
+        OnPropertyChanged(nameof(HasNoSuggestions));
+    }
+
+    /// <summary>命中等级：数值越小越靠前，-1 表示未命中。</summary>
+    private static int GetMatchRank(SearchSuggestion suggestion, string keyword)
+    {
+        if (string.Equals(suggestion.Name, keyword, StringComparison.OrdinalIgnoreCase))
+            return 0;
+        if (suggestion.Name.StartsWith(keyword, StringComparison.OrdinalIgnoreCase))
+            return 1;
+        if (suggestion.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+            return 2;
+        if (suggestion.Key.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+            return 3;
+        if (suggestion.Group?.Contains(keyword, StringComparison.OrdinalIgnoreCase) == true)
+            return 4;
+        return -1;
     }
 
     /// <summary>
@@ -269,6 +339,7 @@ public partial class MainViewViewModel : ViewModelBase
         UpdateLocalizedStrings();
         Menus.RefreshHeaders();
         BuildSearchSuggestions();
+        ObserveMenuSource();
 
         // 恢复上次的侧边栏状态（设置页「折叠侧边栏」开关写的就是这个键）。
         // 有持久化值时视为用户已作选择，避免被窗口宽度自适应逻辑改回去。
@@ -347,12 +418,111 @@ public partial class MainViewViewModel : ViewModelBase
         SearchSuggestions.Add(suggestion);
     }
 
+    /// <summary>
+    /// 观察菜单源的集合与菜单项属性变化（运行期插件注册、启用状态、文案更新），
+    /// 变化合并到一次 UI 刷新，避免逐项事件导致 NavMenu 反复重建。
+    /// </summary>
+    private void ObserveMenuSource()
+    {
+        foreach (var collection in _observedMenuCollections)
+            collection.CollectionChanged -= OnMenuSourceChanged;
+        foreach (var item in _observedMenuItems)
+            item.PropertyChanged -= OnMenuItemPropertyChanged;
+
+        _observedMenuCollections.Clear();
+        _observedMenuItems.Clear();
+        ObserveMenuItems(_menuConfigurationService.GetMenuStructure());
+    }
+
+    private void ObserveMenuItems(IEnumerable<MenuItemViewModel> items)
+    {
+        if (items is INotifyCollectionChanged collection && !_observedMenuCollections.Contains(collection))
+        {
+            collection.CollectionChanged += OnMenuSourceChanged;
+            _observedMenuCollections.Add(collection);
+        }
+
+        foreach (var item in items)
+        {
+            if (!_observedMenuItems.Contains(item))
+            {
+                item.PropertyChanged += OnMenuItemPropertyChanged;
+                _observedMenuItems.Add(item);
+            }
+
+            if (item.Children is { Count: > 0 })
+                ObserveMenuItems(item.Children);
+        }
+    }
+
+    private void OnMenuSourceChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_suppressMenuRefresh)
+            return;
+        QueueMenuRefresh(reobserve: true);
+    }
+
+    private void OnMenuItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_suppressMenuRefresh)
+            return;
+        // 文案/图标/状态变化只影响显示与搜索建议，菜单结构未变（Children 集合会单独触发集合事件）
+        QueueMenuRefresh(reobserve: false);
+    }
+
+    private void QueueMenuRefresh(bool reobserve)
+    {
+        if (reobserve)
+            _pendingMenuReobserve = true;
+        if (_menuRefreshQueued || IsDisposed)
+            return;
+
+        _menuRefreshQueued = true;
+        Dispatcher.UIThread.Post(() =>
+        {
+            _menuRefreshQueued = false;
+            if (IsDisposed)
+                return;
+
+            if (_pendingMenuReobserve)
+            {
+                _pendingMenuReobserve = false;
+                ObserveMenuSource();
+            }
+
+            _suppressMenuRefresh = true;
+            try
+            {
+                BuildMenuItems();
+                Menus.RefreshHeaders();
+                BuildSearchSuggestions();
+            }
+            finally
+            {
+                _suppressMenuRefresh = false;
+            }
+
+            // 通知首页与其它缓存页面重新读取菜单
+            WeakReferenceMessenger.Default.Send(string.Empty, "MenuChanged");
+        }, DispatcherPriority.Background);
+    }
+
     private void OnCultureChanged(object? sender, System.Globalization.CultureInfo culture)
     {
         UpdateLocalizedStrings();
-        Menus.RefreshHeaders();
-        BuildSearchSuggestions();
+        _suppressMenuRefresh = true;
+        try
+        {
+            Menus.RefreshHeaders();
+            BuildSearchSuggestions();
+        }
+        finally
+        {
+            _suppressMenuRefresh = false;
+        }
         RefreshBreadcrumbs();
+        // 缓存页面（首页/分类目录）同步重载本地化文案
+        WeakReferenceMessenger.Default.Send(string.Empty, "MenuChanged");
     }
 
     private void UpdateLocalizedStrings()
@@ -361,54 +531,101 @@ public partial class MainViewViewModel : ViewModelBase
         PluginText = _localizationService?.GetString("NAV_Plugins", "Plugins");
     }
 
-    partial void OnContentChanged(object? value)
-    {
-        if (value is IDisposable disposable && !ReferenceEquals(disposable, this))
-        {
-            _disposableContent = disposable;
-        }
-    }
-
-    private IDisposable? _disposableContent;
-
     private void OnNavigation(MainViewViewModel vm, string s)
     {
-        NavigateTo(s, recordHistory: true);
+        // 插件可能从非 UI 线程发送导航消息，统一切回 UI 线程执行。
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!IsDisposed)
+                _ = NavigateAsync(s, recordHistory: true);
+        });
     }
 
     /// <summary>
     /// 执行导航。recordHistory=true 时把当前页压入回退栈（Back 触发的导航传 false，
     /// 避免「返回」又把来路压回去导致来回跳转）。
+    /// 页面创建可能失败；失败时回滚到上一页并展示错误提示，避免宿主崩溃。
     /// </summary>
-    private void NavigateTo(string key, bool recordHistory)
+    private async Task NavigateAsync(string key, bool recordHistory)
     {
         if (string.IsNullOrEmpty(key))
             return;
 
-        if (recordHistory && !string.IsNullOrEmpty(_currentKey) && _currentKey != key)
-        {
-            _backStack.Push(_currentKey!);
-            CanGoBack = true;
-        }
+        // 新导航接管：取消尚未完成的上一次切换
+        _navigationCancellation?.Cancel();
+        using var cancellation = new CancellationTokenSource();
+        _navigationCancellation = cancellation;
+        var token = cancellation.Token;
 
-        if (_disposableContent is not null && !ReferenceEquals(_disposableContent, this))
-        {
-            _disposableContent.Dispose();
-            _disposableContent = null;
-        }
+        var previousKey = _currentKey;
+        var previousContent = Content;
+        IsPageLoading = true;
+        PageLoadError = null;
 
-        // 先同步 _lastNavigatedKey：SelectedMenuItem 赋值会触发 OnSelectedMenuItemChanged，
-        // 若 Key 不一致会再次派发 JumpTo，造成重复创建 ViewModel。
-        _lastNavigatedKey = key;
-        Content = _navigationService.CreateViewModel(key);
-        // 使用扁平索引 O(1) 查找菜单项，替代递归遍历
-        SelectedMenuItem = _menuConfigurationService.GetMenuItemByKey(key);
-        _currentKey = key;
-        // 浮层导航选中页面后自动收起（参考 DevToys NavigateAsync → CloseNavigationOverlay）
-        CloseNavigationOverlay();
-        OnPropertyChanged(nameof(IsSettingsSelected));
-        OnPropertyChanged(nameof(IsPluginsSelected));
-        RefreshBreadcrumbs();
+        try
+        {
+            // 先让加载覆盖层完成一次渲染，避免页面创建较慢时出现空白闪烁。
+            await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background, token);
+            token.ThrowIfCancellationRequested();
+
+            var content = _navigationService.CreateViewModel(key);
+
+            // 先同步 _lastNavigatedKey：SelectedMenuItem 赋值会触发 OnSelectedMenuItemChanged，
+            // 若 Key 不一致会再次派发 JumpTo，造成重复创建 ViewModel。
+            _lastNavigatedKey = key;
+            Content = content;
+            // 页面 ViewModel 的生命周期归 NavigationService 的 LRU 缓存管理（淘汰或失效时释放），
+            // 这里不能 Dispose —— 被缓存的实例之后还会被重新取回使用。
+
+            // 等待页面首屏初始化完成再撤掉加载遮罩；实现 IPageInitialization 的插件页面
+            // 可在此提交初始查询，避免遮罩消失后出现半初始化界面。
+            await PageInitializationAwaiter.WaitAsync(token, content);
+            await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background, token);
+            token.ThrowIfCancellationRequested();
+
+            if (recordHistory && !string.IsNullOrEmpty(previousKey) && previousKey != key)
+            {
+                _backStack.Push(previousKey);
+                CanGoBack = true;
+            }
+
+            // 使用扁平索引 O(1) 查找菜单项，替代递归遍历
+            SelectedMenuItem = _menuConfigurationService.GetMenuItemByKey(key);
+            _currentKey = key;
+            // 记录「最近使用」（宿主内置页与分类节点由服务内部过滤）
+            _navigationService.RecordNavigationVisit(key);
+            // 浮层导航选中页面后自动收起（参考 DevToys NavigateAsync → CloseNavigationOverlay）
+            CloseNavigationOverlay();
+            OnPropertyChanged(nameof(IsSettingsSelected));
+            OnPropertyChanged(nameof(IsPluginsSelected));
+            RefreshBreadcrumbs();
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            // 新的导航或视图销毁接管了加载状态，这里不再回滚。
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Navigation] Failed to load page '{key}': {exception}");
+            if (ReferenceEquals(_navigationCancellation, cancellation) && !IsDisposed)
+            {
+                // 回滚到上一页并让失败的工厂失效，避免下一次进入继续失败
+                Content = ReferenceEquals(previousContent, Content) ? null : previousContent;
+                _currentKey = previousKey;
+                _navigationService.InvalidateCache(key);
+                PageLoadError = _localizationService?.GetString(
+                    "PAGE_LOAD_FAILED", "Unable to load this page. Please try again or choose another page.")
+                    ?? "Unable to load this page. Please try again or choose another page.";
+            }
+        }
+        finally
+        {
+            if (ReferenceEquals(_navigationCancellation, cancellation))
+            {
+                _navigationCancellation = null;
+                IsPageLoading = false;
+            }
+        }
     }
 
     /// <summary>
@@ -453,21 +670,37 @@ public partial class MainViewViewModel : ViewModelBase
         return false;
     }
 
-    /// <summary>标题栏返回按钮：回到上一页面；无历史时回到首页。</summary>
+    /// <summary>
+    /// 标题栏返回按钮：回到上一页面。历史栈中已失效的项（插件卸载/禁用后注销的页面）自动跳过，
+    /// 没有可用历史时回到首页。
+    /// </summary>
     [RelayCommand]
     public void Back()
     {
-        if (_backStack.Count == 0)
+        while (_backStack.Count > 0)
         {
-            // 标题栏返回入口常显，无历史时回到首页
-            if (!string.Equals(_currentKey, "Introduction", StringComparison.Ordinal))
-                NavigateTo("Introduction", recordHistory: false);
+            var key = _backStack.Pop();
+            if (!IsNavigationTargetAvailable(key))
+                continue;
+
+            CanGoBack = _backStack.Count > 0;
+            _ = NavigateAsync(key, recordHistory: false);
             return;
         }
 
-        var key = _backStack.Pop();
-        CanGoBack = _backStack.Count > 0;
-        NavigateTo(key, recordHistory: false);
+        CanGoBack = false;
+        if (!string.Equals(_currentKey, "Introduction", StringComparison.Ordinal))
+            _ = NavigateAsync("Introduction", recordHistory: false);
+    }
+
+    /// <summary>
+    /// 导航目标是否仍可用：已注册的页面，或菜单树中仍存在的节点
+    /// （父级分类节点由 NavigationService 的目录页回退承接）。
+    /// </summary>
+    private bool IsNavigationTargetAvailable(string key)
+    {
+        return _navigationService.GetNavigationKeys().Contains(key)
+               || _menuConfigurationService.GetMenuItemByKey(key) is not null;
     }
 
     /// <summary>
@@ -497,11 +730,21 @@ public partial class MainViewViewModel : ViewModelBase
 
     public override void Dispose()
     {
+        _navigationCancellation?.Cancel();
+        _navigationCancellation = null;
         _searchDebounceTimer?.Stop();
         _searchDebounceTimer = null;
         WeakReferenceMessenger.Default.Unregister<string, string>(this, "JumpTo");
         if (_localizationService is not null)
             _localizationService.CultureChanged -= OnCultureChanged;
+
+        foreach (var collection in _observedMenuCollections)
+            collection.CollectionChanged -= OnMenuSourceChanged;
+        foreach (var item in _observedMenuItems)
+            item.PropertyChanged -= OnMenuItemPropertyChanged;
+        _observedMenuCollections.Clear();
+        _observedMenuItems.Clear();
+
         base.Dispose();
     }
 }

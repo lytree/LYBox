@@ -163,6 +163,10 @@
   <data name="HOME_WELCOME_TITLE" xml:space="preserve"><value>欢迎使用 LYBox</value></data>
   <data name="HOME_NO_TOOLS" xml:space="preserve"><value>尚未安装任何工具</value></data>
   <data name="HOME_OPEN_TOOL" xml:space="preserve"><value>打开</value></data>
+  <data name="HOME_ALL_CATEGORIES" xml:space="preserve"><value>全部工具</value></data>
+  <data name="HOME_RECENT_TOOLS" xml:space="preserve"><value>最近使用</value></data>
+  <data name="HOME_CLEAR_FILTERS" xml:space="preserve"><value>清除筛选</value></data>
+  <data name="HOME_TOOL_COUNT" xml:space="preserve"><value>{0} / {1} 个工具</value></data>
   <data name="WINDOW_TITLE" xml:space="preserve"><value>LYBox 桌面</value></data>
   <data name="SPLASH_STARTING" xml:space="preserve"><value>正在启动 Ursa 演示...</value></data>
   <data name="SPLASH_TITLE" xml:space="preserve"><value>主启动窗口</value></data>
@@ -170,6 +174,8 @@
   <data name="SPLASH_WELCOME" xml:space="preserve"><value>欢迎来到 AvaloniaTemplate，启动页已加载本地图像资源：Assets/jk-girl.png</value></data>
   <data name="WELCOME_IRIHI" xml:space="preserve"><value>欢迎来到铱泓科技</value></data>
   <data name="LOADING_MODULES" xml:space="preserve"><value>正在加载组件...</value></data>
+  <data name="LOADING_PAGE" xml:space="preserve"><value>正在加载页面...</value></data>
+  <data name="PAGE_LOAD_FAILED" xml:space="preserve"><value>页面加载失败，请重试或选择其他页面。</value></data>
   <data name="EXIT_CONFIRM_MESSAGE" xml:space="preserve"><value>确定要退出吗？</value></data>
   <data name="EXIT_CONFIRM_TITLE" xml:space="preserve"><value>退出</value></data>
   <data name="TRAY_TOOLTIP" xml:space="preserve"><value>LYBox</value></data>

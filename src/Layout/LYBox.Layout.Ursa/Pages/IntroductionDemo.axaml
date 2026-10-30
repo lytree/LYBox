@@ -18,6 +18,54 @@
 
     <UserControl.Resources>
         <converters:IconNameToPathConverter x:Key="IconConverter" />
+        <!-- 工具卡片模板：首页网格与「最近使用」复用 -->
+        <DataTemplate x:Key="ToolCardTemplate" x:DataType="vm:ToolItem">
+            <Button
+                Classes="FluentToolCard"
+                Margin="0,0,16,16"
+                Command="{Binding NavigateCommand}"
+                CommandParameter="{Binding Key}"
+                ToolTip.Tip="{Binding Description}">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <!-- 左侧图标方块 -->
+                    <Border Grid.Column="0" Classes="FluentToolIconTile">
+                        <PathIcon
+                            Width="42" Height="42"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Data="{Binding IconName, Converter={StaticResource IconConverter}}"
+                            Foreground="{DynamicResource FluentTextPrimaryBrush}" />
+                    </Border>
+                    <!-- 中部：名称 + 描述 -->
+                    <StackPanel
+                        Grid.Column="1"
+                        Margin="16,0,8,0"
+                        Spacing="9"
+                        VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Classes="FluentToolCardTitle" Text="{Binding Name}" />
+                            <u:Badge
+                                Classes="ToolStatus Light Primary"
+                                Header="{Binding Status}"
+                                IsVisible="{Binding Status, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                        </StackPanel>
+                        <TextBlock
+                            Classes="FluentToolCardDescription"
+                            Text="{Binding Description}"
+                            IsVisible="{Binding Description, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    </StackPanel>
+                    <!-- 右上角「打开」指示（点击卡片即打开该工具） -->
+                    <PathIcon
+                        Grid.Column="2"
+                        Width="12" Height="12"
+                        Margin="0,3,0,0"
+                        VerticalAlignment="Top"
+                        Data="{DynamicResource FluentChevronRight16Regular}"
+                        Foreground="{DynamicResource FluentTextSecondaryBrush}"
+                        ToolTip.Tip="{DynamicResource HOME_OPEN_TOOL}" />
+                </Grid>
+            </Button>
+        </DataTemplate>
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -35,6 +83,27 @@
             <Setter Property="Padding" Value="6,1" />
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="MinHeight" Value="16" />
+        </Style>
+        <!-- 分类筛选标签（胶囊 chip） -->
+        <Style Selector="ListBox.TagFilter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="ListBox.TagFilter ListBoxItem">
+            <Setter Property="Padding" Value="12,4" />
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Background" Value="{DynamicResource FluentSubtleBrush}" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="ListBox.TagFilter ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource FluentSubtleHoverBrush}" />
+        </Style>
+        <Style Selector="ListBox.TagFilter ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource FluentAccentBrush}" />
+            <Setter Property="TextBlock.Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
     </UserControl.Styles>
 
@@ -56,7 +125,10 @@
                 </Canvas>
                 <StackPanel VerticalAlignment="Center" Spacing="8">
                     <TextBlock Classes="FluentHeroTitle" Text="{Binding WelcomeTitle}" />
-                    <TextBlock Classes="FluentHeroVersion" Text="{Binding VersionText}" />
+                    <TextBlock
+                        Classes="FluentHeroVersion"
+                        Text="{Binding VersionText}"
+                        IsVisible="{Binding VersionText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                 </StackPanel>
             </Grid>
         </Border>
@@ -85,74 +157,85 @@
             <ScrollViewer
                 HorizontalScrollBarVisibility="Disabled"
                 VerticalScrollBarVisibility="Auto">
-                <!-- 自适应列宽网格：列数按可用宽度与 330px 最小列宽推算（DevToys GridView ItemMinWidth=330）。
-                     卡片自身带 16px 右下外边距作为间距，
-                     外层右侧只留 8px，与左侧 24px 内边距合成 24px 视觉边距 -->
-                <ItemsControl
-                    Name="ToolGrid"
-                    ItemsSource="{Binding FilteredItems}"
-                    Margin="24,20,8,8"
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Top"
-                    Background="Transparent"
-                    SizeChanged="OnToolGridSizeChanged">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <UniformGrid
-                                x:DataType="vm:IntroductionDemoViewModel"
-                                Columns="{Binding GridColumns}" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ToolItem">
-                            <Button
-                                Classes="FluentToolCard"
-                                Margin="0,0,16,16"
-                                Command="{Binding NavigateCommand}"
-                                CommandParameter="{Binding Key}"
-                                ToolTip.Tip="{Binding Description}">
-                                <Grid ColumnDefinitions="Auto,*,Auto">
-                                    <!-- 左侧图标方块 -->
-                                    <Border Grid.Column="0" Classes="FluentToolIconTile">
-                                        <PathIcon
-                                            Width="42" Height="42"
-                                            HorizontalAlignment="Center"
-                                            VerticalAlignment="Center"
-                                            Data="{Binding IconName, Converter={StaticResource IconConverter}}"
-                                            Foreground="{DynamicResource FluentTextPrimaryBrush}" />
-                                    </Border>
-                                    <!-- 中部：名称 + 描述 -->
-                                    <StackPanel
-                                        Grid.Column="1"
-                                        Margin="16,0,8,0"
-                                        Spacing="9"
-                                        VerticalAlignment="Center">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Classes="FluentToolCardTitle" Text="{Binding Name}" />
-                                            <u:Badge
-                                                Classes="ToolStatus Light Primary"
-                                                Header="{Binding Status}"
-                                                IsVisible="{Binding Status, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                                        </StackPanel>
-                                        <TextBlock
-                                            Classes="FluentToolCardDescription"
-                                            Text="{Binding Description}"
-                                            IsVisible="{Binding Description, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                <StackPanel Margin="24,20,8,8">
+                    <!-- 分类筛选 + 工具计数（分类数不足时只显示计数） -->
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,8,12">
+                        <ListBox
+                            Grid.Column="0"
+                            Classes="TagFilter"
+                            ItemsSource="{Binding Categories}"
+                            SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
+                            IsVisible="{Binding ShowCategories}">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ToolCategoryItem">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <TextBlock Text="{Binding Title}" />
+                                        <TextBlock Foreground="{DynamicResource FluentColorText2}" Text="{Binding CountText}" />
                                     </StackPanel>
-                                    <!-- 右上角「打开」指示（点击卡片即打开该工具） -->
-                                    <PathIcon
-                                        Grid.Column="2"
-                                        Width="12" Height="12"
-                                        Margin="0,3,0,0"
-                                        VerticalAlignment="Top"
-                                        Data="{DynamicResource FluentChevronRight16Regular}"
-                                        Foreground="{DynamicResource FluentTextSecondaryBrush}"
-                                        ToolTip.Tip="{DynamicResource HOME_OPEN_TOOL}" />
-                                </Grid>
-                            </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <StackPanel
+                            Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            VerticalAlignment="Center">
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Foreground="{DynamicResource FluentColorText2}"
+                                Text="{Binding ToolCountText}" />
+                            <Button
+                                Classes="FluentSubtle"
+                                Command="{Binding ClearFiltersCommand}"
+                                Content="{DynamicResource HOME_CLEAR_FILTERS}"
+                                IsVisible="{Binding HasActiveFilters}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- 最近使用：仅首页、未筛选且有记录时展示 -->
+                    <StackPanel IsVisible="{Binding HasRecentTools}" Spacing="8" Margin="0,0,8,20">
+                        <TextBlock Classes="FluentSectionHeader" Text="{DynamicResource HOME_RECENT_TOOLS}" />
+                        <ItemsControl
+                            ItemsSource="{Binding RecentItems}"
+                            ItemTemplate="{StaticResource ToolCardTemplate}"
+                            HorizontalAlignment="Stretch"
+                            Background="Transparent">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid
+                                        x:DataType="vm:IntroductionDemoViewModel"
+                                        Columns="{Binding GridColumns}" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- 自适应列宽网格：列数按可用宽度与 330px 最小列宽推算（DevToys GridView ItemMinWidth=330）。
+                         卡片自身带 16px 右下外边距作为间距，
+                         外层右侧只留 8px，与左侧 24px 内边距合成 24px 视觉边距 -->
+                    <ItemsControl
+                        Name="ToolGrid"
+                        ItemsSource="{Binding FilteredItems}"
+                        ItemTemplate="{StaticResource ToolCardTemplate}"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Top"
+                        Background="Transparent"
+                        SizeChanged="OnToolGridSizeChanged">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid
+                                    x:DataType="vm:IntroductionDemoViewModel"
+                                    Columns="{Binding GridColumns}" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </StackPanel>
             </ScrollViewer>
         </Panel>
     </Grid>

@@ -395,6 +395,18 @@
   <data name="HOME_OPEN_TOOL" xml:space="preserve">
     <value>Open</value>
   </data>
+  <data name="HOME_ALL_CATEGORIES" xml:space="preserve">
+    <value>All tools</value>
+  </data>
+  <data name="HOME_RECENT_TOOLS" xml:space="preserve">
+    <value>Recently used</value>
+  </data>
+  <data name="HOME_CLEAR_FILTERS" xml:space="preserve">
+    <value>Clear filters</value>
+  </data>
+  <data name="HOME_TOOL_COUNT" xml:space="preserve">
+    <value>{0} of {1} tools</value>
+  </data>
   <data name="WINDOW_TITLE" xml:space="preserve"><value>LYBox</value></data>
   <data name="SPLASH_STARTING" xml:space="preserve">
     <value>Starting Ursa Demo...</value>
@@ -413,6 +425,12 @@
   </data>
   <data name="LOADING_MODULES" xml:space="preserve">
     <value>Initializing modules...</value>
+  </data>
+  <data name="LOADING_PAGE" xml:space="preserve">
+    <value>Loading page...</value>
+  </data>
+  <data name="PAGE_LOAD_FAILED" xml:space="preserve">
+    <value>Unable to load this page. Please try again or choose another page.</value>
   </data>
   <data name="EXIT_CONFIRM_MESSAGE" xml:space="preserve">
     <value>Are you sure you want to exit?</value>
