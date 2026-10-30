@@ -1,4 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!-- Satori GC：与桌面启动器保持一致，仅在 self-contained 发布时生效（见 LYBox.Launcher.Desktop.csproj 中的说明）。 -->
+  <Sdk Name="PublishWithSatoriGC" Version="10.0.14-satori.40433706833.1" />
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
