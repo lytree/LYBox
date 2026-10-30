@@ -6,7 +6,7 @@
 
 ## 构建与运行
 
-**Cake.Sdk 文件化应用**（`build/build.cs`，Cake.Sdk **6.2.0**）。入口脚本：`build.ps1` / `build.sh`。
+**Cake.Sdk 文件化应用**（`build/build.cs`，Cake.Sdk **6.3.0**）。入口脚本：`build.ps1` / `build.sh`。
 
 ```powershell
 # 本仓库（宿主 + SDK）
@@ -101,7 +101,7 @@ dotnet run --project src/App/LYBox.Launcher.Desktop -- --web-vite
 
 ```csharp
 #!/usr/bin/env dotnet
-#:sdk Cake.Sdk@6.2.0
+#:sdk Cake.Sdk@6.3.0
 #:package Spectre.Console@0.57.2
 #:property PublishAot=false
 
@@ -340,25 +340,25 @@ Program.cs → App.Initialize()
 
 | 包 | 版本 |
 |---|---|
-| Avalonia | `12.1.2` |
+| Avalonia | `12.1.4` |
 | Irihi.Ursa | `2.2.0` |
 | CommunityToolkit.Mvvm | `8.4.2` |
-| EF Core | `10.0.12` |
-| Microsoft.Extensions.DI / Localization | `10.0.12` |
+| EF Core | `10.0.14` |
+| Microsoft.Extensions.DI / Localization | `10.0.14` |
 | AvaloniaUI.DiagnosticsSupport | `2.2.3` |
-| ProDataGrid | `12.0.4` |
+| ProDataGrid | `12.1.0.6` |
 | ScottPlot | `5.1.59` |
 | ZLogger | `2.5.10` |
 | SkiaSharp | `3.119.4`（**锁定 3.x**，4.x 待上游生态兼容） |
-| Avalonia.Controls.WebView | `12.0.1` |
-| HarfBuzzSharp | `14.2.1.1` |
+| Avalonia.Controls.WebView | `12.1.1` |
+| HarfBuzzSharp | `14.2.1.400` |
 | IrihiAvaloniaShared | `0.5.0` |
-| Tmds.DBus.Protocol/Generator | `0.94.2` |
-| Microsoft.CodeAnalysis（源生成器） | `5.6.0` |
-| System.CommandLine | `2.0.11` |
+| Tmds.DBus.Protocol/Generator | `0.95.2` |
+| Microsoft.CodeAnalysis（源生成器） | `5.9.0` |
+| System.CommandLine | `2.0.14` |
 | Spectre.Console | `0.57.2` |
-| Cake.Sdk | `6.2.0` |
-| TUnit | `1.63.0` |
+| Cake.Sdk | `6.3.0` |
+| TUnit | `1.76.45` |
 
 插件 SDK 包：`LYBox.Plugin.Generators` + `LYBox.Plugin.CommandLine` + `LYBox.Plugin.Shared` + `LYBox.Plugin.Shared.Web`，版本与宿主一致（`version.props` 的 `<LyboxVersion>`）。
 
@@ -434,7 +434,7 @@ Program.cs → App.Initialize()
 
 - **官方包** `Avalonia.Controls.WebView`（NuGet `avaloniaui` 所有者，Prefix Reserved，MIT）
 - **禁止**已废弃社区库 `Avalonia.WebView`（ChisterWu/Jianfenghuaite，仅 Avalonia 11.x）
-- 当前稳定 `12.0.1`，依赖 `Avalonia >= 12.0.0`，与本项目 12.1.x 兼容
+- 当前稳定 `12.1.1`，依赖 `Avalonia >= 12.0.0`，与本项目 12.1.x 兼容
 
 ### IPC 原语
 

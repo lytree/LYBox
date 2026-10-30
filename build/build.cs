@@ -1,5 +1,5 @@
 #!/usr/bin/env dotnet
-#:sdk Cake.Sdk@6.2.0
+#:sdk Cake.Sdk@6.3.0
 #:package Spectre.Console@0.57.2
 #:property PublishAot=false
 
