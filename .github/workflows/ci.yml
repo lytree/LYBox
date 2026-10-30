@@ -47,7 +47,7 @@ jobs:
       # 构建 SDK 四件套并打包 NuGet，属于脚本层面的「全量」目标。
       - name: Build all (host + console + SDK + pack)
         run: |
-          dotnet build/build.cs \
+          dotnet build/build.cs -- \
             --build=all \
             --configuration=Release
 
@@ -117,7 +117,7 @@ jobs:
       - name: Publish launcher
         shell: bash
         run: |
-          dotnet build/build.cs \
+          dotnet build/build.cs -- \
             --build=bin \
             --configuration=Release \
             --runtime-identifier=${{ matrix.rid }} \

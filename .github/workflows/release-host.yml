@@ -107,7 +107,7 @@ jobs:
 
       - name: Build launcher + pack SDK
         run: |
-          dotnet build/build.cs \
+          dotnet build/build.cs -- \
             --build=bin \
             --host-version=${{ needs.resolve_context.outputs.version }}
 
@@ -164,7 +164,7 @@ jobs:
       - name: Publish launcher
         shell: bash
         run: |
-          dotnet build/build.cs \
+          dotnet build/build.cs -- \
             --build=bin \
             --runtime-identifier=${{ matrix.rid }} \
             --self-contained=true \
