@@ -46,6 +46,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Layout\LYBox.Layout.Ursa\LYBox.Layout.Ursa.csproj" />
+    <ProjectReference Include="..\..\Layout\LYBox.Themes.Fluent2\LYBox.Themes.Fluent2.csproj" />
     <ProjectReference Include="..\..\Plugin\LYBox.Plugin.Shared\LYBox.Plugin.Shared.csproj" />
     <!-- S3：App.axaml.cs 直接使用 WebHostService（Web 包），显式引用避免依赖宿主传递顺序 -->
     <ProjectReference Include="..\..\Plugin\LYBox.Plugin.Shared.Web\LYBox.Plugin.Shared.Web.csproj" />

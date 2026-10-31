@@ -649,7 +649,14 @@ public partial class MainViewViewModel : ViewModelBase
             }
             else
             {
-                Breadcrumbs.Add(new NavigationBreadcrumb(_currentKey!, null, Activate));
+                // 侧栏底部的设置/插件管理不属于菜单树，需按导航 Key 映射到本地化文案
+                var title = _currentKey switch
+                {
+                    "Settings" => _localizationService?.GetString("NAV_Settings", "Settings") ?? "Settings",
+                    "PluginManagement" => _localizationService?.GetString("NAV_Plugins", "Plugins") ?? "Plugins",
+                    _ => _currentKey!,
+                };
+                Breadcrumbs.Add(new NavigationBreadcrumb(title, null, Activate));
             }
 
             Breadcrumbs[^1].IsCurrent = true;

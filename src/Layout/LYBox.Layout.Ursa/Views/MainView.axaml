@@ -104,9 +104,9 @@
                             <KeyBinding Gesture="Escape" Command="{Binding ClearSearchCommand}" />
                         </TextBox.KeyBindings>
                         <TextBox.InnerRightContent>
-                            <!-- 负外边距抵消模板给 InnerRightContent 预留的 12px 左间距，
-                                 让按钮贴近输入框右缘（约 8px），与 WinUI 搜索框观感一致 -->
-                            <Grid ColumnDefinitions="20,20" Margin="0,0,-5,0" VerticalAlignment="Center">
+                            <!-- Fluent2 的 TextBox 模板不给 InnerRightContent 预留右内边距，
+                                 这里用正向外边距让按钮距输入框右缘约 4px，避免图标被边框裁切 -->
+                            <Grid ColumnDefinitions="20,20" Margin="0,0,4,0" VerticalAlignment="Center">
                                 <Button
                                     Grid.Column="0"
                                     Classes="FluentSearchActionButton"

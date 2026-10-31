@@ -11,7 +11,7 @@
     -->
     <PropertyGroup>
         <AvaloniaVersion>12.1.4</AvaloniaVersion>
-        <IrihiUrsaVersion>2.2.0</IrihiUrsaVersion>
+        <IrihiUrsaVersion>2.3.0</IrihiUrsaVersion>
         <CommunityToolkit>8.4.2</CommunityToolkit>
         <MicrosoftExtensionsDI>10.0.14</MicrosoftExtensionsDI>
         <AvaloniaDiagnosticsSupport>2.2.3</AvaloniaDiagnosticsSupport>
@@ -34,7 +34,7 @@
         <!-- Avalonia 递归依赖（版本跟随 Avalonia 12.x 发布） -->
         <HarfBuzzSharpVersion>14.2.1.400</HarfBuzzSharpVersion>
 
-        <!-- Ursa 递归依赖（版本跟随 Irihi.Ursa 2.1.x 发布） -->
+        <!-- Ursa 递归依赖（版本跟随 Irihi.Ursa 2.3.x 发布） -->
         <IrihiAvaloniaSharedVersion>0.5.0</IrihiAvaloniaSharedVersion>
 
         <!-- WebView + 嵌入式 HTTP 资源服务（P1 引入） -->

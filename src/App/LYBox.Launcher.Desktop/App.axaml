@@ -3,6 +3,7 @@ x:Class="LYBox.Launcher.Desktop.App"
 xmlns="https://github.com/avaloniaui"
 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 xmlns:fluent="using:Avalonia.Themes.Fluent"
+xmlns:fl2="using:LYBox.Themes.Fluent2"
 xmlns:sizeanimations="using:LYBox.Layout.Ursa.Theme.SizeAnimations"
 xmlns:theme="using:LYBox.Layout.Ursa.Theme"
 xmlns:u="https://irihi.tech/ursa"
@@ -12,6 +13,7 @@ x:DataType="viewmodels:ApplicationViewModel">
 	<Application.Styles>
 		<fluent:FluentTheme />
 		<theme:UrsaFluentTheme />
+		<fl2:Fluent2Theme />
 		<sizeanimations:FluentPopupAnimations />
 	</Application.Styles>
 	<Application.Resources>

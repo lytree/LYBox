@@ -8,6 +8,7 @@
     <Folder Name="/src/Layout/">
         <Project Path="src/Layout/LYBox.Layout.Core/LYBox.Layout.Core.csproj" />
         <Project Path="src/Layout/LYBox.Layout.Ursa/LYBox.Layout.Ursa.csproj" />
+        <Project Path="src/Layout/LYBox.Themes.Fluent2/LYBox.Themes.Fluent2.csproj" />
     </Folder>
     <Folder Name="/src/App/">
         <Project Path="src/App/LYBox.Launcher.Desktop/LYBox.Launcher.Desktop.csproj" />

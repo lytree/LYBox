@@ -1,8 +1,0 @@
-<ResourceDictionary
-    xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <StaticResource x:Key="{x:Type RepeatButton}" ResourceKey="{x:Type Button}" />
-    <StaticResource x:Key="SolidRepeatButton" ResourceKey="SolidButton" />
-    <StaticResource x:Key="OutlineRepeatButton" ResourceKey="OutlineButton" />
-    <StaticResource x:Key="BorderlessRepeatButton" ResourceKey="BorderlessButton" />
-</ResourceDictionary>
