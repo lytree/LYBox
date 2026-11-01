@@ -130,6 +130,9 @@
     <SolidColorBrush x:Key="FluentAccentForegroundBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="FluentCardBackgroundBrush" Color="#B3FFFFFF" />
     <SolidColorBrush x:Key="FluentCardSecondaryBackgroundBrush" Color="#80F6F6F6" />
+    <!-- 浮动层表面（Popup / Flyout / ToolTip / ContextMenu）：卡片画刷为半透明，
+         Popup 叠在页面文字上会穿透，浮动层必须不透明 -->
+    <SolidColorBrush x:Key="FluentFlyoutBackgroundBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="FluentCardStrokeBrush" Color="#0F000000" />
     <SolidColorBrush x:Key="FluentCardStrokePointeroverBrush" Color="#0F000000" />
     <SolidColorBrush x:Key="FluentCardBackgroundPointeroverBrush" Color="#EEEEEE" />

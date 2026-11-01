@@ -7,6 +7,7 @@ using LYBox.Plugin.Shared.Models;
 using LYBox.Plugin.Shared.Services;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
+using LYBox.Layout.Core.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -27,6 +28,11 @@ public partial class SettingsPageViewModel : ViewModelBase
 
     [ObservableProperty] private bool _isDirty;
     [ObservableProperty] private string _saveStatusText = string.Empty;
+
+    /// <summary>关于卡片的版本行：语言切换需重启生效，故为只读属性。</summary>
+    public string AppVersionText => string.Format(
+        _localizationService?.GetString("APP_VERSION", "版本 {0}") ?? "版本 {0}",
+        HostVersion.DisplayText ?? string.Empty);
 
     public SettingsPageViewModel()
     {

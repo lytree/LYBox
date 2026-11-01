@@ -127,7 +127,7 @@
   <data name="SAVE_FAILED" xml:space="preserve"><value>保存失败</value></data>
   <data name="ABOUT" xml:space="preserve"><value>关于</value></data>
   <data name="APP_TITLE" xml:space="preserve"><value>LYBox</value></data>
-  <data name="APP_VERSION" xml:space="preserve"><value>版本 1.0.0</value></data>
+  <data name="APP_VERSION" xml:space="preserve"><value>版本 {0}</value></data>
   <data name="APP_DESCRIPTION" xml:space="preserve"><value>基于 Avalonia 和 Ursa 控件构建的现代工具箱。</value></data>
   <data name="BROWSE" xml:space="preserve"><value>浏览</value></data>
   <data name="SELECT_FILE_PATH" xml:space="preserve"><value>选择文件路径...</value></data>

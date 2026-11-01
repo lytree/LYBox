@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
-using System.Reflection;
 using LYBox.Layout.Core.Services;
 using LYBox.Plugin.Shared;
 using LYBox.Plugin.Shared.Services;
@@ -105,7 +104,7 @@ public partial class IntroductionDemoViewModel : ObservableObject, IDisposable
         if (_groupKey is null)
         {
             WelcomeTitle = _localizationService?.GetString("HOME_WELCOME_TITLE", "Welcome to LYBox") ?? "Welcome to LYBox";
-            VersionText = ResolveVersionText();
+            VersionText = HostVersion.DisplayText ?? string.Empty;
         }
         else
         {
@@ -150,22 +149,6 @@ public partial class IntroductionDemoViewModel : ObservableObject, IDisposable
                 return ResolveHeader(item.MenuHeader) ?? item.Key ?? key;
         }
         return key;
-    }
-
-    private static string ResolveVersionText()
-    {
-        var informational = (Assembly.GetEntryAssembly() ?? typeof(IntroductionDemoViewModel).Assembly)
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion;
-        if (string.IsNullOrWhiteSpace(informational))
-            return string.Empty;
-
-        // 去掉 SourceLink 追加的 +commit 后缀，仅展示语义版本
-        var plusIndex = informational.IndexOf('+');
-        if (plusIndex > 0)
-            informational = informational[..plusIndex];
-
-        return informational.StartsWith('v') ? informational : "v" + informational;
     }
 
     private void OnSearchChanged(IntroductionDemoViewModel recipient, string message)

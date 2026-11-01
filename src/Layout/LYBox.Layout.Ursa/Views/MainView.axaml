@@ -54,9 +54,10 @@
                 HorizontalAlignment="Left"
                 IsVisible="{Binding !IsSidebarHidden}">
                 <!-- 侧边栏四行：导航开关 /（折叠态放大镜入口 或 展开态搜索框）/ 导航项 / 底部入口
-                     行高刻意对齐：折叠态 36+14=50，展开态 32+18=50，切换时导航列表不跳动 -->
+                     行高刻意对齐：折叠态 4+36+6=46，展开态 6+32+8=46，切换时导航列表不跳动 -->
                 <Grid RowDefinitions="Auto,Auto,*,Auto">
-                    <!-- 顶部：导航开关（DevToys sidebar-header 的 36 高 stealth 按钮，40x36） -->
+                    <!-- 顶部：导航开关（DevToys sidebar-header 的 36 高 stealth 按钮，40x36）
+                         水平位置固定 4px，折叠/展开两种状态下图标轴心都是 16px，不随面板宽度偏移 -->
                     <Button
                         Grid.Row="0"
                         Classes="FluentRailButton"
@@ -71,7 +72,7 @@
                             Foreground="{DynamicResource FluentColorText1}" />
                     </Button>
                     <!-- 搜索区：折叠态放大镜入口 / 展开态搜索框 + 搜索建议下拉。
-                         折叠态与展开态行高对齐（36+10=46 / 28+18=46），切换时导航列表不跳动 -->
+                         折叠态与展开态行高对齐（4+36+6=46 / 6+32+8=46），切换时导航列表不跳动 -->
                     <Grid Grid.Row="1">
                     <!-- 折叠态：放大镜入口，点击展开侧边栏并聚焦搜索框（与 Ctrl+F 等价） -->
                     <Button
@@ -94,7 +95,7 @@
                     <TextBox
                         Name="SearchBox"
                         Classes="FluentSearchBox"
-                        Margin="16,6,17,12"
+                        Margin="16,6,17,8"
                         HorizontalAlignment="Stretch"
                         PlaceholderText="{DynamicResource SEARCH_PLACEHOLDER}"
                         Text="{Binding SearchText, Mode=TwoWay}"
@@ -105,30 +106,38 @@
                         </TextBox.KeyBindings>
                         <TextBox.InnerRightContent>
                             <!-- Fluent2 的 TextBox 模板不给 InnerRightContent 预留右内边距，
-                                 这里用正向外边距让按钮距输入框右缘约 4px，避免图标被边框裁切 -->
-                            <Grid ColumnDefinitions="20,20" Margin="0,0,4,0" VerticalAlignment="Center">
+                                 这里用正向外边距让按钮距输入框右缘约 4px，避免图标被边框裁切。
+                                 图标统一用 PathIcon（内部 Viewbox + Stretch=Uniform），保证在 20x20
+                                 按钮内水平/垂直都居中；直接放 Path 会按几何原始尺寸绘制导致偏移。 -->
+                            <Grid
+                                Height="20"
+                                ColumnDefinitions="20,20"
+                                Margin="0,0,4,0"
+                                VerticalAlignment="Center">
                                 <Button
                                     Grid.Column="0"
                                     Classes="FluentSearchActionButton"
+                                    VerticalAlignment="Center"
                                     Command="{Binding ClearSearchCommand}"
                                     Focusable="False"
                                     IsVisible="{Binding SearchText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                                     ToolTip.Tip="{DynamicResource TOOLTIP_SEARCH_CLEAR}">
-                                    <Path
-                                        Width="9" Height="9"
+                                    <PathIcon
+                                        Width="10" Height="10"
                                         Data="{DynamicResource FluentDismiss20Regular}"
-                                        Fill="{DynamicResource FluentColorText2}" />
+                                        Foreground="{DynamicResource FluentColorText2}" />
                                 </Button>
                                 <Button
                                     Grid.Column="1"
                                     Classes="FluentSearchActionButton"
+                                    VerticalAlignment="Center"
                                     Command="{Binding SubmitSearchCommand}"
                                     Focusable="False"
                                     ToolTip.Tip="{DynamicResource TOOLTIP_SEARCH}">
-                                    <Path
+                                    <PathIcon
                                         Width="12" Height="12"
                                         Data="{DynamicResource FluentSearch20Regular}"
-                                        Fill="{DynamicResource FluentColorText2}" />
+                                        Foreground="{DynamicResource FluentColorText2}" />
                                 </Button>
                             </Grid>
                         </TextBox.InnerRightContent>
@@ -146,7 +155,7 @@
                             MaxHeight="340"
                             Margin="0,4,0,0"
                             Padding="4"
-                            Background="{DynamicResource FluentCardBackgroundBrush}"
+                            Background="{DynamicResource FluentFlyoutBackgroundBrush}"
                             BorderBrush="{DynamicResource FluentCardStrokeBrush}"
                             BorderThickness="1"
                             CornerRadius="8"
@@ -248,19 +257,20 @@
                             Command="{Binding ActivateCommand}"
                             CommandParameter="PluginManagement">
                             <Grid ColumnDefinitions="Auto,*">
-                                <!-- 选中指示条（与导航项一致：3×16 圆角强调色） -->
+                                <!-- 选中指示条（与导航项一致：2×16 圆角强调色） -->
                                 <Border
                                     Grid.ColumnSpan="2"
-                                    Width="3" Height="16"
+                                    Width="2" Height="16"
+                                    Margin="5,0,0,0"
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Center"
                                     Background="{DynamicResource FluentAccentBrush}"
-                                    CornerRadius="3"
+                                    CornerRadius="1"
                                     IsVisible="{Binding IsPluginsSelected}"
                                     IsHitTestVisible="False" />
                                 <PathIcon
                                     Width="16" Height="16"
-                                    Margin="12,8,16,8"
+                                    Margin="11,8,6,8"
                                     Data="{DynamicResource FluentPuzzlePiece20Regular}"
                                     Foreground="{DynamicResource FluentTextPrimaryBrush}" />
                                 <TextBlock
@@ -280,19 +290,20 @@
                             Command="{Binding ActivateCommand}"
                             CommandParameter="Settings">
                             <Grid ColumnDefinitions="Auto,*">
-                                <!-- 选中指示条（与导航项一致：3×16 圆角强调色） -->
+                                <!-- 选中指示条（与导航项一致：2×16 圆角强调色） -->
                                 <Border
                                     Grid.ColumnSpan="2"
-                                    Width="3" Height="16"
+                                    Width="2" Height="16"
+                                    Margin="5,0,0,0"
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Center"
                                     Background="{DynamicResource FluentAccentBrush}"
-                                    CornerRadius="3"
+                                    CornerRadius="1"
                                     IsVisible="{Binding IsSettingsSelected}"
                                     IsHitTestVisible="False" />
                                 <PathIcon
                                     Width="16" Height="16"
-                                    Margin="12,8,16,8"
+                                    Margin="11,8,6,8"
                                     Data="{DynamicResource FluentSettings20Regular}"
                                     Foreground="{DynamicResource FluentTextPrimaryBrush}" />
                                 <TextBlock

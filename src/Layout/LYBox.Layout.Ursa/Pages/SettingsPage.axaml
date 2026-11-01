@@ -156,7 +156,7 @@
 						<TextBlock Text="{DynamicResource ABOUT}" Classes="FluentSectionHeader" Margin="0" />
 						<StackPanel Spacing="4">
 							<TextBlock Text="{DynamicResource APP_TITLE}" Classes="FluentBody" FontWeight="SemiBold" />
-							<TextBlock Text="{DynamicResource APP_VERSION}" Classes="FluentCaption" />
+							<TextBlock Text="{Binding AppVersionText}" Classes="FluentCaption" />
 							<TextBlock Text="{DynamicResource APP_DESCRIPTION}" Classes="FluentCaption" TextWrapping="Wrap" />
 						</StackPanel>
 					</StackPanel>

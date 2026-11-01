@@ -592,6 +592,15 @@
     <Style Selector="u|NavMenuItem:selected /template/ Border#PART_SelectionIndicator">
         <Setter Property="IsVisible" Value="True" />
     </Style>
+    <!-- 选中指示条规格：2x16 圆角强调色（与页脚入口手绘指示条一致），
+         覆盖 Ursa 模板默认的较宽竖条，避免视觉上过厚 -->
+    <Style Selector="u|NavMenuItem /template/ Border#PART_SelectionIndicator">
+        <Setter Property="Width" Value="2" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="CornerRadius" Value="1" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Background" Value="{DynamicResource FluentAccentBrush}" />
+    </Style>
 
     <!-- 标题文字：主文本色、垂直居中；选中不改变字号字重 -->
     <Style Selector="u|NavMenuItem /template/ ContentPresenter#PART_HeaderPresenter">
@@ -603,17 +612,29 @@
         <Setter Property="Foreground" Value="{DynamicResource FluentTextPrimaryBrush}" />
     </Style>
 
-    <!-- 图标位置一致（折叠/展开均左对齐）：16px 图标、12 左内边距、16 与文字间距 -->
+    <!-- 图标位置一致（折叠/展开均左对齐）：两种状态下 16px 图标的左缘都落在 16px 轴线，
+         与顶部汉堡/搜索按钮同一轴心。展开态由 Ursa 模板固定内缩，用位移补偿 3px；
+         折叠态经 padding 校准后已对齐，位移归零 -->
     <Style Selector="u|NavMenuItem /template/ ContentPresenter#PART_IconPresenter">
-        <Setter Property="Padding" Value="12,8,16,8" />
+        <Setter Property="Padding" Value="8,8,16,8" />
         <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <TranslateTransform X="3" />
+            </Setter.Value>
+        </Setter>
     </Style>
     <Style Selector="u|NavMenuItem:horizontal-collapsed:first-level /template/ ContentPresenter#PART_IconPresenter">
         <Setter Property="Grid.ColumnSpan" Value="1" />
         <Setter Property="Margin" Value="0" />
-        <Setter Property="Padding" Value="12,8,10,8" />
+        <Setter Property="Padding" Value="8,8,10,8" />
         <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <TranslateTransform X="1" />
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- 子菜单项同样显示图标（DevToys NavBarItem 的层级表现） -->
@@ -1414,7 +1435,7 @@
     <!-- 下拉弹层 — WinUI 3 Flyout 规格：8px 圆角 + elevation 阴影（阴影允许字面量） -->
     <Style Selector="ComboBox.FluentComboBox /template/ Border#PopupBorder">
         <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="Background" Value="{DynamicResource FluentCardBackgroundBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FluentFlyoutBackgroundBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource FluentCardStrokeBrush}" />
         <Setter Property="BoxShadow" Value="0 8 16 0 #14000000" />
     </Style>
@@ -1454,7 +1475,7 @@
 
     <!-- ===== FluentToolTip（WinUI 3 ToolTip 风格） ===== -->
     <Style Selector="ToolTip.FluentToolTip">
-        <Setter Property="Background" Value="{DynamicResource FluentCardBackgroundBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FluentFlyoutBackgroundBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource FluentColorText0}" />
         <Setter Property="BorderBrush" Value="{DynamicResource ControlElevationBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
@@ -1465,7 +1486,7 @@
 
     <!-- ===== FluentContextMenu / FluentMenuItem（WinUI 3 MenuFlyout 风格） ===== -->
     <Style Selector="ContextMenu.FluentContextMenu">
-        <Setter Property="Background" Value="{DynamicResource FluentCardBackgroundBrush}" />
+        <Setter Property="Background" Value="{DynamicResource FluentFlyoutBackgroundBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource FluentCardStrokeBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="8" />

@@ -290,7 +290,7 @@
     <value>LYBox</value>
   </data>
   <data name="APP_VERSION" xml:space="preserve">
-    <value>Version 1.0.0</value>
+    <value>Version {0}</value>
   </data>
   <data name="APP_DESCRIPTION" xml:space="preserve">
     <value>A modern toolbox built with Avalonia and Ursa controls.</value>
