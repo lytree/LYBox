@@ -218,6 +218,14 @@ jobs:
             esac
           done
 
+          # 校验 dnSpy 式布局：运行时文件应集中在 bin/ 下
+          for dll in bin/LYBox.Launcher.Desktop.dll bin/LYBox.Launcher.Console.dll; do
+            if ! zipinfo -1 "$OUT" | grep -qx "$dll"; then
+              echo "::error::zip 中缺少 ${dll}（发布布局未生效）"
+              exit 1
+            fi
+          done
+
       - name: Upload main artifact
         uses: actions/upload-artifact@v7
         with:
@@ -278,7 +286,9 @@ jobs:
             ```
 
             ### Launcher 自包含发布包
+            采用 dnSpy 式布局：zip 根目录只保留启动器，运行时文件集中在 `bin/`。
             解压对应平台的 zip 后直接运行 `LYBox.Launcher.Desktop`（无需安装 .NET 运行时）。
+            Windows 启动器带 `.exe` 后缀，Linux/macOS 无后缀。
 
             macOS 使用说明（未做代码签名与公证）：
             ```bash

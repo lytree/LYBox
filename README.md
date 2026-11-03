@@ -325,7 +325,7 @@ artifacts/
 ├── bin/{ProjectName}/debug/                  # 普通 dotnet build 输出
 ├── obj/{ProjectName}/                        # MSBuild 中间文件
 ├── publish/
-│   ├── launcher/{desktop|console}/{rid?}/    # 宿主发布目录
+│   ├── launcher/{rid?}/                      # 宿主发布包（根目录启动器 + bin/）
 │   └── plugins/{PluginName}/publish/         # 插件可加载目录
 ├── packages/
 │   ├── sdk/                                  # SDK NuGet 包
@@ -355,24 +355,31 @@ cd ..\LYBox.Plugins
 
 ### 部署目录结构
 
+采用 dnSpy 式布局：根目录只保留启动器，运行时文件集中在 `bin/`。
+Windows 启动器带 `.exe` 后缀，Linux/macOS 无后缀。
+
 ```text
 {AppDir}/
-├── LYBox.Launcher.Desktop.exe
-├── plugins/
-│   ├── MyPlugin/
-│   │   ├── MyPlugin.dll
-│   │   ├── plugin.json
-│   │   └── shared-assemblies.txt
-│   └── AnotherPlugin/
-└── ...
+├── LYBox.Launcher.Desktop(.exe)              # 图形启动器
+├── LYBox.Launcher.Console(.exe)              # 控制台启动器
+└── bin/                                      # 运行时与程序集（apphost 已改写为 bin/<name>.dll）
+    ├── LYBox.Launcher.Desktop.dll
+    ├── LYBox.Launcher.Console.dll
+    ├── plugins/                              # 插件目录（AppContext.BaseDirectory）
+    │   ├── MyPlugin/
+    │   │   ├── MyPlugin.dll
+    │   │   ├── plugin.json
+    │   │   └── shared-assemblies.txt
+    │   └── AnotherPlugin/
+    └── ...
 ```
 
 ### 安装插件
 
-**方式 A：解压 zip 到 plugins 目录**
+**方式 A：解压 zip 到 bin/plugins 目录**
 
 ```powershell
-Expand-Archive .\LYBox.Plugin.Template-1.0.0.zip -DestinationPath .\plugins\LYBox.Plugin.Template\
+Expand-Archive .\LYBox.Plugin.Template-1.0.0.zip -DestinationPath .\bin\plugins\LYBox.Plugin.Template\
 ```
 
 **方式 B：通过 `AVALONIA_EXTRA_PLUGINS_PATH` 临时加载（开发期）**

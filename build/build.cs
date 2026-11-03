@@ -198,8 +198,8 @@ Task("PackBin")
     .WithCriteria(c => buildContext.Target.HasFlag(BuildTarget.Bin))
     .Does(c =>
 {
-    // 统一发布目录：GUI 启动器（WinExe，LYBox.Launcher.Desktop.exe）与控制台调试版（Exe，LYBox.Launcher.Console.exe）
-    // 都发布到 HostPublishDir。两者共享大部分依赖，dotnet publish 会按文件归并，最终目录里同时包含两份 .exe。
+    // 统一发布目录：GUI 启动器（WinExe，LYBox.Launcher.Desktop）与控制台调试版（Exe，LYBox.Launcher.Console）
+    // 都发布到 HostPublishDir。两者共享大部分依赖，dotnet publish 会按文件归并，最终目录里同时包含两份可执行文件。
     c.EnsureDirectoryExists(buildContext.HostPublishDir);
 
     // GUI 启动器
@@ -226,7 +226,7 @@ Task("PackBin")
 
     c.DotNetPublish(buildContext.LauncherProject, settings);
 
-    // 控制台调试版（与 GUI 版共用同一套启动逻辑，输出 LYBox.Launcher.Console.exe）
+    // 控制台调试版（与 GUI 版共用同一套启动逻辑，输出 LYBox.Launcher.Console）
     var consoleSettings = new DotNetPublishSettings
     {
         Configuration = buildContext.BuildConfiguration,
@@ -250,8 +250,12 @@ Task("PackBin")
     c.DotNetPublish(buildContext.ConsoleProject, consoleSettings);
 
     // 清理构建中间产物（.pdb / .xml），让最终发布目录只保留运行时必需文件。
-    // .deps.json / .runtimeconfig.json 保留：apphost 启动必需，剥离将导致双击 .exe 无法启动。
+    // .deps.json / .runtimeconfig.json 保留：apphost 启动必需，剥离将导致双击可执行文件无法启动。
     BuildTasks.StripLauncherIntermediates(buildContext);
+
+    // dnSpy 式发布布局：根目录只保留两个启动器，其余运行时文件移入 bin/，
+    // 并改写 apphost 内嵌的 DLL 路径（macOS 上随后重新 ad-hoc 签名）。
+    BuildTasks.ApplyReleaseLayout(buildContext);
 
     c.Log.Information("Host launchers published to: {0}", buildContext.HostPublishDir);
 });
@@ -773,6 +777,103 @@ public static class BuildTasks
 
         context.Log.Information("Stripped {0} build intermediate file(s) (.pdb / .xml) from {1}",
             removed, dir);
+    }
+
+    /// <summary>
+    /// 把发布目录整理为 dnSpy 式布局：根目录只保留两个启动器可执行文件，
+    /// 其余文件（程序集、deps/runtimeconfig、运行时与 createdump 等）全部移入 <c>bin/</c>。
+    /// <para>
+    /// 随后调用 <c>build/AppHostPatcher.cs</c>（file-based app）改写 apphost 内嵌的
+    /// DLL 路径为 <c>bin/&lt;launcher&gt;.dll</c>；在 macOS 上改写会破坏 ad-hoc 签名，
+    /// 需要再用 <c>codesign</c> 重新签名，否则 arm64 上会被内核直接终止。
+    /// </para>
+    /// </summary>
+    public static void ApplyReleaseLayout(BuildContext context)
+    {
+        var root = context.HostPublishDir;
+        if (!Directory.Exists(root))
+        {
+            context.Log.Warning("Host publish dir not found: {0}", root);
+            return;
+        }
+
+        // Windows apphost 带 .exe 后缀，Linux/macOS 无后缀
+        var exeSuffix = OperatingSystem.IsWindows() ? ".exe" : "";
+        var launchers = new[]
+        {
+            "LYBox.Launcher.Desktop" + exeSuffix,
+            "LYBox.Launcher.Console" + exeSuffix,
+        };
+
+        var binDir = Path.Combine(root, "bin");
+        Directory.CreateDirectory(binDir);
+
+        foreach (var entry in Directory.GetFileSystemEntries(root))
+        {
+            var name = Path.GetFileName(entry);
+            if (string.Equals(name, "bin", StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (launchers.Contains(name, StringComparer.OrdinalIgnoreCase))
+                continue;
+
+            var target = Path.Combine(binDir, name);
+            if (Directory.Exists(entry))
+                Directory.Move(entry, target);
+            else
+                File.Move(entry, target);
+        }
+
+        var patcher = Path.Combine(context.RootDir, "build", "AppHostPatcher.cs");
+        foreach (var launcher in launchers)
+        {
+            var exe = Path.Combine(root, launcher);
+            if (!File.Exists(exe))
+                throw new CakeException($"Launcher not found in publish output: {exe}");
+
+            var exitCode = context.StartProcess("dotnet", new Cake.Core.IO.ProcessSettings
+            {
+                Arguments = new Cake.Core.IO.ProcessArgumentBuilder()
+                    .Append("run")
+                    .AppendQuoted(patcher)
+                    .Append("--")
+                    .AppendQuoted(exe)
+                    .Append("-d")
+                    .AppendQuoted("bin"),
+                WorkingDirectory = new Cake.Core.IO.DirectoryPath(context.RootDir),
+            });
+
+            if (exitCode != 0)
+                throw new CakeException($"AppHostPatcher failed ({exitCode}) for {launcher}");
+        }
+
+        if (OperatingSystem.IsMacOS())
+            AdHocSignLaunchers(context, root, launchers);
+
+        context.Log.Information("Release layout (launchers + bin/) ready in: {0}", root);
+    }
+
+    /// <summary>
+    /// macOS 上 apphost 被改写后签名失效，需重新做 ad-hoc 签名（<c>codesign --sign -</c>）。
+    /// </summary>
+    private static void AdHocSignLaunchers(BuildContext context, string root, IEnumerable<string> launchers)
+    {
+        foreach (var launcher in launchers)
+        {
+            var exe = Path.Combine(root, launcher);
+            var exitCode = context.StartProcess("codesign", new Cake.Core.IO.ProcessSettings
+            {
+                Arguments = new Cake.Core.IO.ProcessArgumentBuilder()
+                    .Append("--force")
+                    .Append("--sign")
+                    .Append("-")
+                    .AppendQuoted(exe),
+            });
+
+            if (exitCode != 0)
+                throw new CakeException($"codesign failed ({exitCode}) for {launcher}");
+
+            context.Log.Information("Re-signed (ad-hoc): {0}", launcher);
+        }
     }
 }
 
