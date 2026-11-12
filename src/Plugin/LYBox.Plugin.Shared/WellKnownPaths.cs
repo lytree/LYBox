@@ -61,7 +61,7 @@ public static class WellKnownPaths
     /// <summary>
     /// 拼接滚动日志完整文件名:
     /// <c>{RollingLogFilePrefix}-{yyyy-MM-dd}_{seq:000}{LogFileExtension}</c>。
-    /// 接受 ZLogger 传入的 <see cref="DateTimeOffset"/>(已是 UTC)。
+    /// 接受宿主日志 sink 传入的 UTC 时间戳与当日文件序号。
     /// </summary>
     public static string FormatRollingLogFileName(DateTimeOffset utcTimestamp, int sequence)
         => $"{RollingLogFilePrefix}-{utcTimestamp.UtcDateTime:yyyy-MM-dd}_{sequence:000}{LogFileExtension}";

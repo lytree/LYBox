@@ -32,7 +32,7 @@ public static class PluginSubDirectories
     /// <summary>执行 / 转发历史。</summary>
     public const string History = "history";
 
-    /// <summary>插件临时日志(不是 ZLogger 滚动日志;那是宿主提供)。</summary>
+    /// <summary>插件临时日志(不是宿主 Serilog 滚动日志;宿主滚动日志由 IPluginHostEnvironment 提供)。</summary>
     public const string Logs = "logs";
 
     /// <summary>抖音子模块专属子目录(仅 Downloader 插件使用)。</summary>

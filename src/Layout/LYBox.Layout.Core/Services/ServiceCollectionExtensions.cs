@@ -2,12 +2,11 @@ using LYBox.Plugin.Shared;
 using LYBox.Plugin.Shared.Models;
 using LYBox.Plugin.Shared.Services;
 using LYBox.Layout.Core.Data;
+using LYBox.Layout.Core.Logging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using ZLogger;
-using ZLogger.Formatters;
-using ZLogger.Providers;
+using Serilog.Extensions.Logging;
 
 namespace LYBox.Layout.Core.Services;
 
@@ -31,21 +30,17 @@ public static class ServiceCollectionExtensions
             builder.AddFilter("Microsoft", LogLevel.Warning);
             builder.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
 
-            // 控制台与文件使用相同的纯文本前缀格式：
-            //   [2026-07-10 15:39:43.123] [INFO] [LYBox.Layout.Core.Services.NavigationService] 消息内容
-            // 异常信息由 PlainTextZLoggerFormatter 默认行为追加到消息末尾（换行 + 异常类型:消息 + 堆栈）。
-            builder.AddZLoggerConsole(options =>
-            {
-                ConfigurePlainTextFormatter(options);
-            });
-            builder.AddZLoggerRollingFile(options =>
-            {
-                options.FilePathSelector = (dt, seq) =>
-                    Path.Combine(logPath, WellKnownPaths.FormatRollingLogFileName(dt, seq));
-                options.RollingInterval = RollingInterval.Day;
-                options.RollingSizeKB = 10240; // 10MB
-                ConfigurePlainTextFormatter(options);
-            });
+            // 结构化日志统一由 Serilog 承接（控制台 + 滚动文件），并保留分类名（SourceContext）、
+            // 日志级别、消息模板与 BeginScope 作用域能力。
+            // 输出格式见 SerilogLogging.OutputTemplate：
+            //   [2026-07-10 07:39:43.123] [Information] [LYBox.Layout.Core.Services.NavigationService] 消息内容
+            // 时间戳统一为 UTC；异常信息追加在消息之后（换行 + 异常类型:消息 + 堆栈）。
+            // 直接注册 SerilogLoggerProvider（而非 AddSerilog）：AddSerilog 会追加一条
+            // 针对该 provider 的 Trace 级过滤器，覆盖上面的全局 MinimumLevel / AddFilter 规则，
+            // 导致 Microsoft / EF Core 的 Debug 日志穿透。这里由 DI 工厂创建 provider，
+            // 既能保留全局过滤语义，也能在容器释放时同步释放 Serilog 日志器与文件流。
+            builder.Services.AddSingleton<ILoggerProvider>(_ =>
+                new SerilogLoggerProvider(SerilogLogging.CreateLogger(logPath), dispose: true));
         });
 
         // PluginLoader 由 App.Initialize() 提前实例化（阶段1/2需要 DI 尚未构建时使用），
@@ -101,29 +96,5 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ITaskRegistry, TaskRegistry>();
 
         return services;
-    }
-
-    /// <summary>
-    /// 配置纯文本日志格式器，统一控制台与文件的输出格式。
-    /// 输出示例：[2026-07-10 15:39:43.123] [Information] [LYBox.Layout.Core.Services.NavigationService] 消息内容
-    /// 异常信息自动追加到消息末尾（换行 + 异常类型:消息 + 堆栈 + 内部异常链）。
-    /// </summary>
-    private static void ConfigurePlainTextFormatter(ZLoggerOptions options)
-    {
-        options.IncludeScopes = true;
-        options.UsePlainTextFormatter(formatter =>
-        {
-            formatter.SetPrefixFormatter(
-                $"[{0:yyyy-MM-dd HH:mm:ss.fff}] [{1}] [{2}] ",
-                static (in MessageTemplate template, in LogInfo info) =>
-                {
-                    template.Format(
-                        info.Timestamp.Utc,
-                        info.LogLevel,
-                        info.Category.Name
-                    );
-                }
-            );
-        });
     }
 }

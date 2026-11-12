@@ -19,7 +19,12 @@
         <MicrosoftExtensionsLocalization>10.0.14</MicrosoftExtensionsLocalization>
         <ProDataGridVersion>12.1.0.6</ProDataGridVersion>
         <ScottPlotVersion>5.1.59</ScottPlotVersion>
-        <ZLoggerVersion>2.5.10</ZLoggerVersion>
+        <!-- 结构化日志：Serilog 作为 Microsoft.Extensions.Logging 的实现提供方（替换 ZLogger）。
+             文件 sink 由宿主自实现（Layout.Core/Logging/RollingFileSink.cs），
+             沿用 app-yyyy-MM-dd_NNN.log 命名与 10MB 日滚动，故不引入 Serilog.Sinks.File。 -->
+        <SerilogVersion>4.4.0</SerilogVersion>
+        <SerilogExtensionsLoggingVersion>10.0.0</SerilogExtensionsLoggingVersion>
+        <SerilogSinksConsoleVersion>6.1.1</SerilogSinksConsoleVersion>
         <!-- SkiaSharp 锁定 3.x：Avalonia 12.x 与 ScottPlot 5.1.x 均依赖 3.x；
              4.x 是破坏性主版本升级，需待上游兼容后再评估。 -->
         <SkiaSharpVersion>3.119.4</SkiaSharpVersion>

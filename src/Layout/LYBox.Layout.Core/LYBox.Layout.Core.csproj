@@ -14,7 +14,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(EfCoreVersion)" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="$(EfCoreVersion)" />
     <PackageReference Include="Microsoft.Extensions.Localization" Version="$(MicrosoftExtensionsLocalization)" />
-    <PackageReference Include="ZLogger" Version="$(ZLoggerVersion)" />
+    <PackageReference Include="Serilog" Version="$(SerilogVersion)" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="$(SerilogExtensionsLoggingVersion)" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="$(SerilogSinksConsoleVersion)" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../Plugin/LYBox.Plugin.Shared/LYBox.Plugin.Shared.csproj" />

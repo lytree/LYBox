@@ -1,8 +1,8 @@
 using LYBox.Plugin.Shared;
 using LYBox.Plugin.Shared.Services;
+using LYBox.Layout.Core.Logging;
 using Microsoft.Extensions.Logging;
-using ZLogger;
-using ZLogger.Providers;
+using Serilog.Extensions.Logging;
 
 namespace LYBox.Layout.Core.Services;
 
@@ -11,7 +11,7 @@ namespace LYBox.Layout.Core.Services;
 /// <para>
 /// 关键设计：
 /// <list type="bullet">
-/// <item><see cref="LoggerFactory"/>：每个插件独立的 ZLogger 通道，文件落到
+/// <item><see cref="LoggerFactory"/>：每个插件独立的日志通道（Serilog），文件落到
 ///       <c>{LogsDirectory}/plugins/{PluginId}/app-yyyy-MM-dd_NNN.log</c>，
 ///       不与宿主主日志混在一起，便于按插件归档 / 排查。</item>
 /// <item><see cref="PluginLogsDirectory"/>：当前插件专属日志目录。</item>
@@ -85,7 +85,7 @@ public sealed class PluginHostEnvironment : IPluginHostEnvironment, IDisposable
 
     /// <summary>
     /// 为指定插件构造独立的 <see cref="ILoggerFactory"/>：
-    /// 只接 Console + 按插件隔离的 RollingFile，不与宿主主日志混淆。
+    /// 只接 Console + 按插件隔离的滚动文件，不与宿主主日志混淆。
     /// </summary>
     static ILoggerFactory BuildLoggerFactory(string pluginId)
     {
@@ -102,34 +102,10 @@ public sealed class PluginHostEnvironment : IPluginHostEnvironment, IDisposable
             builder.AddFilter("Microsoft", LogLevel.Warning);
             builder.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
 
-            builder.AddZLoggerConsole(options =>
-            {
-                ConfigureFormatter(options);
-            });
-            builder.AddZLoggerRollingFile(options =>
-            {
-                options.FilePathSelector = (dt, seq) =>
-                    Path.Combine(dir, WellKnownPaths.FormatRollingLogFileName(dt, seq));
-                options.RollingInterval = RollingInterval.Day;
-                options.RollingSizeKB = 10240;
-                ConfigureFormatter(options);
-            });
+            // 每个插件一套独立 Serilog 通道；LoggerFactory 释放时会一并释放 provider 与文件流。
+            builder.AddProvider(new SerilogLoggerProvider(SerilogLogging.CreateLogger(dir), dispose: true));
         });
         return lf;
-    }
-
-    static void ConfigureFormatter(ZLoggerOptions options)
-    {
-        options.IncludeScopes = true;
-        options.UsePlainTextFormatter(formatter =>
-        {
-            formatter.SetPrefixFormatter(
-                $"[{0:yyyy-MM-dd HH:mm:ss.fff}] [{1}] [{2}] ",
-                static (in MessageTemplate template, in LogInfo info) =>
-                {
-                    template.Format(info.Timestamp.Utc, info.LogLevel, info.Category.Name);
-                });
-        });
     }
 
     static string SafeDirName(string raw)

@@ -39,7 +39,7 @@
 		    DbContext / DbSet 等抽象类型；SQLite 等具体数据库实现由宿主或插件按需引用
 		    （宿主引用 Sqlite 用于 AppDbContext）。
 		  - Logging：SDK 仅依赖抽象侧（Microsoft.Extensions.Logging.Abstractions），
-		    实现侧由宿主通过 ZLogger 提供。抽象包已在下方递归依赖区显式声明。
+		    实现侧由宿主通过 Microsoft.Extensions.Logging provider（Serilog）提供。抽象包已在下方递归依赖区显式声明。
 		  - ProDataGrid：公共表格组件，SDK 引用并加入 _SharedAssembliesPatterns 共享清单，
 		    插件通过传递依赖直接复用，运行时由宿主统一加载。
 		  - ScottPlot：不引入 SDK，由需要图表的插件自行引用（插件私有依赖）。

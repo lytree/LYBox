@@ -16,7 +16,6 @@ using LYBox.Layout.Ursa.Views;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using ZLogger;
 
 namespace LYBox.Launcher.Desktop;
 
@@ -168,10 +167,10 @@ public partial class App : Application
 
         // 记录应用启动日志
         var logger = ServiceProvider.GetRequiredService<ILogger<App>>();
-        logger.ZLogInformation($"AvaloniaTemplate 应用启动");
+        logger.LogInformation("AvaloniaTemplate 应用启动");
 
         // 启动期一次性 dump：宿主侧关键路径，便于排查插件数据 / 日志落盘位置。
-        // 同时输出到控制台与滚动日志文件（AddZLoggerConsole + AddZLoggerRollingFile）。
+        // 同时输出到控制台与滚动日志文件（Serilog Console + RollingFile sink）。
         DumpHostPaths(logger);
 
         InitializeDatabase();
@@ -418,7 +417,7 @@ public partial class App : Application
             logger?.LogWarning("应用退出时仍有正在运行的任务: {Tasks}", taskNames);
         }
 
-        // 修复：异步清理 + 超时兜底，避免原生资源释放（TdLib/ZLogger）阻塞导致进程无法退出
+        // 修复：异步清理 + 超时兜底，避免原生资源释放（TdLib/日志 sink）阻塞导致进程无法退出
         // 先取消关闭请求，然后在线程池线程上执行清理，完成后调用 Environment.Exit 强制退出
         _ = Task.Run(async () =>
         {
@@ -440,7 +439,7 @@ public partial class App : Application
 
     /// <summary>
     /// 启动期一次性打印宿主侧关键路径：方便排查插件数据根目录、日志落盘位置等。
-    /// 同时通过 ZLogger 输出到控制台与滚动日志文件（<c>{AppBaseDirectory}/logs/app-yyyy-MM-dd_NNN.log</c>）。
+    /// 同时通过 Serilog 输出到控制台与滚动日志文件（<c>{AppBaseDirectory}/logs/app-yyyy-MM-dd_NNN.log</c>）。
     /// 行布局统一经 <see cref="PathsReport.BuildBootLines"/> 生成，便于与 DI 之前的早期 dump 保持一致。
     /// </summary>
     private static void DumpHostPaths(ILogger logger)

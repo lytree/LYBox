@@ -13,7 +13,7 @@
   - 三阶段生命周期：**Discover → Initialize → Register**
   - 安装 / 覆盖升级 / 卸载 / 启用 / 禁用 + SDK 兼容性校验
   - 7 个状态机：`NotInstalled`、`Installed`、`Loaded`、`Disabled`、`PendingUninstall`、`PendingUpgrade`、`Error`
-- **宿主服务**：导航、菜单、本地化、设置（EF Core SQLite）、任务注册、窗口信息、ZLogger 结构化日志
+- **宿主服务**：导航、菜单、本地化、设置（EF Core SQLite）、任务注册、窗口信息、Serilog 结构化日志
 - **Web 插件**：宿主内嵌 Kestrel，统一 `/sdk/` 静态资源、RPC、SSE、Channel、嵌入式浏览器 SDK
 - **CLI 插件**：插件可注册子命令，由 CLI 解析并支持 `--output=json`
 

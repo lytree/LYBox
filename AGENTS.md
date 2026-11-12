@@ -173,7 +173,7 @@ LYBox.Plugin.Shared/            共享契约（核心包）
 LYBox.Plugin.Shared.Web/        Web 包（Rpc/Web/嵌入式 ipc.js）
 LYBox.Platforms.Abstractions/   跨平台抽象基类
 LYBox.Layout.Core/              宿主布局核心
-LYBox.Layout.Ursa/              宿主应用（导航、菜单、本地化、EF Core、ZLogger）
+LYBox.Layout.Ursa/              宿主应用（导航、菜单、本地化、EF Core、Serilog）
 LYBox.Launcher.Desktop/         桌面入口（AvaloniaUseCompiledBindingsByDefault=true）
 ```
 
@@ -348,7 +348,7 @@ Program.cs → App.Initialize()
 | AvaloniaUI.DiagnosticsSupport | `2.2.3` |
 | ProDataGrid | `12.1.0.6` |
 | ScottPlot | `5.1.59` |
-| ZLogger | `2.5.10` |
+| Serilog / Serilog.Extensions.Logging / Serilog.Sinks.Console | `4.4.0` / `10.0.0` / `6.1.1` |
 | SkiaSharp | `3.119.4`（**锁定 3.x**，4.x 待上游生态兼容） |
 | Avalonia.Controls.WebView | `12.1.1` |
 | HarfBuzzSharp | `14.2.1.400` |

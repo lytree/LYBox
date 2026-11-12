@@ -1,6 +1,6 @@
 # LYBox
 
-基于 **Avalonia 12 + .NET 10** 的可扩展桌面应用模板。内置插件 SDK、源生成器驱动的元数据、AssemblyLoadContext 隔离加载、Fluent Design 视觉规范、EF Core SQLite 持久化、ZLogger 结构化日志。
+基于 **Avalonia 12 + .NET 10** 的可扩展桌面应用模板。内置插件 SDK、源生成器驱动的元数据、AssemblyLoadContext 隔离加载、Fluent Design 视觉规范、EF Core SQLite 持久化、Serilog 结构化日志。
 
 仓库由两部分组成：
 
@@ -143,7 +143,7 @@ LYBox.Plugin.Shared/            共享契约：IPlugin、IPluginMetadata、ViewL
 LYBox.Plugin.Shared.Web/        WebView、Kestrel、RPC、Event、Channel、嵌入式浏览器 SDK
 LYBox.Platforms.Abstractions/   跨平台抽象基类
 LYBox.Layout.Core/              宿主布局核心
-LYBox.Layout.Ursa/              宿主应用：导航、菜单、本地化、EF Core、ZLogger
+LYBox.Layout.Ursa/              宿主应用：导航、菜单、本地化、EF Core、Serilog
 LYBox.Launcher.Desktop/         桌面入口
 LYBox.Launcher.Console/         CLI 入口
 ```

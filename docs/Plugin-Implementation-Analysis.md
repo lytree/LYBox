@@ -17,7 +17,7 @@
 | 本地化 | `src/Layout/LYBox.Layout.Ursa/Services/LocalizationService.cs` | 堆叠 `.resx` `ResourceManager` |
 | 主题 | `src/Layout/LYBox.Layout.Ursa/Theme/UrsaFluentTheme.axaml` | Fluent Design / Mica 入口 |
 | EF Core | `src/Layout/LYBox.Layout.Core/Data/AppDbContext.cs` | SQLite 持久化 |
-| ZLogger | 同上 | 结构化日志 |
+| Serilog | 同上 | 结构化日志（Microsoft.Extensions.Logging provider） |
 
 ---
 

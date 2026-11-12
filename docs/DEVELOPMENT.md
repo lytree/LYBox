@@ -320,7 +320,9 @@ Web 插件基于官方 `Avalonia.Controls.WebView 12.0.1`。前端 SDK（`lybox-
 | AvaloniaUI.DiagnosticsSupport | 2.2.3 |
 | ProDataGrid | 12.0.4 |
 | ScottPlot | 5.1.59 |
-| ZLogger | 2.5.10 |
+| Serilog | 4.4.0 |
+| Serilog.Extensions.Logging | 10.0.0 |
+| Serilog.Sinks.Console | 6.1.1 |
 | SkiaSharp | 3.119.4（锁定 3.x） |
 | Avalonia.Controls.WebView | 12.0.1 |
 | HarfBuzzSharp | 14.2.1.1 |
