@@ -15,6 +15,7 @@ public sealed class PluginInstallationManager : IPluginInstallationManager
     private readonly IPluginLoader _pluginLoader;
     private readonly string _pluginsDirectory;
     private readonly IReadOnlySet<string> _readOnlyPluginIds;
+    private readonly ISettingsService? _settingsService;
 
     public event EventHandler<PluginInfo>? PluginInstalled;
     public event EventHandler<PluginInfo>? PluginUninstalled;
@@ -23,12 +24,14 @@ public sealed class PluginInstallationManager : IPluginInstallationManager
     public PluginInstallationManager(
         IPluginLoader pluginLoader,
         string? pluginsDirectory = null,
-        IReadOnlySet<string>? readOnlyPluginIds = null)
+        IReadOnlySet<string>? readOnlyPluginIds = null,
+        ISettingsService? settingsService = null)
     {
         _pluginLoader = pluginLoader;
         _pluginsDirectory = Path.GetFullPath(
             pluginsDirectory ?? Path.Combine(AppContext.BaseDirectory, "plugins"));
         _readOnlyPluginIds = readOnlyPluginIds ?? new HashSet<string>(StringComparer.Ordinal);
+        _settingsService = settingsService;
         Directory.CreateDirectory(_pluginsDirectory);
     }
 
@@ -283,6 +286,13 @@ public sealed class PluginInstallationManager : IPluginInstallationManager
             : pluginInfo.DataDirectory;
 
         _pluginLoader.MarkForUninstall(pluginId);
+
+        // 立即清理该插件注册到宿主设置库中的设置行：
+        // 卸载实际删除目录发生在下次启动，但设置行属于宿主 SQLite，
+        // 不在这里删就会在重启前一直显示在设置页。
+        // 清理失败不阻塞卸载，重启后由宿主启动期的孤儿设置清理兜底。
+        try { _settingsService?.RemoveSettingsByPlugin(pluginId); }
+        catch (Exception) { }
 
         // 若 UI 已展示过该插件的数据目录，触发事件让前端提示"将一并删除数据"。
         PluginUninstalled?.Invoke(this, pluginInfo);

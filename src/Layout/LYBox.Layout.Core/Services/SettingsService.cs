@@ -207,6 +207,19 @@ public sealed class SettingsService : ISettingsService
         InvalidateCache();
     }
 
+    public void RemoveSettingsByPlugin(string pluginId)
+    {
+        if (string.IsNullOrWhiteSpace(pluginId)) return;
+
+        using var db = _dbFactory.CreateDbContext();
+        var items = db.Settings.Where(s => s.PluginId == pluginId).ToList();
+        if (items.Count == 0) return;
+
+        db.Settings.RemoveRange(items);
+        db.SaveChanges();
+        InvalidateCache();
+    }
+
     public void InitializeDefaults()
     {
         var themeDisplayName = _localizationService?.GetString("SETTING_APP_THEME", "Theme") ?? "Theme";

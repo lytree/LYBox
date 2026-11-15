@@ -14,5 +14,11 @@ public interface ISettingsService
     List<string> GetGroups();
     SettingItem? GetSetting(string key);
     void RemoveSetting(string key);
+
+    /// <summary>
+    /// 删除某个插件注册的全部设置项(插件卸载后清理宿主数据库中的残留)。
+    /// </summary>
+    void RemoveSettingsByPlugin(string pluginId);
+
     void InitializeDefaults();
 }

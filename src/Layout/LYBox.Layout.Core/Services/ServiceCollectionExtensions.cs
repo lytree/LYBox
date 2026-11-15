@@ -57,7 +57,8 @@ public static class ServiceCollectionExtensions
                 .ToHashSet(StringComparer.Ordinal);
             return new PluginInstallationManager(
                 serviceProvider.GetRequiredService<IPluginLoader>(),
-                readOnlyPluginIds: externalPluginIds);
+                readOnlyPluginIds: externalPluginIds,
+                settingsService: serviceProvider.GetRequiredService<ISettingsService>());
         });
         services.AddSingleton<IPluginManagementService>(serviceProvider => new PluginManagementService(
             serviceProvider.GetRequiredService<IPluginLoader>(),

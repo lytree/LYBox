@@ -175,6 +175,7 @@ public partial class App : Application
 
         InitializeDatabase();
         InitializeLocalization();
+        PruneOrphanedPluginSettings(pluginLoader);
 
         // 阶段3：调用插件 RegisterAsync(IServiceProvider)，执行多语言注册等
         await pluginLoader.RegisterAllPluginsAsync(ServiceProvider);
@@ -212,6 +213,35 @@ public partial class App : Application
 
         var settingsService = ServiceProvider?.GetRequiredService<ISettingsService>() as SettingsService;
         settingsService?.InitializeDefaults();
+    }
+
+    /// <summary>
+    /// 清理宿主设置库中属于「已不存在插件」的残留设置项。
+    /// 插件卸载只会删除插件目录与 <c>Data/{PluginId}/</c>，不会删除宿主 SQLite 里的设置行；
+    /// 若不清理，插件未安装时宿主设置页仍会显示其历史条目。
+    /// </summary>
+    private void PruneOrphanedPluginSettings(PluginLoader pluginLoader)
+    {
+        var settingsService = ServiceProvider?.GetRequiredService<ISettingsService>();
+        if (settingsService is null) return;
+
+        var installedPluginIds = pluginLoader.GetInstalledPlugins()
+            .Select(p => p.PluginId)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var orphanedPluginIds = settingsService.GetAllSettings()
+            .Where(s => !string.IsNullOrWhiteSpace(s.PluginId))
+            .Select(s => s.PluginId!)
+            .Where(id => !installedPluginIds.Contains(id))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (var pluginId in orphanedPluginIds)
+        {
+            settingsService.RemoveSettingsByPlugin(pluginId);
+            ServiceProvider?.GetService<ILogger<App>>()?
+                .LogInformation("[Settings] 已清理未安装插件 {PluginId} 的残留设置项", pluginId);
+        }
     }
 
     /// <summary>
