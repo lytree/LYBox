@@ -5,7 +5,7 @@
     版本必须与应用的 .NET 主版本一致（net10.0 → 10.0.x-satori.*）；如需回退原生运行时，发布时加 -p:UseSatoriGC=false。
     该属性需在评估期解析，无法走 Directory.Packages.props 变量，故此处直接内联版本号。
   -->
-  <Sdk Name="PublishWithSatoriGC" Version="10.0.14-satori.40433706833.1" />
+  <Sdk Name="PublishWithSatoriGC" Version="10.0.16-satori.44643582528.1" />
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>

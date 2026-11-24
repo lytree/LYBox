@@ -10,14 +10,14 @@
         运行时通过 SDK buildTransitive 的 _SharedAssembliesPatterns 由宿主提供共享程序集。
     -->
     <PropertyGroup>
-        <AvaloniaVersion>12.1.6</AvaloniaVersion>
+        <AvaloniaVersion>12.2.0</AvaloniaVersion>
         <IrihiUrsaVersion>2.3.1</IrihiUrsaVersion>
         <CommunityToolkit>8.4.2</CommunityToolkit>
-        <MicrosoftExtensionsDI>10.0.14</MicrosoftExtensionsDI>
+        <MicrosoftExtensionsDI>10.0.15</MicrosoftExtensionsDI>
         <AvaloniaDiagnosticsSupport>2.2.3</AvaloniaDiagnosticsSupport>
-        <EfCoreVersion>10.0.14</EfCoreVersion>
-        <MicrosoftExtensionsLocalization>10.0.14</MicrosoftExtensionsLocalization>
-        <ProDataGridVersion>12.1.5</ProDataGridVersion>
+        <EfCoreVersion>10.0.15</EfCoreVersion>
+        <MicrosoftExtensionsLocalization>10.0.15</MicrosoftExtensionsLocalization>
+        <ProDataGridVersion>12.2.0</ProDataGridVersion>
         <ScottPlotVersion>5.1.59</ScottPlotVersion>
         <!-- 结构化日志：Serilog 作为 Microsoft.Extensions.Logging 的实现提供方（替换 ZLogger）。
              文件 sink 由宿主自实现（Layout.Core/Logging/RollingFileSink.cs），
@@ -37,7 +37,7 @@
         <!-- Roslyn 源生成器 SDK：LYBox.Plugin.Generators 依赖，5.9.0 与 .NET SDK 10.0.401 内置 Roslyn 完全对齐 -->
         <MicrosoftCodeAnalysisVersion>5.9.0</MicrosoftCodeAnalysisVersion>
         <!-- Avalonia 递归依赖（版本跟随 Avalonia 12.x 发布） -->
-        <HarfBuzzSharpVersion>14.4.0.100</HarfBuzzSharpVersion>
+        <HarfBuzzSharpVersion>14.4.0.200</HarfBuzzSharpVersion>
 
         <!-- Ursa 递归依赖（版本跟随 Irihi.Ursa 2.3.x 发布） -->
         <IrihiAvaloniaSharedVersion>0.5.0</IrihiAvaloniaSharedVersion>
@@ -50,7 +50,7 @@
         <!-- 控制台 CLI 与插件命令注册基础设施（S4 引入）。
              System.CommandLine：CLI 解析（与 .NET 团队维护的 System.CommandLine 2.0.x 一致）。
              Spectre.Console：富文本终端输出（表格/Markup/ANSI），与 windit-toolbox CLI 输出风格一致。 -->
-        <SystemCommandLineVersion>2.0.14</SystemCommandLineVersion>
+        <SystemCommandLineVersion>2.0.15</SystemCommandLineVersion>
         <SpectreConsoleVersion>0.57.2</SpectreConsoleVersion>
     </PropertyGroup>
 </Project>

@@ -340,25 +340,25 @@ Program.cs → App.Initialize()
 
 | 包 | 版本 |
 |---|---|
-| Avalonia | `12.1.6` |
+| Avalonia | `12.2.0` |
 | Irihi.Ursa | `2.3.1` |
 | CommunityToolkit.Mvvm | `8.4.2` |
-| EF Core | `10.0.14` |
-| Microsoft.Extensions.DI / Localization | `10.0.14` |
+| EF Core | `10.0.15` |
+| Microsoft.Extensions.DI / Localization | `10.0.15` |
 | AvaloniaUI.DiagnosticsSupport | `2.2.3` |
-| ProDataGrid | `12.1.5` |
+| ProDataGrid | `12.2.0` |
 | ScottPlot | `5.1.59` |
 | Serilog / Serilog.Extensions.Logging / Serilog.Sinks.Console | `4.4.0` / `10.0.0` / `6.1.1` |
 | SkiaSharp | `3.119.4`（**锁定 3.x**，4.x 待上游生态兼容） |
 | Avalonia.Controls.WebView | `12.1.2` |
-| HarfBuzzSharp | `14.4.0.100` |
+| HarfBuzzSharp | `14.4.0.200` |
 | IrihiAvaloniaShared | `0.5.0` |
 | Tmds.DBus.Protocol/Generator | `0.95.2` |
 | Microsoft.CodeAnalysis（源生成器） | `5.9.0` |
-| System.CommandLine | `2.0.14` |
+| System.CommandLine | `2.0.15` |
 | Spectre.Console | `0.57.2` |
 | Cake.Sdk | `6.3.0` |
-| TUnit | `1.84.0` |
+| TUnit | `1.87.12` |
 
 插件 SDK 包：`LYBox.Plugin.Generators` + `LYBox.Plugin.CommandLine` + `LYBox.Plugin.Shared` + `LYBox.Plugin.Shared.Web`，版本与宿主一致（`version.props` 的 `<LyboxVersion>`）。
 

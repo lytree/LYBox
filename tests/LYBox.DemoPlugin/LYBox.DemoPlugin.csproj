@@ -33,7 +33,7 @@
 
   <ItemGroup>
     <!-- 与宿主同版本（src/Directory.Packages.props: AvaloniaVersion），避免共享程序集版本漂移 -->
-    <PackageReference Include="Avalonia" Version="12.1.4" />
+    <PackageReference Include="Avalonia" Version="12.2.0" />
   </ItemGroup>
 
   <ItemGroup>
